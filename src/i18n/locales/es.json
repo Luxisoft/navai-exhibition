@@ -1,0 +1,227 @@
+{
+  "common": {
+    "languageLabel": "Idioma",
+    "themeLabel": "Tema",
+    "themeDark": "Oscuro",
+    "themeLight": "Claro",
+    "byLuxisoft": "Por LUXISOFT",
+    "homeLinkAria": "Ir al inicio de Navai",
+    "bannerAlt": "Navai",
+    "githubRepository": "Repositorio de GitHub",
+    "docsNavigation": "Navegación",
+    "docsOnThisPage": "En esta página",
+    "docsOpenReadmeGithub": "Abrir README en GitHub",
+    "docsSidebarTitle": "Documentación",
+    "docsGroupHome": "Inicio",
+    "docsGroupInstallation": "Instalación",
+    "docsGroupDemo": "Demo",
+    "docsGroupLibraries": "Librerías",
+    "plansLabel": "Planes",
+    "searchDocsAria": "Buscar en documentación",
+    "searchDocsPlaceholder": "Buscar docs...",
+    "searchDocsEmpty": "Escribe para buscar en documentación e implementación.",
+    "searchDocsSearching": "Buscando...",
+    "searchDocsNoResults": "No se encontraron resultados.",
+    "searchDocsDocumentation": "Documentación",
+    "searchDocsImplementation": "Implementación",
+    "documentation": "Documentación",
+    "requestImplementation": "Pedir implementación",
+    "sourceRepository": "Repositorio fuente",
+    "home": "Inicio",
+    "docsInstallApi": "Instalación API",
+    "docsInstallWeb": "Instalación Web",
+    "docsInstallMobile": "Instalación Mobile"
+  },
+  "home": {
+    "documentationButton": "Documentación",
+    "implementationButton": "Pedir implementación",
+    "tagline": "IA de voz en tiempo real para navegación UI y ejecución de funciones"
+  },
+  "mic": {
+    "apiKeyLabel": "API KEY de OpenAI",
+    "apiKeyPlaceholder": "Pega tu API KEY de OpenAI",
+    "apiKeyNotice": "La API KEY que ingreses no se almacena. Solo se usa para probar el funcionamiento de NAVAI.",
+    "apiKeyNoticeRepoLabel": "Ver repositorio",
+    "ariaStart": "Iniciar sesión de voz con Navai",
+    "ariaStop": "Detener sesión de voz de Navai",
+    "connecting": "Conectando sesión de voz...",
+    "active": "Sesión de voz activa",
+    "activeDetail": "Sesión de voz activa. Habla ahora o toca el botón para detener.",
+    "stopped": "Sesión de voz detenida.",
+    "missingKey": "Configura OPENAI_API_KEY en backend o ingresa una API key de OpenAI.",
+    "frontendKeyDisabled": "El backend no permite API keys desde frontend. Activa NAVAI_ALLOW_FRONTEND_API_KEY=true.",
+    "clientSecretRejected": "OpenAI rechazó el client_secret. Verifica API key y modelo realtime.",
+    "genericError": "No se pudo iniciar la sesión de voz."
+  },
+  "docsPage": {
+    "badge": "📘 Documentación del Producto",
+    "title": "📚 Documentación de Navai Voice Runtime",
+    "description": "🧠 Resumen técnico extraído del repositorio oficial Luxisoft/Navai: arquitectura, contrato HTTP, flujo runtime y configuración.",
+    "sidebarTitle": "En esta página",
+    "sections": [
+      {
+        "id": "overview",
+        "title": "Qué ofrece Navai",
+        "description": "Navai es un tiempo de ejecución basado en la voz que permite a un agente de IA navegar por la interfaz de usuario de la aplicación y ejecutar funciones frontend/backend permitidas en tiempo real.",
+        "bullets": [
+          "Paquetes principales: @navai/voice-backend, @navai/voice-frontend, @navai/voice-mobile.",
+          "El backend crea client_secret efímero seguro para OpenAI Realtime.",
+          "El tiempo de ejecución de frontend resuelve rutas y ejecuta llamadas de herramientas seguras."
+        ]
+      },
+      {
+        "id": "http-contract",
+        "title": "Contrato HTTP de back-end",
+        "description": "Rutas oficiales desde la integración backend:",
+        "bullets": [
+          "POST /navai/realtime/client-secret",
+          "GET /navai/functions",
+          "POST /navai/functions/execute",
+          "Si el backend tiene OPENAI_API_KEY, la clave del servidor siempre tiene prioridad sobre la solicitud apiKey."
+        ]
+      },
+      {
+        "id": "runtime-flow",
+        "title": "Flujo en tiempo real",
+        "description": "Secuencia de tiempo de ejecución documentada utilizada por las integraciones de áreas de juegos:",
+        "bullets": [
+          "1) El cliente solicita un secreto efímero al backend.",
+          "2) El cliente recupera el registro de funciones de backend.",
+          "3) El agente está construido con herramientas de navegación_a + ejecución_aplicación_función.",
+          "4) RealtimeSession se conecta y ejecuta llamadas de función/navegación."
+        ]
+      },
+      {
+        "id": "env",
+        "title": "Variables ambientales clave",
+        "description": "Variables más relevantes de documentos oficiales:",
+        "bullets": [
+          "OPENAI_API_KEY, OPENAI_REALTIME_MODEL, OPENAI_REALTIME_VOICE",
+          "OPENAI_REALTIME_INSTRUCTIONS, OPENAI_REALTIME_LANGUAGE",
+          "NAVAI_FUNCTIONS_FOLDERS, NAVAI_API_URL, NAVAI_ALLOW_FRONTEND_API_KEY"
+        ]
+      },
+      {
+        "id": "quickstart",
+        "title": "Comandos de inicio rápido",
+        "description": "Comandos de configuración de referencia extraídos de las guías del repositorio.",
+        "code": "npm install @navai/voice-backend @navai/voice-frontend @openai/agents zod\nnpx navai-setup-voice-frontend\nnavai-generate-web-loaders"
+      },
+      {
+        "id": "sources",
+        "title": "Enlaces de fuentes oficiales",
+        "description": "Fuentes primarias utilizadas para esta página:",
+        "bullets": [
+          "https://github.com/Luxisoft/navai",
+          "packages/voice-backend/README.md",
+          "packages/voice-frontend/README.md",
+          "archivos README apps/playground-api y apps/playground-web"
+        ]
+      }
+    ]
+  },
+  "implementationPage": {
+    "badge": "💼 Servicios Profesionales",
+    "title": "🚀 Pedir implementación de Navai",
+    "description": "🎙️ Implementamos navegación por voz y ejecución de funciones en tu sitio/app con configuración lista para producción.",
+    "sidebarTitle": "🧩 Alcance del servicio",
+    "sections": [
+      {
+        "id": "what-you-get",
+        "title": "✅ ¿Qué está incluido?",
+        "description": "Alcance de entrega para cada plan:",
+        "bullets": [
+          "Integración del contrato backend de Navai y el tiempo de ejecución del frontend.",
+          "Mapeo de rutas y sinónimos para la estructura de su aplicación.",
+          "Validación, lista de verificación de control de calidad y soporte de puesta en marcha."
+        ]
+      },
+      {
+        "id": "process",
+        "title": "🛠️ Proceso de entrega",
+        "description": "Proceso de implementación típico:",
+        "bullets": [
+          "Llamada de descubrimiento + inventario de ruta/función.",
+          "Implementación técnica en entorno de puesta en escena.",
+          "Pruebas de aceptación y lanzamiento de producción."
+        ]
+      },
+      {
+        "id": "pricing-note",
+        "title": "💰 Modelo de precios",
+        "description": "El precio se basa en la cantidad de menús/rutas, la complejidad de la lógica de navegación y la profundidad de ejecución de la herramienta requerida."
+      }
+    ],
+    "plansTitle": "📦 Planes de implementación",
+    "plans": [
+      {
+        "name": "Starter",
+        "menuRange": "1-5 menús/secciones",
+        "price": "USD 1,200",
+        "timeline": "5-7 días hábiles",
+        "highlights": [
+          "Navegación por voz para rutas principales",
+          "Configuración del contrato backend (3 puntos finales Navai)",
+          "Ajuste de intención básico + transferencia de control de calidad"
+        ]
+      },
+      {
+        "name": "Growth",
+        "menuRange": "6-15 menús/secciones",
+        "price": "USD 2,900",
+        "timeline": "2-3 semanas",
+        "highlights": [
+          "Mapa de ruta ampliado y cobertura de sinónimos",
+          "Puente de ejecución de herramientas frontend + backend",
+          "Eventos de observabilidad + lista de verificación de producción"
+        ]
+      },
+      {
+        "name": "Scale",
+        "menuRange": "16-35 menús/secciones",
+        "price": "USD 5,800",
+        "timeline": "4-6 semanas",
+        "highlights": [
+          "Árboles de navegación complejos y estrategia alternativa",
+          "Patrones de enrutamiento basados ​​en roles",
+          "Refuerzo de carga y confiabilidad"
+        ]
+      },
+      {
+        "name": "Enterprise",
+        "menuRange": "Más de 36 menús/multiaplicación",
+        "price": "From USD 9,500",
+        "timeline": "Hoja de ruta personalizada",
+        "highlights": [
+          "Arquitectura multisuperficie (web/móvil/backend)",
+          "Plan de implementación dedicado + habilitación",
+          "SLA y opciones de soporte a largo plazo"
+        ]
+      }
+    ],
+    "whatsappButtonLabel": "💬 Contactar por WhatsApp",
+    "whatsappPrefill": "Hola Luxisoft, quiero una cotización para implementar Navai en mi sitio web o aplicación.",
+    "contactSectionTitle": "📨 Formulario de contacto",
+    "contactSectionDescription": "🧾 Comparte los detalles de tu proyecto y te prepararemos una cotización. Este formulario abre un correo a quote@luxisoft.com.",
+    "contactNameLabel": "Nombre completo",
+    "contactEmailLabel": "Correo de trabajo",
+    "contactCompanyLabel": "Empresa (opcional)",
+    "contactWhatsappLabel": "Número de WhatsApp (opcional)",
+    "contactMessageLabel": "Detalles del proyecto",
+    "contactNameRequiredMessage": "El nombre es obligatorio.",
+    "contactEmailRequiredMessage": "El correo es obligatorio.",
+    "contactEmailInvalidMessage": "Correo inválido.",
+    "contactMessageRequiredMessage": "Los detalles del proyecto son obligatorios.",
+    "contactCaptchaRequiredMessage": "Completa hCaptcha antes de enviar.",
+    "contactCaptchaNotReadyMessage": "hCaptcha aún no está listo. Intenta de nuevo en unos segundos.",
+    "contactCaptchaConfigMessage": "hCaptcha no está configurado.",
+    "contactCaptchaGenericErrorMessage": "La verificación de hCaptcha falló.",
+    "contactSendingLabel": "Enviando...",
+    "contactSuccessMessage": "Tu solicitud se envió correctamente.",
+    "contactErrorMessage": "No se pudo enviar tu solicitud. Intenta de nuevo.",
+    "contactSubmitLabel": "📤 Enviar solicitud de cotización",
+    "contactDisclaimer": "🔒 Tu solicitud se envía de forma segura a quote@luxisoft.com.",
+    "ctaLabel": "🧾 Solicitar propuesta",
+    "ctaHref": "mailto:quote@luxisoft.com?subject=Navai%20Implementation%20Request"
+  }
+}

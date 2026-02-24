@@ -320,6 +320,7 @@ export default function ImplementationContact() {
               sitekey={siteKey}
               size="normal"
               theme={captchaTheme}
+              fallbackErrorMessage={messages.implementationPage.contactCaptchaGenericErrorMessage}
               onTokenChange={(tokenValue, ekeyValue) => {
                 setCaptchaToken(tokenValue);
                 setCaptchaEkey(ekeyValue || null);

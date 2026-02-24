@@ -1,4 +1,4 @@
-# @navai/playground-api
+# 🧪 @navai/playground-api
 
 <p align="center">
   <a href="./README.es.md"><img alt="Spanish" src="https://img.shields.io/badge/Idioma-ES-0A66C2?style=for-the-badge"></a>
@@ -26,7 +26,7 @@ Backend Express de ejemplo para:
 - crear `client_secret` de Realtime
 - exponer funciones backend dinamicas para tools
 
-## Inicio rapido
+## 🚀 Inicio rapido
 
 1. Instala dependencias desde la raiz:
 
@@ -58,7 +58,7 @@ npm run dev --workspace @navai/playground-api
 
 Atajo: desde la raiz, `npm run dev` levanta API + Web.
 
-## Endpoints
+## 🌐 Endpoints
 
 - `GET /health`
   - respuesta: `{ "ok": true }`
@@ -98,7 +98,7 @@ Notas:
 }
 ```
 
-## Variables de entorno
+## ⚙️ Variables de entorno
 
 - `OPENAI_API_KEY`: key de servidor.
 - `OPENAI_REALTIME_MODEL`: default `gpt-realtime`.
@@ -114,7 +114,7 @@ Notas:
 - `NAVAI_ALLOW_FRONTEND_API_KEY`: `true|false`.
 - `PORT`: puerto HTTP.
 
-## Estructura relevante
+## 📁 Estructura relevante
 
 - `src/server.ts`: setup Express, CORS y errores.
 - `src/ai/**`: funciones backend que se cargan como tools (segun `NAVAI_FUNCTIONS_FOLDERS`).

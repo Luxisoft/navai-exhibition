@@ -6,12 +6,12 @@ const nextConfig: NextConfig = {
     return [
       {
         source: "/documentacion/readme-raiz",
-        destination: "/documentation/root-readme",
+        destination: "/documentation/home",
         permanent: true,
       },
       {
         source: "/documentation/readme-raiz",
-        destination: "/documentation/root-readme",
+        destination: "/documentation/home",
         permanent: true,
       },
       {

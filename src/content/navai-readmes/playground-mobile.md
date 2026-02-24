@@ -1,4 +1,4 @@
-# @navai/playground-mobile
+# 🧪 @navai/playground-mobile
 
 <p align="center">
   <a href="./README.es.md"><img alt="Spanish" src="https://img.shields.io/badge/Idioma-ES-0A66C2?style=for-the-badge"></a>
@@ -21,9 +21,9 @@
   <a href="../../packages/voice-mobile/README.md"><img alt="Voice Mobile Docs" src="https://img.shields.io/badge/Voice%20Mobile-Docs-0B8F6A?style=for-the-badge"></a>
 </p>
 
-Playground React Native (Expo) para probar `@navai/voice-mobile` + backend NAVAI con:
+📱 Playground React Native (Expo) para probar `@navai/voice-mobile` + backend NAVAI con:
 
-> Requisito obligatorio: este playground Mobile depende del backend API de NAVAI activo para emitir `client_secret`, listar funciones y ejecutar tools backend.
+> ⚠️ Requisito obligatorio: este playground Mobile depende del backend API de NAVAI activo para emitir `client_secret`, listar funciones y ejecutar tools backend.
 
 - navegacion por pantallas
 - tools locales cargados dinamicamente desde carpeta
@@ -31,14 +31,14 @@ Playground React Native (Expo) para probar `@navai/voice-mobile` + backend NAVAI
 - configuracion por `.env` (sin VITE)
 - `VoiceNavigator` usando `useMobileVoiceAgent` desde `@navai/voice-mobile`
 
-## Requisitos
+## ✅ Requisitos
 
 - Node.js 20+
 - Android Studio + Android SDK
 - JDK 23 (Java) obligatorio
 - Dispositivo Android con depuracion USB (o emulador)
 
-## Variables de entorno
+## ⚙️ Variables de entorno
 
 Archivo: `apps/playground-mobile/.env`
 
@@ -55,7 +55,7 @@ Notas:
 - Estas variables se exponen en runtime desde `app.config.js`.
 - El comando `generate:ai-modules` usa el CLI oficial de `@navai/voice-mobile` (no script local duplicado).
 
-## Estructura esperada
+## 📁 Estructura esperada
 
 - Rutas: `apps/playground-mobile/src/ai/routes.ts`
 - Functions locales: `apps/playground-mobile/src/ai/functions-modules/**/*.ts`
@@ -79,7 +79,7 @@ Para rutas de pantalla dinamicas, define la ruta de modulo en `src/ai/routes.ts`
 }
 ```
 
-## Inicio rapido
+## 🚀 Inicio rapido
 
 1. Instala dependencias desde la raiz:
 
@@ -99,7 +99,7 @@ npm run dev --workspace @navai/playground-api
 npm run android --workspace @navai/playground-mobile -- --device
 ```
 
-## Expo Go vs Development Build
+## 🧱 Expo Go vs Development Build
 
 `react-native-webrtc` requiere modulo nativo. Para voz realtime debes usar Development Build.
 
@@ -118,7 +118,7 @@ npm run dev --workspace @navai/playground-mobile -- --dev-client
 
 4. Abre la app instalada (no Expo Go).
 
-## Configuracion Android (Windows + Git Bash)
+## 🤖 Configuracion Android (Windows + Git Bash)
 
 ```bash
 export JAVA_HOME="/c/Program Files/Java/jdk-23"
@@ -139,7 +139,7 @@ Si Gradle no encuentra SDK, crea `apps/playground-mobile/android/local.propertie
 sdk.dir=C:/Users/<TU_USUARIO>/AppData/Local/Android/Sdk
 ```
 
-## Notas de red
+## 🌐 Notas de red
 
 - Android emulator: `http://10.0.2.2:3000`
 - iOS simulator: `http://localhost:3000`
@@ -148,6 +148,6 @@ sdk.dir=C:/Users/<TU_USUARIO>/AppData/Local/Android/Sdk
 - `http://<IP>:3000/health`
 - `http://<IP>:3000/navai/functions`
 
-## Troubleshooting
+## 🛟 Troubleshooting
 
 Errores comunes y soluciones: `apps/playground-mobile/TROUBLESHOOTING.md`.

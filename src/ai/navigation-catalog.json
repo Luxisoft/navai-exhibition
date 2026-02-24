@@ -1,0 +1,484 @@
+{
+  "projectId": "navai-exhibition",
+  "projectName": "NAVAI Exhibition",
+  "routes": [
+    {
+      "id": "home",
+      "group": "app",
+      "kind": "page",
+      "name": "home",
+      "title": "Home",
+      "path": "/",
+      "description": "Landing page with voice demo, documentation shortcut, and implementation shortcut.",
+      "synonyms": [
+        "inicio",
+        "home",
+        "pagina principal",
+        "pantalla principal",
+        "landing",
+        "volver al inicio"
+      ],
+      "screenComponents": ["HomeHero", "HomeFooterBar", "NavaiMicButton"],
+      "notes": [
+        "Contains the main voice activation button.",
+        "Includes quick links to Documentation and Request Implementation."
+      ]
+    },
+    {
+      "id": "documentation",
+      "group": "documentation",
+      "kind": "page",
+      "name": "documentation",
+      "title": "Documentation",
+      "path": "/documentation",
+      "description": "Documentation index. Redirects to /documentation/home.",
+      "synonyms": [
+        "documentacion",
+        "docs",
+        "manual",
+        "guia tecnica",
+        "documentation hub"
+      ],
+      "screenComponents": ["NavaiDocsShell", "DocsSidebarAccordion"],
+      "notes": ["Acts as a hub and redirects to the home documentation page."]
+    },
+    {
+      "id": "documentation-home",
+      "group": "documentation",
+      "kind": "page",
+      "name": "documentation-home",
+      "title": "Documentation Home",
+      "path": "/documentation/home",
+      "description": "NAVAI project overview, core libraries, framework coverage, and platform/device support.",
+      "synonyms": [
+        "docs home",
+        "readme principal",
+        "overview navai",
+        "project overview",
+        "readme root"
+      ],
+      "screenComponents": ["NavaiDocsShell", "NavaiDocMarkdown"]
+    },
+    {
+      "id": "documentation-installation",
+      "group": "documentation",
+      "kind": "group",
+      "name": "documentation-installation",
+      "title": "Documentation Installation",
+      "path": "/documentation/installation-api",
+      "description": "Installation submenu group (API, Web, Mobile). Opens the API installation page as entry point.",
+      "synonyms": [
+        "instalacion",
+        "instalacion docs",
+        "installation",
+        "como instalar navai",
+        "setup navai"
+      ],
+      "screenComponents": ["NavaiDocsShell", "DocsSidebarAccordion"],
+      "notes": ["Sidebar submenu group: API, Web, Mobile."]
+    },
+    {
+      "id": "documentation-installation-api",
+      "group": "documentation",
+      "kind": "page",
+      "parentId": "documentation-installation",
+      "name": "documentation-installation-api",
+      "title": "Installation API",
+      "path": "/documentation/installation-api",
+      "description": "Backend installation guide for NAVAI HTTP contract and Express integration.",
+      "synonyms": [
+        "instalacion api",
+        "installation api",
+        "backend installation",
+        "configurar backend navai"
+      ],
+      "screenComponents": ["NavaiDocsShell", "NavaiDocMarkdown"]
+    },
+    {
+      "id": "documentation-installation-web",
+      "group": "documentation",
+      "kind": "page",
+      "parentId": "documentation-installation",
+      "name": "documentation-installation-web",
+      "title": "Installation Web",
+      "path": "/documentation/installation-web",
+      "description": "Frontend web installation guide for @navai/voice-frontend, routes, and local functions.",
+      "synonyms": [
+        "instalacion web",
+        "installation web",
+        "frontend web docs",
+        "voice frontend setup"
+      ],
+      "screenComponents": ["NavaiDocsShell", "NavaiDocMarkdown"]
+    },
+    {
+      "id": "documentation-installation-mobile",
+      "group": "documentation",
+      "kind": "page",
+      "parentId": "documentation-installation",
+      "name": "documentation-installation-mobile",
+      "title": "Installation Mobile",
+      "path": "/documentation/installation-mobile",
+      "description": "Mobile installation guide for @navai/voice-mobile, runtime config, and loader generation.",
+      "synonyms": [
+        "instalacion mobile",
+        "instalacion movil",
+        "installation mobile",
+        "mobile setup navai"
+      ],
+      "screenComponents": ["NavaiDocsShell", "NavaiDocMarkdown"]
+    },
+    {
+      "id": "documentation-demo",
+      "group": "documentation",
+      "kind": "group",
+      "name": "documentation-demo",
+      "title": "Documentation Demo",
+      "path": "/documentation/playground-api",
+      "description": "Demo submenu group (Playground API, Web, Mobile). Opens Playground API as entry point.",
+      "synonyms": [
+        "demo docs",
+        "playground docs",
+        "ejemplos",
+        "demos"
+      ],
+      "screenComponents": ["NavaiDocsShell", "DocsSidebarAccordion"],
+      "notes": ["Sidebar submenu group: Playground API, Playground Web, Playground Mobile."]
+    },
+    {
+      "id": "documentation-playground-api",
+      "group": "documentation",
+      "kind": "page",
+      "parentId": "documentation-demo",
+      "name": "documentation-playground-api",
+      "title": "Playground API",
+      "path": "/documentation/playground-api",
+      "description": "Reference backend demo README with client_secret and backend tools execution flow.",
+      "synonyms": [
+        "playground api",
+        "demo api",
+        "backend demo docs"
+      ],
+      "screenComponents": ["NavaiDocsShell", "NavaiDocMarkdown"]
+    },
+    {
+      "id": "documentation-playground-web",
+      "group": "documentation",
+      "kind": "page",
+      "parentId": "documentation-demo",
+      "name": "documentation-playground-web",
+      "title": "Playground Web",
+      "path": "/documentation/playground-web",
+      "description": "Reference React frontend demo README for voice navigation and realtime flow.",
+      "synonyms": [
+        "playground web",
+        "demo web",
+        "frontend demo docs"
+      ],
+      "screenComponents": ["NavaiDocsShell", "NavaiDocMarkdown"]
+    },
+    {
+      "id": "documentation-playground-mobile",
+      "group": "documentation",
+      "kind": "page",
+      "parentId": "documentation-demo",
+      "name": "documentation-playground-mobile",
+      "title": "Playground Mobile",
+      "path": "/documentation/playground-mobile",
+      "description": "Reference React Native/Expo demo README for mobile voice integration.",
+      "synonyms": [
+        "playground mobile",
+        "demo mobile",
+        "react native demo docs"
+      ],
+      "screenComponents": ["NavaiDocsShell", "NavaiDocMarkdown"]
+    },
+    {
+      "id": "documentation-examples",
+      "group": "documentation",
+      "kind": "group",
+      "name": "documentation-examples",
+      "title": "Documentation Examples",
+      "path": "/documentation/playground-stores",
+      "description": "Examples submenu group (currently Tiendas/Stores ecommerce demo). Opens the Stores demo page as entry point.",
+      "synonyms": [
+        "examples docs",
+        "ejemplos",
+        "ejemplos docs",
+        "stores demo",
+        "ecommerce examples"
+      ],
+      "screenComponents": ["NavaiDocsShell", "DocsSidebarAccordion"],
+      "notes": ["Sidebar submenu group: Tiendas / Stores ecommerce demo and its in-page sections."]
+    },
+    {
+      "id": "documentation-playground-stores",
+      "group": "documentation",
+      "kind": "page",
+      "parentId": "documentation-examples",
+      "name": "documentation-playground-stores",
+      "title": "Demo Tiendas",
+      "path": "/documentation/playground-stores",
+      "description": "Interactive ecommerce demo with read-only SQLite seed data, localStorage product CRUD, purchase simulation, and NAVAI-friendly reports.",
+      "synonyms": [
+        "tiendas",
+        "demo tiendas",
+        "ecommerce demo",
+        "store demo",
+        "demo ecommerce",
+        "tienda demo"
+      ],
+      "screenComponents": ["NavaiDocsShell", "NavaiDocMarkdown", "EcommerceStoreDemo"],
+      "notes": [
+        "Contains a read-only SQLite seed dataset for realistic ecommerce analytics and reports.",
+        "User-created products and purchase simulations are stored in localStorage only.",
+        "Includes anchors for reports, catalog, CRUD form, purchase form, and seed orders."
+      ]
+    },
+    {
+      "id": "documentation-playground-stores-overview",
+      "group": "documentation",
+      "kind": "section",
+      "parentId": "documentation-playground-stores",
+      "name": "documentation-playground-stores-overview",
+      "title": "Tiendas / Overview",
+      "path": "/documentation/playground-stores#ecommerce-demo-overview",
+      "description": "Overview section explaining the SQLite seed and localStorage safety model for the ecommerce demo.",
+      "synonyms": ["overview tiendas", "resumen tienda demo", "ecommerce overview"],
+      "screenComponents": ["EcommerceStoreDemo"]
+    },
+    {
+      "id": "documentation-playground-stores-reports",
+      "group": "documentation",
+      "kind": "section",
+      "parentId": "documentation-playground-stores",
+      "name": "documentation-playground-stores-reports",
+      "title": "Tiendas / Reports and KPIs",
+      "path": "/documentation/playground-stores#ecommerce-demo-reports",
+      "description": "SQLite-backed KPI dashboard and category sales report for the demo ecommerce dataset.",
+      "synonyms": ["reportes ecommerce", "kpis tienda", "sales report demo"],
+      "screenComponents": ["EcommerceStoreDemo"]
+    },
+    {
+      "id": "documentation-playground-stores-catalog",
+      "group": "documentation",
+      "kind": "section",
+      "parentId": "documentation-playground-stores",
+      "name": "documentation-playground-stores-catalog",
+      "title": "Tiendas / Catalog Browser",
+      "path": "/documentation/playground-stores#ecommerce-demo-catalog",
+      "description": "Combined catalog table showing read-only seed products and user-created local products.",
+      "synonyms": ["catalogo tienda demo", "catalog browser", "productos demo"],
+      "screenComponents": ["EcommerceStoreDemo"]
+    },
+    {
+      "id": "documentation-playground-stores-product-crud",
+      "group": "documentation",
+      "kind": "section",
+      "parentId": "documentation-playground-stores",
+      "name": "documentation-playground-stores-product-crud",
+      "title": "Tiendas / Product CRUD",
+      "path": "/documentation/playground-stores#ecommerce-demo-product-crud",
+      "description": "Form section to create, edit, and delete user products stored in localStorage.",
+      "synonyms": ["crud productos", "crear producto demo", "editar producto demo"],
+      "screenComponents": ["EcommerceStoreDemo"]
+    },
+    {
+      "id": "documentation-playground-stores-purchase-form",
+      "group": "documentation",
+      "kind": "section",
+      "parentId": "documentation-playground-stores",
+      "name": "documentation-playground-stores-purchase-form",
+      "title": "Tiendas / Purchase Simulator",
+      "path": "/documentation/playground-stores#ecommerce-demo-purchase-form",
+      "description": "Form section to simulate purchases on seed or user products, saved locally in the browser.",
+      "synonyms": ["comprar producto demo", "purchase simulator", "simular compra"],
+      "screenComponents": ["EcommerceStoreDemo"]
+    },
+    {
+      "id": "documentation-playground-stores-seed-orders",
+      "group": "documentation",
+      "kind": "section",
+      "parentId": "documentation-playground-stores",
+      "name": "documentation-playground-stores-seed-orders",
+      "title": "Tiendas / Seed Orders",
+      "path": "/documentation/playground-stores#ecommerce-demo-seed-orders",
+      "description": "Read-only recent orders table from the SQLite seed database.",
+      "synonyms": ["ordenes demo", "seed orders", "recent orders sqlite"],
+      "screenComponents": ["EcommerceStoreDemo"]
+    },
+    {
+      "id": "documentation-libraries",
+      "group": "documentation",
+      "kind": "group",
+      "name": "documentation-libraries",
+      "title": "Documentation Libraries",
+      "path": "/documentation/voice-backend",
+      "description": "Libraries submenu group (@navai/voice-backend, @navai/voice-frontend, @navai/voice-mobile).",
+      "synonyms": [
+        "librerias",
+        "libraries",
+        "packages navai",
+        "sdk docs"
+      ],
+      "screenComponents": ["NavaiDocsShell", "DocsSidebarAccordion"],
+      "notes": ["Sidebar submenu group: backend, frontend, and mobile packages."]
+    },
+    {
+      "id": "documentation-voice-backend",
+      "group": "documentation",
+      "kind": "page",
+      "parentId": "documentation-libraries",
+      "name": "documentation-voice-backend",
+      "title": "@navai/voice-backend",
+      "path": "/documentation/voice-backend",
+      "description": "Backend package docs: route contract, dynamic functions loading, and runtime behavior.",
+      "synonyms": [
+        "voice backend",
+        "backend package",
+        "libreria backend",
+        "package voice backend"
+      ],
+      "screenComponents": ["NavaiDocsShell", "NavaiDocMarkdown"]
+    },
+    {
+      "id": "documentation-voice-frontend",
+      "group": "documentation",
+      "kind": "page",
+      "parentId": "documentation-libraries",
+      "name": "documentation-voice-frontend",
+      "title": "@navai/voice-frontend",
+      "path": "/documentation/voice-frontend",
+      "description": "Frontend web package docs: agent builder, routes, functions, and runtime config.",
+      "synonyms": [
+        "voice frontend",
+        "frontend package",
+        "libreria frontend",
+        "package voice frontend"
+      ],
+      "screenComponents": ["NavaiDocsShell", "NavaiDocMarkdown"]
+    },
+    {
+      "id": "documentation-voice-mobile",
+      "group": "documentation",
+      "kind": "page",
+      "parentId": "documentation-libraries",
+      "name": "documentation-voice-mobile",
+      "title": "@navai/voice-mobile",
+      "path": "/documentation/voice-mobile",
+      "description": "Mobile package docs: WebRTC transport, session orchestration, and hooks.",
+      "synonyms": [
+        "voice mobile",
+        "mobile package",
+        "libreria mobile",
+        "package voice mobile"
+      ],
+      "screenComponents": ["NavaiDocsShell", "NavaiDocMarkdown"]
+    },
+    {
+      "id": "request-implementation",
+      "group": "implementation",
+      "kind": "page",
+      "name": "request-implementation",
+      "title": "Request Implementation",
+      "path": "/request-implementation",
+      "description": "Commercial implementation page with service scope, plans, and contact form.",
+      "synonyms": [
+        "pedir implementacion",
+        "request implementation",
+        "cotizacion",
+        "servicios",
+        "solicitar propuesta",
+        "hire implementation"
+      ],
+      "screenComponents": ["KnowledgeTemplate", "ImplementationContact"],
+      "notes": [
+        "Contains implementation scope sections, pricing plans, and contact form.",
+        "Has anchor submenus for service scope, process, pricing, plans, and contact."
+      ]
+    },
+    {
+      "id": "request-implementation-what-you-get",
+      "group": "implementation",
+      "kind": "section",
+      "parentId": "request-implementation",
+      "name": "request-implementation-what-you-get",
+      "title": "Implementation / What is included",
+      "path": "/request-implementation#what-you-get",
+      "description": "Submenu section with included scope and deliverables.",
+      "synonyms": [
+        "que incluye",
+        "what is included",
+        "alcance",
+        "deliverables"
+      ],
+      "screenComponents": ["KnowledgeTemplate"]
+    },
+    {
+      "id": "request-implementation-process",
+      "group": "implementation",
+      "kind": "section",
+      "parentId": "request-implementation",
+      "name": "request-implementation-process",
+      "title": "Implementation / Delivery process",
+      "path": "/request-implementation#process",
+      "description": "Submenu section describing discovery, staging implementation, and rollout process.",
+      "synonyms": [
+        "proceso",
+        "delivery process",
+        "implementation process"
+      ],
+      "screenComponents": ["KnowledgeTemplate"]
+    },
+    {
+      "id": "request-implementation-pricing-note",
+      "group": "implementation",
+      "kind": "section",
+      "parentId": "request-implementation",
+      "name": "request-implementation-pricing-note",
+      "title": "Implementation / Pricing model",
+      "path": "/request-implementation#pricing-note",
+      "description": "Submenu section with pricing model criteria based on routes, complexity, and tool depth.",
+      "synonyms": [
+        "precio",
+        "pricing model",
+        "modelo de precios"
+      ],
+      "screenComponents": ["KnowledgeTemplate"]
+    },
+    {
+      "id": "request-implementation-plans",
+      "group": "implementation",
+      "kind": "section",
+      "parentId": "request-implementation",
+      "name": "request-implementation-plans",
+      "title": "Implementation / Plans",
+      "path": "/request-implementation#plans",
+      "description": "Submenu section with Starter, Growth, Scale, and Enterprise plans.",
+      "synonyms": [
+        "planes",
+        "implementation plans",
+        "pricing plans",
+        "starter growth scale enterprise"
+      ],
+      "screenComponents": ["KnowledgeTemplate"]
+    },
+    {
+      "id": "request-implementation-contact",
+      "group": "implementation",
+      "kind": "section",
+      "parentId": "request-implementation",
+      "name": "request-implementation-contact",
+      "title": "Implementation / Contact form",
+      "path": "/request-implementation#contacto",
+      "description": "Submenu section with quote request form and WhatsApp contact action.",
+      "synonyms": [
+        "contacto",
+        "contact form",
+        "formulario",
+        "whatsapp"
+      ],
+      "screenComponents": ["ImplementationContact"]
+    }
+  ]
+}

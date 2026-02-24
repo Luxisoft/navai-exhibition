@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { getLocalizedNavaiDocs } from "@/i18n/docs-catalog";
 import { APP_MESSAGES, DEFAULT_LANGUAGE, type LanguageCode } from "@/i18n/messages";
 import { NAVAI_DOCS, getNavaiDocPageBySlug, type NavaiDocPage } from "@/lib/navai-docs";
 
@@ -229,11 +230,15 @@ export async function GET(request: NextRequest) {
 
   const docs = await getDocsCache();
   const docsPrefix = APP_MESSAGES[language].common.documentation;
+  const localizedDocs = getLocalizedNavaiDocs(language);
 
   for (const doc of docs) {
-    const localizedTitle = `${docsPrefix}: ${doc.title}`;
+    const localizedMeta = localizedDocs.entries[doc.slug];
+    const localizedDocTitle = localizedMeta?.title ?? doc.title;
+    const localizedDocSummary = localizedMeta?.summary ?? doc.summary;
+    const localizedTitle = `${docsPrefix}: ${localizedDocTitle}`;
     const plainText = stripMarkdown(doc.markdown);
-    const pageBodyRaw = `${doc.summary} ${plainText}`;
+    const pageBodyRaw = `${localizedDocSummary} ${plainText}`;
     const pageText = normalizeText(`${localizedTitle} ${pageBodyRaw}`);
     const pageTitle = normalizeText(localizedTitle);
 
@@ -249,7 +254,7 @@ export async function GET(request: NextRequest) {
     }
 
     for (const section of doc.sections) {
-      const sectionBody = normalizeText(`${section.title} ${doc.title} ${doc.summary}`);
+      const sectionBody = normalizeText(`${section.title} ${localizedDocTitle} ${localizedDocSummary}`);
       if (!containsAllTokens(sectionBody, tokens)) {
         continue;
       }
@@ -258,8 +263,8 @@ export async function GET(request: NextRequest) {
         id: `doc-section-${doc.slug}-${section.id}`,
         href: `/documentation/${doc.slug}#${section.id}`,
         scope: "documentation",
-        title: `${doc.title} / ${section.title}`,
-        snippet: doc.summary,
+        title: `${localizedDocTitle} / ${section.title}`,
+        snippet: localizedDocSummary,
         score: scoreMatch(normalizeText(section.title), sectionBody, query, tokens),
       });
     }

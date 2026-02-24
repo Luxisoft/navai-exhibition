@@ -1,22 +1,22 @@
-# Instalacion Web (@navai/voice-frontend)
+# 🌐 Instalacion Web (@navai/voice-frontend)
 
-Guia de instalacion basada en `README.es.md` del repositorio principal de NAVAI para integracion frontend web.
+🧩 Guia de instalacion basada en `README.es.md` del repositorio principal de NAVAI para integracion frontend web.
 
-> Requisito obligatorio: antes de usar Web, debes implementar y tener operativo el backend API de NAVAI (`/navai/realtime/client-secret`, `/navai/functions`, `/navai/functions/execute`).
+> ⚠️ Requisito obligatorio: antes de usar Web, debes implementar y tener operativo el backend API de NAVAI (`/navai/realtime/client-secret`, `/navai/functions`, `/navai/functions/execute`).
 
-## Requisitos
+## ✅ Requisitos
 
 - Node.js 20+
 - App React (o framework compatible con React)
 - Backend con contrato NAVAI activo
 
-## 1) Instalar dependencias
+## 📦 1) Instalar dependencias
 
 ```bash
 npm install @navai/voice-frontend react react-dom react-router-dom @openai/agents zod
 ```
 
-## 2) Variables de entorno recomendadas
+## ⚙️ 2) Variables de entorno recomendadas
 
 ```env
 NAVAI_API_URL=http://localhost:3000
@@ -24,7 +24,7 @@ NAVAI_FUNCTIONS_FOLDERS=src/ai/functions-modules
 NAVAI_ROUTES_FILE=src/ai/routes.ts
 ```
 
-## 3) Definir rutas navegables del agente
+## 🧭 3) Definir rutas navegables del agente
 
 Archivo sugerido: `src/ai/routes.ts`
 
@@ -37,7 +37,7 @@ export const routes: NavaiRouteDefinition[] = [
 ];
 ```
 
-## 4) Definir funciones frontend (tools locales)
+## 🧰 4) Definir funciones frontend (tools locales)
 
 Carpeta sugerida: `src/ai/functions-modules`
 
@@ -60,7 +60,7 @@ export default {
 };
 ```
 
-## 5) Integrar el runtime web
+## 🔗 5) Integrar el runtime web
 
 Usa `@navai/voice-frontend` para:
 

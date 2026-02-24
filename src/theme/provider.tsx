@@ -39,26 +39,33 @@ function applyThemeClass(theme: ThemeMode) {
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<ThemeMode>(() => {
+  const [theme, setThemeState] = useState<ThemeMode>(DEFAULT_THEME);
+  const [isThemeReady, setIsThemeReady] = useState(false);
+
+  useEffect(() => {
     if (typeof window === "undefined") {
-      return DEFAULT_THEME;
+      return;
     }
 
     const stored = window.localStorage.getItem(THEME_STORAGE_KEY);
-    if (isThemeMode(stored)) {
-      return stored;
-    }
+    const nextTheme = isThemeMode(stored) ? stored : DEFAULT_THEME;
 
-    return DEFAULT_THEME;
-  });
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setThemeState((current) => (current === nextTheme ? current : nextTheme));
+    setIsThemeReady(true);
+  }, []);
 
   useEffect(() => {
+    if (!isThemeReady) {
+      return;
+    }
+
     if (typeof window !== "undefined") {
       window.localStorage.setItem(THEME_STORAGE_KEY, theme);
     }
 
     applyThemeClass(theme);
-  }, [theme]);
+  }, [isThemeReady, theme]);
 
   const setTheme = useCallback((nextTheme: ThemeMode) => {
     setThemeState(nextTheme);

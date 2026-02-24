@@ -39,25 +39,37 @@ function detectLanguageFromBrowser(): LanguageCode {
 }
 
 export function I18nProvider({ children }: { children: ReactNode }) {
-  const [language, setLanguageState] = useState<LanguageCode>(() => {
+  const [language, setLanguageState] = useState<LanguageCode>(DEFAULT_LANGUAGE);
+
+  useEffect(() => {
     if (typeof window === "undefined") {
-      return DEFAULT_LANGUAGE;
+      return;
     }
 
     const storedValue = window.localStorage.getItem(I18N_STORAGE_KEY);
-    if (isLanguageCode(storedValue)) {
-      return storedValue;
-    }
+    const detectedLanguage = isLanguageCode(storedValue)
+      ? storedValue
+      : detectLanguageFromBrowser();
 
-    return detectLanguageFromBrowser();
-  });
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setLanguageState((current) =>
+      current === detectedLanguage ? current : detectedLanguage
+    );
+  }, []);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
       window.localStorage.setItem(I18N_STORAGE_KEY, language);
     }
     if (typeof document !== "undefined") {
-      document.documentElement.lang = language;
+      const root = document.documentElement;
+      root.lang = language;
+      root.dataset.language = language;
+
+      for (const option of LANGUAGE_OPTIONS) {
+        root.classList.remove(`lang-${option.code}`);
+      }
+      root.classList.add(`lang-${language}`);
     }
   }, [language]);
 

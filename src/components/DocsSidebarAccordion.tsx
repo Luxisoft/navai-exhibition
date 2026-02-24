@@ -4,32 +4,37 @@ import Link from "next/link";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { useState } from "react";
 
+type NavaiDocGroupKey = "home" | "installation" | "demo" | "examples" | "libraries";
+
 type DocsSidebarItem = {
   slug: string;
   title: string;
 };
 
 type DocsSidebarGroup = {
-  group: string;
+  groupKey: NavaiDocGroupKey;
+  label: string;
   items: DocsSidebarItem[];
 };
 
 type DocsSidebarAccordionProps = {
-  navTitle?: string;
+  navTitle: string;
   homeItem?: DocsSidebarItem;
   groups: DocsSidebarGroup[];
   activeSlug?: string;
+  onNavigate?: () => void;
 };
 
 export default function DocsSidebarAccordion({
-  navTitle = "Documentation",
+  navTitle,
   homeItem,
   groups,
   activeSlug,
+  onNavigate,
 }: DocsSidebarAccordionProps) {
-  const [expandedGroup, setExpandedGroup] = useState<string | null>(() => {
-    const activeGroup = groups.find((group) => group.items.some((item) => item.slug === activeSlug))?.group;
-    const defaultGroup = groups.find((group) => group.group === "Demo")?.group ?? groups[0]?.group ?? null;
+  const [expandedGroup, setExpandedGroup] = useState<NavaiDocGroupKey | null>(() => {
+    const activeGroup = groups.find((group) => group.items.some((item) => item.slug === activeSlug))?.groupKey;
+    const defaultGroup = groups.find((group) => group.groupKey === "demo")?.groupKey ?? groups[0]?.groupKey ?? null;
     return activeGroup ?? defaultGroup;
   });
 
@@ -41,6 +46,7 @@ export default function DocsSidebarAccordion({
           <Link
             href={`/documentation/${homeItem.slug}`}
             className={`docs-nav-item${activeSlug === homeItem.slug ? " is-active" : ""}`}
+            onClick={onNavigate}
           >
             {homeItem.title}
           </Link>
@@ -49,21 +55,21 @@ export default function DocsSidebarAccordion({
 
       <div className="docs-nav-groups">
         {groups.map((group) => {
-          const isOpen = expandedGroup === group.group;
-          const panelId = `docs-group-panel-${group.group.toLowerCase().replace(/\s+/g, "-")}`;
+          const isOpen = expandedGroup === group.groupKey;
+          const panelId = `docs-group-panel-${group.groupKey}`;
 
           return (
-            <div key={group.group} className={`docs-nav-group${isOpen ? " is-open" : ""}`}>
+            <div key={group.groupKey} className={`docs-nav-group${isOpen ? " is-open" : ""}`}>
               <button
                 type="button"
                 className={`docs-group-toggle${isOpen ? " is-open" : ""}`}
                 aria-expanded={isOpen}
                 aria-controls={panelId}
                 onClick={() =>
-                  setExpandedGroup((current) => (current === group.group ? null : group.group))
+                  setExpandedGroup((current) => (current === group.groupKey ? null : group.groupKey))
                 }
               >
-                <span className="docs-group-title">{group.group}</span>
+                <span className="docs-group-title">{group.label}</span>
                 {isOpen ? (
                   <ChevronUp className="docs-group-arrow" aria-hidden="true" />
                 ) : (
@@ -77,6 +83,7 @@ export default function DocsSidebarAccordion({
                     key={doc.slug}
                     href={`/documentation/${doc.slug}`}
                     className={`docs-nav-item docs-nav-subitem${activeSlug === doc.slug ? " is-active" : ""}`}
+                    onClick={onNavigate}
                   >
                     {doc.title}
                   </Link>

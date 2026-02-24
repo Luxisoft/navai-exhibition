@@ -52,7 +52,7 @@ export default function HomeHero({ hasBackendApiKey }: HomeHeroProps) {
     <>
       <div className="home-orb-layer">
         <Orb
-          hoverIntensity={0.66}
+          hoverIntensity={isAgentSpeaking ? 1.05 : 0.08}
           rotateOnHover
           hue={orbHue}
           forceHoverState={isAgentSpeaking}
@@ -63,8 +63,10 @@ export default function HomeHero({ hasBackendApiKey }: HomeHeroProps) {
 
       <div className="home-content">
         <div className="home-brand">
-          <Image src="/navai_banner.png" alt="Navai banner" width={250} height={89} priority />
+          <Image src="/navai_banner.png" alt={messages.common.bannerAlt} width={250} height={89} priority />
         </div>
+
+        <p>{messages.home.tagline}</p>
 
         <NavaiMicButton
           hasBackendApiKey={hasBackendApiKey}

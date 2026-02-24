@@ -1,8 +1,9 @@
 import { notFound } from "next/navigation";
 
+import EcommerceStoreDemo from "@/components/EcommerceStoreDemo";
 import NavaiDocMarkdown from "@/components/NavaiDocMarkdown";
 import NavaiDocsShell from "@/components/NavaiDocsShell";
-import { NAVAI_DOCS, getNavaiDocPageBySlug, getNavaiDocSourceUrl } from "@/lib/navai-docs";
+import { NAVAI_DOCS, getNavaiDocPageBySlug, getNavaiDocSourceUrl, getNavaiDocsGrouped } from "@/lib/navai-docs";
 
 type DocPageProps = {
   params: Promise<{
@@ -17,6 +18,9 @@ export function generateStaticParams() {
 export default async function DocumentacionDetallePage({ params }: DocPageProps) {
   const { slug } = await params;
   const doc = await getNavaiDocPageBySlug(slug);
+  const groupedDocs = getNavaiDocsGrouped();
+  const homeItem = groupedDocs.find((group) => group.groupKey === "home")?.items[0];
+  const groups = groupedDocs.filter((group) => group.groupKey !== "home");
 
   if (!doc) {
     notFound();
@@ -25,12 +29,16 @@ export default async function DocumentacionDetallePage({ params }: DocPageProps)
   return (
     <NavaiDocsShell
       activeSlug={doc.slug}
-      badge={doc.group}
+      badge={doc.groupKey}
       title={doc.title}
       description={doc.summary}
-      sourceHref={getNavaiDocSourceUrl(doc.sourcePath)}
-      sourceLabel="Abrir README en GitHub"
-      rightTitle="En esta pagina"
+      homeItem={homeItem ? { slug: homeItem.slug, title: homeItem.title } : undefined}
+      groups={groups.map((group) => ({
+        groupKey: group.groupKey,
+        items: group.items.map((item) => ({ slug: item.slug, title: item.title })),
+      }))}
+      hideMainHeader={doc.slug === "home"}
+      sourceHref={doc.slug === "playground-stores" ? undefined : getNavaiDocSourceUrl(doc.sourcePath)}
       rightItems={doc.sections.map((section) => ({
         href: `#${section.id}`,
         label: section.title,
@@ -38,7 +46,7 @@ export default async function DocumentacionDetallePage({ params }: DocPageProps)
       }))}
     >
       <NavaiDocMarkdown doc={doc} />
+      {doc.slug === "playground-stores" ? <EcommerceStoreDemo /> : null}
     </NavaiDocsShell>
   );
 }
-

@@ -1,7 +1,17 @@
 import type { Metadata } from "next";
-import { IBM_Plex_Mono, Space_Grotesk } from "next/font/google";
+import {
+  IBM_Plex_Mono,
+  Noto_Sans,
+  Noto_Sans_Devanagari,
+  Noto_Sans_JP,
+  Noto_Sans_KR,
+  Noto_Sans_SC,
+  Space_Grotesk,
+} from "next/font/google";
 import ClientProviders from "@/components/ClientProviders";
 import "./globals.css";
+
+const GOOGLE_TAG_ID = "G-J5MXCLPYHB";
 
 const spaceGrotesk = Space_Grotesk({
   variable: "--font-space-grotesk",
@@ -12,6 +22,36 @@ const ibmPlexMono = IBM_Plex_Mono({
   variable: "--font-ibm-plex-mono",
   subsets: ["latin"],
   weight: ["400", "500"],
+});
+
+const notoSans = Noto_Sans({
+  variable: "--font-noto-sans",
+  subsets: ["latin", "latin-ext", "cyrillic"],
+  weight: ["400", "500", "600", "700"],
+});
+
+const notoSansSc = Noto_Sans_SC({
+  variable: "--font-noto-sans-sc",
+  subsets: ["latin"],
+  weight: ["400", "500", "700"],
+});
+
+const notoSansJp = Noto_Sans_JP({
+  variable: "--font-noto-sans-jp",
+  subsets: ["latin"],
+  weight: ["400", "500", "700"],
+});
+
+const notoSansKr = Noto_Sans_KR({
+  variable: "--font-noto-sans-kr",
+  subsets: ["latin"],
+  weight: ["400", "500", "700"],
+});
+
+const notoSansDevanagari = Noto_Sans_Devanagari({
+  variable: "--font-noto-sans-devanagari",
+  subsets: ["latin", "devanagari"],
+  weight: ["400", "500", "700"],
 });
 
 const THEME_INIT_SCRIPT = `
@@ -28,8 +68,35 @@ const THEME_INIT_SCRIPT = `
 })();
 `;
 
+const LANGUAGE_INIT_SCRIPT = `
+(() => {
+  try {
+    const key = "navai-language";
+    const allowed = ["en", "fr", "es", "pt", "zh", "ja", "ru", "ko", "hi"];
+    const allowedSet = new Set(allowed);
+    const stored = window.localStorage.getItem(key);
+    if (stored && allowedSet.has(stored)) {
+      const root = document.documentElement;
+      root.lang = stored;
+      root.dataset.language = stored;
+      for (const code of allowed) {
+        root.classList.remove('lang-' + code);
+      }
+      root.classList.add('lang-' + stored);
+    }
+  } catch {}
+})();
+`;
+
+const GOOGLE_ANALYTICS_INIT_SCRIPT = `
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', '${GOOGLE_TAG_ID}');
+`;
+
 export const metadata: Metadata = {
-  title: "Navai | Voice Runtime",
+  title: "NAVAI - Realtime Voice AI for UI Navigation & Function Execution",
   description:
     "Navai enables voice-first navigation and safe function execution across web and mobile apps.",
   icons: {
@@ -48,7 +115,7 @@ export const metadata: Metadata = {
     ],
   },
   openGraph: {
-    title: "Navai | Voice Runtime",
+    title: "NAVAI - Realtime Voice AI for UI Navigation & Function Execution",
     description:
       "Navai enables voice-first navigation and safe function execution across web and mobile apps.",
     images: [
@@ -62,7 +129,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Navai | Voice Runtime",
+    title: "NAVAI - Realtime Voice AI for UI Navigation & Function Execution",
     description:
       "Navai enables voice-first navigation and safe function execution across web and mobile apps.",
     images: ["/navai_banner.png"],
@@ -77,10 +144,13 @@ export default function RootLayout({
   return (
     <html lang="es" className="light" suppressHydrationWarning>
       <head>
+        <script dangerouslySetInnerHTML={{ __html: LANGUAGE_INIT_SCRIPT }} />
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+        <script async src={`https://www.googletagmanager.com/gtag/js?id=${GOOGLE_TAG_ID}`} />
+        <script dangerouslySetInnerHTML={{ __html: GOOGLE_ANALYTICS_INIT_SCRIPT }} />
       </head>
       <body
-        className={`${spaceGrotesk.variable} ${ibmPlexMono.variable} antialiased`}
+        className={`${spaceGrotesk.variable} ${ibmPlexMono.variable} ${notoSans.variable} ${notoSansSc.variable} ${notoSansJp.variable} ${notoSansKr.variable} ${notoSansDevanagari.variable} antialiased`}
       >
         <ClientProviders>
           <div className="site-shell">

@@ -1,0 +1,227 @@
+{
+  "common": {
+    "languageLabel": "语言",
+    "themeLabel": "主题",
+    "themeDark": "深色",
+    "themeLight": "浅色",
+    "byLuxisoft": "由 LUXISOFT 开发",
+    "homeLinkAria": "前往 Navai 首页",
+    "bannerAlt": "Navai",
+    "githubRepository": "GitHub 仓库",
+    "docsNavigation": "导航",
+    "docsOnThisPage": "本页目录",
+    "docsOpenReadmeGithub": "在 GitHub 打开 README",
+    "docsSidebarTitle": "文档",
+    "docsGroupHome": "首页",
+    "docsGroupInstallation": "安装",
+    "docsGroupDemo": "演示",
+    "docsGroupLibraries": "库",
+    "plansLabel": "方案",
+    "searchDocsAria": "搜索文档",
+    "searchDocsPlaceholder": "搜索文档...",
+    "searchDocsEmpty": "输入内容以搜索文档和实施页面。",
+    "searchDocsSearching": "搜索中...",
+    "searchDocsNoResults": "未找到结果。",
+    "searchDocsDocumentation": "文档",
+    "searchDocsImplementation": "实施",
+    "documentation": "文档",
+    "requestImplementation": "请求实施",
+    "sourceRepository": "源码仓库",
+    "home": "首页",
+    "docsInstallApi": "安装 API",
+    "docsInstallWeb": "安装 Web",
+    "docsInstallMobile": "安装 Mobile"
+  },
+  "home": {
+    "documentationButton": "文档",
+    "implementationButton": "请求实施",
+    "tagline": "用于界面导航与函数执行的实时语音 AI"
+  },
+  "mic": {
+    "apiKeyLabel": "OpenAI API 密钥",
+    "apiKeyPlaceholder": "粘贴你的 OpenAI API 密钥",
+    "apiKeyNotice": "你输入的 API 密钥不会被存储，仅用于测试 NAVAI。",
+    "apiKeyNoticeRepoLabel": "查看仓库",
+    "ariaStart": "开始 Navai 语音会话",
+    "ariaStop": "停止 Navai 语音会话",
+    "connecting": "正在连接语音会话...",
+    "active": "语音会话已激活",
+    "activeDetail": "语音会话已激活。请开始说话或点击停止。",
+    "stopped": "语音会话已停止。",
+    "missingKey": "请在后端设置 OPENAI_API_KEY，或提供 OpenAI API 密钥。",
+    "frontendKeyDisabled": "后端不允许前端传入 API 密钥。请设置 NAVAI_ALLOW_FRONTEND_API_KEY=true。",
+    "clientSecretRejected": "OpenAI 拒绝了 client_secret。请检查 API 密钥和 realtime 模型。",
+    "genericError": "无法启动语音会话。"
+  },
+  "docsPage": {
+    "badge": "📘 产品文档",
+    "title": "📚 Navai Voice Runtime 文档",
+    "description": "🧠 基于官方 Luxisoft/Navai 仓库整理的技术摘要。",
+    "sidebarTitle": "目录",
+    "sections": [
+      {
+        "id": "overview",
+        "title": "Nawai 提供什么",
+        "description": "Nawai 是一个语音优先的运行时，可让 AI 代理导航应用程序 UI 并实时执行允许的前端/后端功能。",
+        "bullets": [
+          "核心包：@navai/voice-backend、@navai/voice-frontend、@navai/voice-mobile。",
+          "后端为 OpenAI Realtime 生成安全的临时 client_secret。",
+          "前端运行时解析路由并执行安全工具调用。"
+        ]
+      },
+      {
+        "id": "http-contract",
+        "title": "后端HTTP合约",
+        "description": "后端集成的官方路线：",
+        "bullets": [
+          "POST /navai/realtime/client-secret",
+          "GET /navai/functions",
+          "POST /navai/functions/execute",
+          "如果后端有 OPENAI_API_KEY，则服务器密钥始终优先于请求 apiKey。"
+        ]
+      },
+      {
+        "id": "runtime-flow",
+        "title": "实时流量",
+        "description": "游乐场集成使用的记录的运行时序列：",
+        "bullets": [
+          "1）客户端向后端请求临时秘密。",
+          "2) 客户端获取后端函数注册表。",
+          "3）代理是使用navigate_to+execute_app_function工具构建的。",
+          "4) RealtimeSession 连接并执行导航/函数调用。"
+        ]
+      },
+      {
+        "id": "env",
+        "title": "关键环境变量",
+        "description": "官方文档中最相关的变量：",
+        "bullets": [
+          "OPENAI_API_KEY、OPENAI_REALTIME_MODEL、OPENAI_REALTIME_VOICE",
+          "OPENAI_REALTIME_INSTRUCTIONS、OPENAI_REALTIME_LANGUAGE",
+          "NAVAI_FUNCTIONS_FOLDERS、NAVAI_API_URL、NAVAI_ALLOW_FRONTEND_API_KEY"
+        ]
+      },
+      {
+        "id": "quickstart",
+        "title": "快速启动命令",
+        "description": "参考从存储库指南中提取的设置命令。",
+        "code": "npm install @navai/voice-backend @navai/voice-frontend @openai/agents zod\nnpx navai-setup-voice-frontend\nnavai-generate-web-loaders"
+      },
+      {
+        "id": "sources",
+        "title": "官方源码链接",
+        "description": "本页使用的主要来源：",
+        "bullets": [
+          "https://github.com/Luxisoft/navai",
+          "packages/voice-backend/README.md",
+          "packages/voice-frontend/README.md",
+          "apps/playground-api 和 apps/playground-web 自述文件"
+        ]
+      }
+    ]
+  },
+  "implementationPage": {
+    "badge": "💼 专业服务",
+    "title": "🚀 请求 Navai 实施",
+    "description": "🎙️ 为你的网站/应用提供可上线的语音实现。",
+    "sidebarTitle": "🧩 服务范围",
+    "sections": [
+      {
+        "id": "what-you-get",
+        "title": "✅ 包含内容",
+        "description": "每个方案都包含以下交付范围：",
+        "bullets": [
+          "集成 Navai 后端协议与前端运行时。",
+          "按你的应用结构配置路由映射与同义词。",
+          "提供验证、QA 清单与上线支持。"
+        ]
+      },
+      {
+        "id": "process",
+        "title": "🛠️ 交付流程",
+        "description": "典型实施流程：",
+        "bullets": [
+          "需求沟通与路由/函数清单梳理。",
+          "在预发布环境进行技术实施。",
+          "验收测试与生产发布。"
+        ]
+      },
+      {
+        "id": "pricing-note",
+        "title": "💰 计费模型",
+        "description": "价格取决于菜单/路由数量、导航逻辑复杂度以及工具执行深度。"
+      }
+    ],
+    "plansTitle": "📦 实施套餐",
+    "plans": [
+      {
+        "name": "Starter",
+        "menuRange": "1-5 个菜单 / 分区",
+        "price": "USD 1,200",
+        "timeline": "5-7 个工作日",
+        "highlights": [
+          "核心页面语音导航",
+          "后端协议接入（3 个 Navai 接口）",
+          "基础意图调优 + QA 交接"
+        ]
+      },
+      {
+        "name": "Growth",
+        "menuRange": "6-15 个菜单 / 分区",
+        "price": "USD 2,900",
+        "timeline": "2-3 周",
+        "highlights": [
+          "扩展路由地图与同义词覆盖",
+          "前端 + 后端工具执行桥接",
+          "可观测事件 + 生产清单"
+        ]
+      },
+      {
+        "name": "Scale",
+        "menuRange": "16-35 个菜单 / 分区",
+        "price": "USD 5,800",
+        "timeline": "4-6 周",
+        "highlights": [
+          "复杂导航树与兜底策略",
+          "基于角色的路由模式",
+          "负载与可靠性强化"
+        ]
+      },
+      {
+        "name": "Enterprise",
+        "menuRange": "36+ 菜单 / 多应用",
+        "price": "USD 9,500 起",
+        "timeline": "定制路线图",
+        "highlights": [
+          "多端架构（web/mobile/backend）",
+          "专属上线计划 + 赋能支持",
+          "SLA 与长期支持选项"
+        ]
+      }
+    ],
+    "whatsappButtonLabel": "💬 通过 WhatsApp 联系",
+    "whatsappPrefill": "你好 Luxisoft，我想获取在我的网站或应用中实施 Navai 语音导航的报价。",
+    "contactSectionTitle": "📨 联系表单",
+    "contactSectionDescription": "🧾 请填写项目详情，我们将为你准备报价。表单将发送至 quote@luxisoft.com。",
+    "contactNameLabel": "姓名",
+    "contactEmailLabel": "工作邮箱",
+    "contactCompanyLabel": "公司（可选）",
+    "contactWhatsappLabel": "WhatsApp 号码（可选）",
+    "contactMessageLabel": "项目详情",
+    "contactNameRequiredMessage": "姓名为必填项。",
+    "contactEmailRequiredMessage": "邮箱为必填项。",
+    "contactEmailInvalidMessage": "邮箱格式无效。",
+    "contactMessageRequiredMessage": "项目详情为必填项。",
+    "contactCaptchaRequiredMessage": "请先完成 hCaptcha 验证。",
+    "contactCaptchaNotReadyMessage": "hCaptcha 尚未就绪，请稍后再试。",
+    "contactCaptchaConfigMessage": "hCaptcha 站点密钥未配置。",
+    "contactCaptchaGenericErrorMessage": "hCaptcha 验证失败。",
+    "contactSendingLabel": "发送中...",
+    "contactSuccessMessage": "你的请求已成功发送。",
+    "contactErrorMessage": "发送失败，请重试。",
+    "contactSubmitLabel": "📤 发送报价请求",
+    "contactDisclaimer": "🔒 你的请求将安全发送到 quote@luxisoft.com。",
+    "ctaLabel": "🧾 获取报价",
+    "ctaHref": "mailto:quote@luxisoft.com?subject=Navai%20Implementation%20Request"
+  }
+}

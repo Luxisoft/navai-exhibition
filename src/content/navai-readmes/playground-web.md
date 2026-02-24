@@ -1,4 +1,4 @@
-# @navai/playground-web
+# 🧪 @navai/playground-web
 
 <p align="center">
   <a href="./README.es.md"><img alt="Spanish" src="https://img.shields.io/badge/Idioma-ES-0A66C2?style=for-the-badge"></a>
@@ -21,9 +21,9 @@
   <a href="../../packages/voice-mobile/README.md"><img alt="Voice Mobile Docs" src="https://img.shields.io/badge/Voice%20Mobile-Docs-0B8F6A?style=for-the-badge"></a>
 </p>
 
-Frontend React de ejemplo para navegacion voice-first con OpenAI Realtime.
+🎙️ Frontend React de ejemplo para navegacion voice-first con OpenAI Realtime.
 
-> Requisito obligatorio: este playground Web depende del backend API de NAVAI activo para emitir `client_secret`, listar funciones y ejecutar tools backend.
+> ⚠️ Requisito obligatorio: este playground Web depende del backend API de NAVAI activo para emitir `client_secret`, listar funciones y ejecutar tools backend.
 
 Este frontend:
 
@@ -33,7 +33,7 @@ Este frontend:
 - ejecuta tools via `execute_app_function`
 - usa `useWebVoiceAgent` desde `@navai/voice-frontend` 
 
-## Inicio rapido
+## 🚀 Inicio rapido
 
 1. Instala dependencias desde la raiz:
 
@@ -77,7 +77,7 @@ npm run generate:module-loaders --workspace @navai/playground-web
 
 Atajo: `npm run dev` desde la raiz levanta ambas apps.
 
-## Flujo de voz actual
+## 🔄 Flujo de voz actual
 
 1. `VoiceNavigator` usa `useWebVoiceAgent` de `@navai/voice-frontend`.
 2. El hook pide `POST /navai/realtime/client-secret` y carga funciones backend.
@@ -89,7 +89,7 @@ Cuando el agente llama `execute_app_function`:
 - intenta primero funcion local (frontend)
 - si no existe local, ejecuta en backend via `POST /navai/functions/execute`
 
-## Variables y personalizacion
+## ⚙️ Variables y personalizacion
 
 - `NAVAI_API_URL`: URL base del backend.
 - `NAVAI_FUNCTIONS_FOLDERS`: rutas de funciones frontend.
@@ -101,7 +101,7 @@ Si necesitas forzar otra URL en runtime, puedes pasar `apiBaseUrl` al componente
 <VoiceNavigator apiBaseUrl="https://mi-api.com" />
 ```
 
-## Debug
+## 🐞 Debug
 
 - `Function loader warnings` muestra advertencias de carga local/backend.
 - `Realtime history (debug)` muestra historial de eventos de sesion.

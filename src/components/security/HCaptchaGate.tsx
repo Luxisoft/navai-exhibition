@@ -11,13 +11,14 @@ type HCaptchaGateProps = {
   sitekey: string;
   size?: "normal" | "compact" | "invisible";
   theme?: "light" | "dark";
+  fallbackErrorMessage?: string;
   onTokenChange: (token: string | null, ekey?: string | null) => void;
   onReadyChange?: (ready: boolean) => void;
   onError?: (message: string) => void;
 };
 
 const HCaptchaGate = forwardRef<HCaptchaGateRef, HCaptchaGateProps>(function HCaptchaGate(
-  { sitekey, size = "normal", theme = "dark", onTokenChange, onReadyChange, onError },
+  { sitekey, size = "normal", theme = "dark", fallbackErrorMessage, onTokenChange, onReadyChange, onError },
   ref
 ) {
   const captchaRef = useRef<HCaptcha | null>(null);
@@ -49,7 +50,7 @@ const HCaptchaGate = forwardRef<HCaptchaGateRef, HCaptchaGateProps>(function HCa
       onError={(event) => {
         onReadyChange?.(false);
         onTokenChange(null, null);
-        const message = typeof event === "string" ? event : "hCaptcha error.";
+        const message = typeof event === "string" ? event : fallbackErrorMessage ?? "hCaptcha error.";
         onError?.(message);
       }}
     />

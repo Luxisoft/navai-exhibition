@@ -1,0 +1,227 @@
+{
+  "common": {
+    "languageLabel": "भाषा",
+    "themeLabel": "थीम",
+    "themeDark": "डार्क",
+    "themeLight": "लाइट",
+    "byLuxisoft": "LUXISOFT द्वारा",
+    "homeLinkAria": "Navai होम पर जाएँ",
+    "bannerAlt": "Navai",
+    "githubRepository": "GitHub रिपॉजिटरी",
+    "docsNavigation": "नेविगेशन",
+    "docsOnThisPage": "इस पेज पर",
+    "docsOpenReadmeGithub": "GitHub पर README खोलें",
+    "docsSidebarTitle": "डॉक्यूमेंटेशन",
+    "docsGroupHome": "होम",
+    "docsGroupInstallation": "इंस्टॉलेशन",
+    "docsGroupDemo": "डेमो",
+    "docsGroupLibraries": "लाइब्रेरी",
+    "plansLabel": "प्लान",
+    "searchDocsAria": "डॉक्यूमेंटेशन खोजें",
+    "searchDocsPlaceholder": "डॉक्स खोजें...",
+    "searchDocsEmpty": "डॉक्यूमेंटेशन और इम्प्लीमेंटेशन में खोजने के लिए टाइप करें।",
+    "searchDocsSearching": "खोज जारी है...",
+    "searchDocsNoResults": "कोई परिणाम नहीं मिला।",
+    "searchDocsDocumentation": "डॉक्यूमेंटेशन",
+    "searchDocsImplementation": "इम्प्लीमेंटेशन",
+    "documentation": "डॉक्यूमेंटेशन",
+    "requestImplementation": "इम्प्लीमेंटेशन अनुरोध",
+    "sourceRepository": "सोर्स रिपॉजिटरी",
+    "home": "होम",
+    "docsInstallApi": "API इंस्टॉलेशन",
+    "docsInstallWeb": "Web इंस्टॉलेशन",
+    "docsInstallMobile": "Mobile इंस्टॉलेशन"
+  },
+  "home": {
+    "documentationButton": "डॉक्यूमेंटेशन",
+    "implementationButton": "इम्प्लीमेंटेशन अनुरोध",
+    "tagline": "UI नेविगेशन और फ़ंक्शन निष्पादन के लिए रियलटाइम वॉइस AI"
+  },
+  "mic": {
+    "apiKeyLabel": "OpenAI API कुंजी",
+    "apiKeyPlaceholder": "अपनी OpenAI API कुंजी पेस्ट करें",
+    "apiKeyNotice": "आपकी दर्ज की गई API कुंजी संग्रहीत नहीं की जाती। इसका उपयोग केवल NAVAI का परीक्षण करने के लिए होता है।",
+    "apiKeyNoticeRepoLabel": "रिपॉजिटरी देखें",
+    "ariaStart": "Navai वॉइस सत्र शुरू करें",
+    "ariaStop": "Navai वॉइस सत्र रोकें",
+    "connecting": "वॉइस सत्र कनेक्ट हो रहा है...",
+    "active": "वॉइस सत्र सक्रिय है",
+    "activeDetail": "वॉइस सत्र सक्रिय है। अभी बोलें या रोकने के लिए बटन दबाएँ।",
+    "stopped": "वॉइस सत्र रोक दिया गया।",
+    "missingKey": "बैकएंड में OPENAI_API_KEY सेट करें या OpenAI API कुंजी दें।",
+    "frontendKeyDisabled": "बैकएंड फ्रंटएंड से API कुंजी की अनुमति नहीं देता। NAVAI_ALLOW_FRONTEND_API_KEY=true सेट करें।",
+    "clientSecretRejected": "OpenAI ने client_secret अस्वीकार किया। API कुंजी और realtime मॉडल जाँचें।",
+    "genericError": "वॉइस सत्र शुरू नहीं हो सका।"
+  },
+  "docsPage": {
+    "badge": "📘 प्रोडक्ट डॉक्यूमेंटेशन",
+    "title": "📚 Navai Voice Runtime दस्तावेज़",
+    "description": "🧠 Luxisoft/Navai आधिकारिक रिपॉजिटरी से तकनीकी सारांश।",
+    "sidebarTitle": "इस पेज पर",
+    "sections": [
+      {
+        "id": "overview",
+        "title": "नवाई क्या प्रदान करता है",
+        "description": "नवाई एक वॉयस-फर्स्ट रनटाइम है जो एआई एजेंट को ऐप यूआई नेविगेट करने और वास्तविक समय में अनुमत फ्रंटएंड/बैकएंड फ़ंक्शन निष्पादित करने देता है।",
+        "bullets": [
+          "कोर पैकेज: @नवाई/वॉयस-बैकएंड, @नवाई/वॉयस-फ्रंटएंड, @नवाई/वॉयस-मोबाइल।",
+          "बैकएंड ओपनएआई रीयलटाइम के लिए अल्पकालिक क्लाइंट_सीक्रेट को सुरक्षित करता है।",
+          "फ्रंटएंड रनटाइम मार्गों का समाधान करता है और सुरक्षित टूल कॉल निष्पादित करता है।"
+        ]
+      },
+      {
+        "id": "http-contract",
+        "title": "बैकएंड HTTP अनुबंध",
+        "description": "बैकएंड एकीकरण से आधिकारिक मार्ग:",
+        "bullets": [
+          "POST /navai/realtime/client-secret",
+          "GET /navai/functions",
+          "POST /navai/functions/execute",
+          "यदि बैकएंड में OPENAI_API_KEY है, तो सर्वर कुंजी को हमेशा अनुरोध apiKey पर प्राथमिकता दी जाती है।"
+        ]
+      },
+      {
+        "id": "runtime-flow",
+        "title": "वास्तविक समय प्रवाह",
+        "description": "खेल के मैदान एकीकरण द्वारा प्रयुक्त प्रलेखित रनटाइम अनुक्रम:",
+        "bullets": [
+          "1) ग्राहक बैकएंड से अल्पकालिक रहस्य का अनुरोध करता है।",
+          "2) क्लाइंट बैकएंड फ़ंक्शन रजिस्ट्री प्राप्त करता है।",
+          "3) एजेंट नेविगेट_टू + एक्जीक्यूट_एप_फंक्शन टूल के साथ बनाया गया है।",
+          "4) RealtimeSession नेविगेशन/फ़ंक्शन कॉल को कनेक्ट और निष्पादित करता है।"
+        ]
+      },
+      {
+        "id": "env",
+        "title": "प्रमुख पर्यावरण चर",
+        "description": "आधिकारिक दस्तावेज़ों से सर्वाधिक प्रासंगिक चर:",
+        "bullets": [
+          "OPENAI_API_KEY, OPENAI_REALTIME_MODEL, OPENAI_REALTIME_VOICE",
+          "OPENAI_REALTIME_INSTRUCTIONS, OPENAI_REALTIME_LANGUAGE",
+          "NAVAI_FUNCTIONS_FOLDERS, NAVAI_API_URL, NAVAI_ALLOW_FRONTEND_API_KEY"
+        ]
+      },
+      {
+        "id": "quickstart",
+        "title": "त्वरित प्रारंभ आदेश",
+        "description": "रिपॉजिटरी गाइड से संदर्भ सेटअप कमांड निकाले गए।",
+        "code": "npm install @navai/voice-backend @navai/voice-frontend @openai/agents zod\nnpx navai-setup-voice-frontend\nnavai-generate-web-loaders"
+      },
+      {
+        "id": "sources",
+        "title": "आधिकारिक स्रोत लिंक",
+        "description": "इस पृष्ठ के लिए प्रयुक्त प्राथमिक स्रोत:",
+        "bullets": [
+          "https://github.com/Luxisoft/navai",
+          "packages/voice-backend/README.md",
+          "packages/voice-frontend/README.md",
+          "ऐप्स/प्लेग्राउंड-एपीआई और ऐप्स/प्लेग्राउंड-वेब README फ़ाइलें (apps/playground-api) (apps/playground-web)"
+        ]
+      }
+    ]
+  },
+  "implementationPage": {
+    "badge": "💼 प्रोफेशनल सर्विस",
+    "title": "🚀 Navai इम्प्लीमेंटेशन अनुरोध",
+    "description": "🎙️ आपके वेबसाइट/ऐप में प्रोडक्शन-रेडी वॉइस इंटीग्रेशन।",
+    "sidebarTitle": "🧩 सेवा दायरा",
+    "sections": [
+      {
+        "id": "what-you-get",
+        "title": "✅ क्या शामिल है",
+        "description": "हर प्लान में डिलीवरी स्कोप:",
+        "bullets": [
+          "Navai backend कॉन्ट्रैक्ट और frontend runtime इंटीग्रेशन",
+          "आपके ऐप स्ट्रक्चर के अनुसार रूट मैपिंग और synonyms",
+          "वैलिडेशन, QA चेकलिस्ट और go-live सपोर्ट"
+        ]
+      },
+      {
+        "id": "process",
+        "title": "🛠️ डिलीवरी प्रोसेस",
+        "description": "सामान्य इम्प्लीमेंटेशन प्रक्रिया:",
+        "bullets": [
+          "डिस्कवरी कॉल + रूट/फंक्शन इन्वेंटरी",
+          "स्टेजिंग एनवायरनमेंट में टेक्निकल इम्प्लीमेंटेशन",
+          "एक्सेप्टेंस टेस्टिंग और प्रोडक्शन रोलआउट"
+        ]
+      },
+      {
+        "id": "pricing-note",
+        "title": "💰 प्राइसिंग मॉडल",
+        "description": "कीमत मेनू/रूट की संख्या, नेविगेशन लॉजिक की जटिलता और tool execution depth पर आधारित है।"
+      }
+    ],
+    "plansTitle": "📦 इम्प्लीमेंटेशन प्लान",
+    "plans": [
+      {
+        "name": "Starter",
+        "menuRange": "1-5 मेनू / सेक्शन",
+        "price": "USD 1,200",
+        "timeline": "5-7 कार्य दिवस",
+        "highlights": [
+          "कोर रूट्स के लिए वॉइस नेविगेशन",
+          "बैकएंड कॉन्ट्रैक्ट सेटअप (3 Navai endpoints)",
+          "बेसिक intent tuning + QA handoff"
+        ]
+      },
+      {
+        "name": "Growth",
+        "menuRange": "6-15 मेनू / सेक्शन",
+        "price": "USD 2,900",
+        "timeline": "2-3 सप्ताह",
+        "highlights": [
+          "विस्तारित रूट मैप और synonyms कवरेज",
+          "फ्रंटएंड + बैकएंड tools execution bridge",
+          "observability events + production checklist"
+        ]
+      },
+      {
+        "name": "Scale",
+        "menuRange": "16-35 मेनू / सेक्शन",
+        "price": "USD 5,800",
+        "timeline": "4-6 सप्ताह",
+        "highlights": [
+          "जटिल नेविगेशन ट्री और fallback रणनीति",
+          "role-aware routing patterns",
+          "लोड और विश्वसनीयता सुदृढ़ीकरण"
+        ]
+      },
+      {
+        "name": "Enterprise",
+        "menuRange": "36+ मेनू / मल्टी-ऐप",
+        "price": "USD 9,500 से शुरू",
+        "timeline": "कस्टम रोडमैप",
+        "highlights": [
+          "multi-surface architecture (web/mobile/backend)",
+          "समर्पित rollout योजना + enablement",
+          "SLA और long-term support विकल्प"
+        ]
+      }
+    ],
+    "whatsappButtonLabel": "💬 WhatsApp से संपर्क करें",
+    "whatsappPrefill": "नमस्ते Luxisoft, मैं अपनी वेबसाइट या ऐप में Navai voice navigation लागू करने के लिए कोटेशन चाहता हूँ।",
+    "contactSectionTitle": "📨 संपर्क फ़ॉर्म",
+    "contactSectionDescription": "🧾 अपने प्रोजेक्ट का विवरण साझा करें और हम कोटेशन तैयार करेंगे। यह फ़ॉर्म quote@luxisoft.com पर ईमेल भेजता है।",
+    "contactNameLabel": "पूरा नाम",
+    "contactEmailLabel": "वर्क ईमेल",
+    "contactCompanyLabel": "कंपनी (वैकल्पिक)",
+    "contactWhatsappLabel": "WhatsApp नंबर (वैकल्पिक)",
+    "contactMessageLabel": "प्रोजेक्ट विवरण",
+    "contactNameRequiredMessage": "नाम आवश्यक है।",
+    "contactEmailRequiredMessage": "ईमेल आवश्यक है।",
+    "contactEmailInvalidMessage": "अमान्य ईमेल पता।",
+    "contactMessageRequiredMessage": "प्रोजेक्ट विवरण आवश्यक है।",
+    "contactCaptchaRequiredMessage": "भेजने से पहले hCaptcha पूरा करें।",
+    "contactCaptchaNotReadyMessage": "hCaptcha अभी तैयार नहीं है। कुछ सेकंड बाद फिर प्रयास करें।",
+    "contactCaptchaConfigMessage": "hCaptcha साइट की कॉन्फ़िगर नहीं है।",
+    "contactCaptchaGenericErrorMessage": "hCaptcha सत्यापन विफल हुआ।",
+    "contactSendingLabel": "भेजा जा रहा है...",
+    "contactSuccessMessage": "आपका अनुरोध सफलतापूर्वक भेज दिया गया।",
+    "contactErrorMessage": "अनुरोध भेजा नहीं जा सका। कृपया फिर प्रयास करें।",
+    "contactSubmitLabel": "📤 कोटेशन अनुरोध भेजें",
+    "contactDisclaimer": "🔒 आपका अनुरोध सुरक्षित रूप से quote@luxisoft.com पर भेजा जाता है।",
+    "ctaLabel": "🧾 प्रस्ताव मांगें",
+    "ctaHref": "mailto:quote@luxisoft.com?subject=Navai%20Implementation%20Request"
+  }
+}

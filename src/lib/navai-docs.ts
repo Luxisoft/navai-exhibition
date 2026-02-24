@@ -1,25 +1,27 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
+import { buildStableHeadingId, cleanHeadingText } from "@/lib/heading-id";
 
 export type NavaiDocSlug =
-  | "root-readme"
+  | "home"
   | "installation-api"
   | "installation-web"
   | "installation-mobile"
   | "playground-api"
   | "playground-web"
   | "playground-mobile"
+  | "playground-stores"
   | "voice-backend"
   | "voice-frontend"
   | "voice-mobile";
 
-export type NavaiDocGroup = "Inicio" | "Instalacion" | "Demo" | "Librerias";
+export type NavaiDocGroupKey = "home" | "installation" | "demo" | "examples" | "libraries";
 
 export type NavaiDocMeta = {
   slug: NavaiDocSlug;
   title: string;
   summary: string;
-  group: NavaiDocGroup;
+  groupKey: NavaiDocGroupKey;
   sourcePath: string;
   fileName: string;
 };
@@ -37,11 +39,10 @@ export type NavaiDocPage = NavaiDocMeta & {
 
 export const NAVAI_DOCS: NavaiDocMeta[] = [
   {
-    slug: "root-readme",
-    title: "Inicio",
-    summary:
-      "Vista general de NAVAI, cobertura de frameworks, plataformas y arquitectura general del proyecto.",
-    group: "Inicio",
+    slug: "home",
+    title: "Home",
+    summary: "Project overview, framework coverage, supported platforms, and architecture baseline.",
+    groupKey: "home",
     sourcePath: "README.md",
     fileName: "root.md",
   },
@@ -49,8 +50,8 @@ export const NAVAI_DOCS: NavaiDocMeta[] = [
     slug: "installation-api",
     title: "API",
     summary:
-      "Instalacion backend con @navai/voice-backend: dependencias, variables minimas y registro de rutas Express.",
-    group: "Instalacion",
+      "Backend setup with @navai/voice-backend, minimal environment variables, and Express route registration.",
+    groupKey: "installation",
     sourcePath: "README.es.md",
     fileName: "installation-api.md",
   },
@@ -58,8 +59,8 @@ export const NAVAI_DOCS: NavaiDocMeta[] = [
     slug: "installation-web",
     title: "Web",
     summary:
-      "Instalacion frontend con @navai/voice-frontend: dependencias, variables NAVAI_ y estructura base de navegacion.",
-    group: "Instalacion",
+      "Frontend setup with @navai/voice-frontend, NAVAI environment variables, and base navigation wiring.",
+    groupKey: "installation",
     sourcePath: "README.es.md",
     fileName: "installation-web.md",
   },
@@ -67,44 +68,49 @@ export const NAVAI_DOCS: NavaiDocMeta[] = [
     slug: "installation-mobile",
     title: "Mobile",
     summary:
-      "Instalacion mobile con @navai/voice-mobile: dependencias, variables NAVAI_ y generacion de module loaders.",
-    group: "Instalacion",
+      "Mobile setup with @navai/voice-mobile, NAVAI environment variables, and module loader generation.",
+    groupKey: "installation",
     sourcePath: "README.es.md",
     fileName: "installation-mobile.md",
   },
   {
     slug: "playground-api",
     title: "API",
-    summary:
-      "Backend de ejemplo con Express: client_secret, registro de funciones y ejecucion de tools backend.",
-    group: "Demo",
+    summary: "Express demo backend: client_secret creation, function registry, and backend tool execution.",
+    groupKey: "demo",
     sourcePath: "apps/playground-api/README.md",
     fileName: "playground-api.md",
   },
   {
     slug: "playground-web",
     title: "Web",
-    summary:
-      "Frontend React de referencia para navegacion por voz, carga dinamica de funciones y flujo realtime.",
-    group: "Demo",
+    summary: "Reference React frontend for voice navigation, dynamic function loading, and realtime flow.",
+    groupKey: "demo",
     sourcePath: "apps/playground-web/README.md",
     fileName: "playground-web.md",
   },
   {
     slug: "playground-mobile",
     title: "Mobile",
-    summary:
-      "Implementacion React Native/Expo con VoiceNavigator, tools locales y backend NAVAI en entorno mobile.",
-    group: "Demo",
+    summary: "React Native/Expo reference with VoiceNavigator, local tools, and NAVAI backend integration.",
+    groupKey: "demo",
     sourcePath: "apps/playground-mobile/README.md",
     fileName: "playground-mobile.md",
   },
   {
+    slug: "playground-stores",
+    title: "Tiendas",
+    summary:
+      "Interactive ecommerce demo with read-only SQLite seed data, localStorage user products, purchase simulation, and NAVAI reports.",
+    groupKey: "examples",
+    sourcePath: "navai-exhibition/playground-stores.md",
+    fileName: "playground-stores.md",
+  },
+  {
     slug: "voice-backend",
     title: "@navai/voice-backend",
-    summary:
-      "Contrato backend oficial: rutas realtime, carga dinamica de funciones y politicas de entorno.",
-    group: "Librerias",
+    summary: "Official backend contract: realtime routes, dynamic function loading, and environment rules.",
+    groupKey: "libraries",
     sourcePath: "packages/voice-backend/README.md",
     fileName: "voice-backend.md",
   },
@@ -112,8 +118,8 @@ export const NAVAI_DOCS: NavaiDocMeta[] = [
     slug: "voice-frontend",
     title: "@navai/voice-frontend",
     summary:
-      "Runtime web oficial para agentes de voz con navegacion, tools locales y puente de tools backend.",
-    group: "Librerias",
+      "Official web runtime for voice agents with navigation, local tools, and backend function bridge.",
+    groupKey: "libraries",
     sourcePath: "packages/voice-frontend/README.md",
     fileName: "voice-frontend.md",
   },
@@ -121,14 +127,14 @@ export const NAVAI_DOCS: NavaiDocMeta[] = [
     slug: "voice-mobile",
     title: "@navai/voice-mobile",
     summary:
-      "Stack mobile oficial para agentes de voz en React Native con transporte WebRTC y session orchestration.",
-    group: "Librerias",
+      "Official mobile runtime for React Native voice agents with WebRTC transport and session orchestration.",
+    groupKey: "libraries",
     sourcePath: "packages/voice-mobile/README.md",
     fileName: "voice-mobile.md",
   },
 ];
 
-const GROUP_ORDER: NavaiDocGroup[] = ["Inicio", "Instalacion", "Demo", "Librerias"];
+const GROUP_ORDER: NavaiDocGroupKey[] = ["home", "installation", "demo", "examples", "libraries"];
 const GITHUB_BLOB_BASE = "https://github.com/Luxisoft/navai/blob/main";
 const GITHUB_RAW_BASE = "https://raw.githubusercontent.com/Luxisoft/navai/main";
 
@@ -144,42 +150,24 @@ function canonicalizeReadmePath(value: string) {
   return value.replace(/README\.(en|es)\.md$/i, "README.md");
 }
 
-export function slugifyHeading(value: string) {
-  return value
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9\s-]/g, "")
-    .trim()
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-");
-}
-
-function cleanHeadingText(value: string) {
-  return value
-    .replace(/`([^`]+)`/g, "$1")
-    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
-    .replace(/[*_~]/g, "")
-    .trim();
-}
-
 function extractSections(markdown: string): NavaiDocSection[] {
   const lines = markdown.split(/\r?\n/);
-  const slugCounts = new Map<string, number>();
   const sections: NavaiDocSection[] = [];
-
-  for (const line of lines) {
+  
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index];
     const match = line.match(/^(##|###)\s+(.+)$/);
     if (!match) {
       continue;
     }
-
-    const depth = match[1].length as 2 | 3;
-    const title = cleanHeadingText(match[2]);
-    const baseId = slugifyHeading(title);
-    const seen = slugCounts.get(baseId) ?? 0;
-    slugCounts.set(baseId, seen + 1);
-    const id = seen === 0 ? baseId : `${baseId}-${seen + 1}`;
+    const [, hashes, rawTitle] = match;
+    const depth = hashes.length as 2 | 3;
+    const title = cleanHeadingText(rawTitle);
+    const id = buildStableHeadingId({
+      title,
+      line: index + 1,
+      column: 1,
+    });
 
     sections.push({ id, title, depth });
   }
@@ -193,9 +181,9 @@ async function readDocMarkdown(fileName: string) {
 }
 
 export function getNavaiDocsGrouped() {
-  return GROUP_ORDER.map((group) => ({
-    group,
-    items: NAVAI_DOCS.filter((doc) => doc.group === group),
+  return GROUP_ORDER.map((groupKey) => ({
+    groupKey,
+    items: NAVAI_DOCS.filter((doc) => doc.groupKey === groupKey),
   }));
 }
 
@@ -223,6 +211,7 @@ export function resolveReadmeLinkHref(href: string, sourcePath: string) {
   if (
     href.startsWith("http://") ||
     href.startsWith("https://") ||
+    href.startsWith("/") ||
     href.startsWith("mailto:") ||
     href.startsWith("tel:") ||
     href.startsWith("#")
