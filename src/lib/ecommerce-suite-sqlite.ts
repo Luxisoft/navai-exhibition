@@ -1,5 +1,3 @@
-import "server-only";
-
 import path from "node:path";
 
 import initSqlJs, { type Database } from "sql.js";
@@ -10,6 +8,7 @@ import {
   type EcommerceSuiteSeedValue,
   ECOMMERCE_SUITE_MODULE_CATALOG,
 } from "@/lib/ecommerce-suite-catalog";
+import { resolveProjectRoot } from "@/lib/project-root";
 
 type Audience = "consumer" | "admin";
 type SqlPrimitive = string | number | null;
@@ -171,8 +170,9 @@ function parseJson<T>(value: unknown, fallback: T): T {
 }
 
 async function createSuiteSqliteState(): Promise<SuiteSqliteState> {
+  const projectRoot = resolveProjectRoot();
   const SQL = await initSqlJs({
-    locateFile: (file) => path.join(process.cwd(), "node_modules", "sql.js", "dist", file),
+    locateFile: (file) => path.join(projectRoot, "node_modules", "sql.js", "dist", file),
   });
   const db = new SQL.Database();
 

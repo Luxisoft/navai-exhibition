@@ -1,0 +1,10 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import HomePage from "../react/HomePage";
+
+const hasBackendApiKey = Boolean((import.meta.env.OPENAI_API_KEY as string | undefined)?.trim());
+---
+
+<BaseLayout path="/">
+  <HomePage client:load hasBackendApiKey={hasBackendApiKey} />
+</BaseLayout>

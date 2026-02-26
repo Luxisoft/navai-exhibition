@@ -1,0 +1,10 @@
+---
+import "@/app/docs.css";
+
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import WordpressPage from "../../react/WordpressPage";
+---
+
+<BaseLayout path="/wordpress">
+  <WordpressPage client:load />
+</BaseLayout>

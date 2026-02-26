@@ -1,6 +1,7 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { buildStableHeadingId, cleanHeadingText } from "@/lib/heading-id";
+import { resolveProjectRoot } from "@/lib/project-root";
 
 export type NavaiDocSlug =
   | "home"
@@ -185,7 +186,7 @@ function extractSections(markdown: string): NavaiDocSection[] {
 }
 
 async function readDocMarkdown(fileName: string) {
-  const absolutePath = path.join(process.cwd(), "src", "content", "navai-readmes", fileName);
+  const absolutePath = path.join(resolveProjectRoot(), "src", "content", "navai-readmes", fileName);
   return fs.readFile(absolutePath, "utf8");
 }
 

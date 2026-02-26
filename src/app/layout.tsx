@@ -3,10 +3,6 @@ import Script from "next/script";
 import {
   IBM_Plex_Mono,
   Noto_Sans,
-  Noto_Sans_Devanagari,
-  Noto_Sans_JP,
-  Noto_Sans_KR,
-  Noto_Sans_SC,
   Space_Grotesk,
 } from "next/font/google";
 import ClientProviders from "@/components/ClientProviders";
@@ -29,30 +25,6 @@ const notoSans = Noto_Sans({
   variable: "--font-noto-sans",
   subsets: ["latin", "latin-ext", "cyrillic"],
   weight: ["400", "500", "600", "700"],
-});
-
-const notoSansSc = Noto_Sans_SC({
-  variable: "--font-noto-sans-sc",
-  subsets: ["latin"],
-  weight: ["400", "500", "700"],
-});
-
-const notoSansJp = Noto_Sans_JP({
-  variable: "--font-noto-sans-jp",
-  subsets: ["latin"],
-  weight: ["400", "500", "700"],
-});
-
-const notoSansKr = Noto_Sans_KR({
-  variable: "--font-noto-sans-kr",
-  subsets: ["latin"],
-  weight: ["400", "500", "700"],
-});
-
-const notoSansDevanagari = Noto_Sans_Devanagari({
-  variable: "--font-noto-sans-devanagari",
-  subsets: ["latin", "devanagari"],
-  weight: ["400", "500", "700"],
 });
 
 const THEME_INIT_SCRIPT = `
@@ -152,7 +124,7 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
       </head>
       <body
-        className={`${spaceGrotesk.variable} ${ibmPlexMono.variable} ${notoSans.variable} ${notoSansSc.variable} ${notoSansJp.variable} ${notoSansKr.variable} ${notoSansDevanagari.variable} antialiased`}
+        className={`${spaceGrotesk.variable} ${ibmPlexMono.variable} ${notoSans.variable} antialiased`}
       >
         {isAnalyticsEnabled ? (
           <>

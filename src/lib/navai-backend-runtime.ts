@@ -5,6 +5,7 @@ import {
   type NavaiFunctionsRegistry,
   type NavaiVoiceBackendOptions,
 } from "@navai/voice-backend";
+import { resolveProjectRoot } from "@/lib/project-root";
 
 type NavaiEnv = Record<string, string | undefined>;
 
@@ -26,9 +27,10 @@ export function getNavaiVoiceOptionsFromEnv(): NavaiVoiceBackendOptions {
 
 async function buildFunctionsRuntime(): Promise<NavaiFunctionsRuntime> {
   const env = process.env as NavaiEnv;
+  const baseDir = resolveProjectRoot();
   const runtimeConfig = await resolveNavaiBackendRuntimeConfig({
     env,
-    baseDir: process.cwd(),
+    baseDir,
     functionsFolders: readOptional(env.NAVAI_FUNCTIONS_FOLDERS),
     includeExtensions: ["js", "mjs", "cjs"],
   });

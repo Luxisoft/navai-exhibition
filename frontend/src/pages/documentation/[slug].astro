@@ -1,0 +1,39 @@
+---
+import "@/app/docs.css";
+
+import {
+  NAVAI_DOCS,
+  getNavaiDocPageBySlug,
+  getNavaiDocSourceUrl,
+  getNavaiDocsGrouped,
+} from "@/lib/navai-docs";
+
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import DocumentationPage from "../../react/DocumentationPage";
+import NotFoundPage from "../../react/NotFoundPage";
+
+export function getStaticPaths() {
+  return NAVAI_DOCS.filter((doc) => doc.slug !== "playground-stores").map((doc) => ({
+    params: { slug: doc.slug },
+  }));
+}
+
+const { slug } = Astro.params;
+const doc = slug ? await getNavaiDocPageBySlug(slug) : null;
+const groupedDocs = getNavaiDocsGrouped();
+const sourceHref = doc ? getNavaiDocSourceUrl(doc.sourcePath) : "";
+
+if (!doc) {
+  Astro.response.status = 404;
+}
+---
+
+<BaseLayout path={slug ? `/documentation/${slug}` : "/documentation"}>
+  {
+    doc ? (
+      <DocumentationPage client:load doc={doc} groupedDocs={groupedDocs} sourceHref={sourceHref} />
+    ) : (
+      <NotFoundPage client:load />
+    )
+  }
+</BaseLayout>

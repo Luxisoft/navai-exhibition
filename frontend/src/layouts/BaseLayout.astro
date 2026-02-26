@@ -1,0 +1,120 @@
+---
+import "@/app/globals.css";
+
+type BaseLayoutProps = {
+  title?: string;
+  description?: string;
+  path?: string;
+};
+
+const GOOGLE_TAG_ID = "G-J5MXCLPYHB";
+const SITE_URL = "https://navai.luxisoft.com";
+
+const {
+  title = "NAVAI - Realtime Voice AI for UI Navigation & Function Execution",
+  description = "NAVAI enables voice-first navigation and safe function execution across web and mobile apps.",
+  path = "/",
+} = Astro.props as BaseLayoutProps;
+
+const canonicalUrl = new URL(path, SITE_URL).toString();
+const bannerUrl = new URL("/navai_banner.webp", SITE_URL).toString();
+const isAnalyticsEnabled = import.meta.env.PROD;
+const initialCaptchaSiteKey =
+  (import.meta.env.PUBLIC_HCAPTCHA_SITE_KEY as string | undefined) ??
+  (import.meta.env.HCAPTCHA_SITE_KEY as string | undefined) ??
+  "";
+
+const THEME_INIT_SCRIPT = `
+(() => {
+  try {
+    const key = "navai-theme";
+    const stored = window.localStorage.getItem(key);
+    const theme = stored === "light" || stored === "dark" ? stored : "light";
+    const root = document.documentElement;
+    root.classList.remove("dark", "light");
+    root.classList.add(theme);
+    root.dataset.theme = theme;
+  } catch {}
+})();
+`;
+
+const LANGUAGE_INIT_SCRIPT = `
+(() => {
+  try {
+    const key = "navai-language";
+    const allowed = ["en", "fr", "es", "pt", "zh", "ja", "ru", "ko", "hi"];
+    const allowedSet = new Set(allowed);
+    const stored = window.localStorage.getItem(key);
+    if (stored && allowedSet.has(stored)) {
+      const root = document.documentElement;
+      root.lang = stored;
+      root.dataset.language = stored;
+      for (const code of allowed) {
+        root.classList.remove("lang-" + code);
+      }
+      root.classList.add("lang-" + stored);
+    }
+  } catch {}
+})();
+`;
+
+const HCAPTCHA_SITEKEY_INIT_SCRIPT = `
+(() => {
+  window.__NAVAI_HCAPTCHA_SITE_KEY__ = ${JSON.stringify(initialCaptchaSiteKey)};
+})();
+`;
+
+const GOOGLE_ANALYTICS_INIT_SCRIPT = `
+window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', '${GOOGLE_TAG_ID}');
+`;
+---
+
+<html lang="es" class="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <meta name="robots" content="index,follow" />
+    <link rel="canonical" href={canonicalUrl} />
+    <link rel="icon" href="/navai_logo.webp" type="image/webp" />
+    <link rel="apple-touch-icon" href="/navai_logo.webp" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={canonicalUrl} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={bannerUrl} />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={bannerUrl} />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap"
+    />
+
+    <script is:inline set:html={LANGUAGE_INIT_SCRIPT}></script>
+    <script is:inline set:html={THEME_INIT_SCRIPT}></script>
+    <script is:inline set:html={HCAPTCHA_SITEKEY_INIT_SCRIPT}></script>
+
+    {
+      isAnalyticsEnabled ? (
+        <>
+          <script async src={`https://www.googletagmanager.com/gtag/js?id=${GOOGLE_TAG_ID}`}></script>
+          <script is:inline set:html={GOOGLE_ANALYTICS_INIT_SCRIPT}></script>
+        </>
+      ) : null
+    }
+  </head>
+  <body class="antialiased">
+    <slot />
+  </body>
+</html>

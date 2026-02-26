@@ -30,6 +30,26 @@ const INITIAL_FORM_STATE: ContactFormState = {
   message: "",
 };
 
+function readInitialCaptchaSiteKey() {
+  if (
+    typeof process !== "undefined" &&
+    process.env &&
+    typeof process.env.NEXT_PUBLIC_HCAPTCHA_SITE_KEY === "string"
+  ) {
+    return process.env.NEXT_PUBLIC_HCAPTCHA_SITE_KEY;
+  }
+
+  if (typeof window !== "undefined") {
+    const globalKey = (window as Window & { __NAVAI_HCAPTCHA_SITE_KEY__?: string })
+      .__NAVAI_HCAPTCHA_SITE_KEY__;
+    if (typeof globalKey === "string") {
+      return globalKey;
+    }
+  }
+
+  return "";
+}
+
 type SubmitStatus = "idle" | "loading" | "success";
 
 export default function ImplementationContact() {
@@ -44,7 +64,7 @@ export default function ImplementationContact() {
   const [captchaReady, setCaptchaReady] = useState(false);
   const [captchaError, setCaptchaError] = useState<string | null>(null);
   const [captchaTheme, setCaptchaTheme] = useState<"light" | "dark">("dark");
-  const [siteKey, setSiteKey] = useState(process.env.NEXT_PUBLIC_HCAPTCHA_SITE_KEY ?? "");
+  const [siteKey, setSiteKey] = useState(readInitialCaptchaSiteKey);
   const captchaRef = useRef<HCaptchaGateRef | null>(null);
   const nameInputRef = useRef<HTMLInputElement | null>(null);
 

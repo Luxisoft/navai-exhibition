@@ -1,0 +1,10 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import NotFoundPage from "../../react/NotFoundPage";
+
+Astro.response.status = 404;
+---
+
+<BaseLayout path="/example">
+  <NotFoundPage client:load />
+</BaseLayout>
