@@ -1,7 +1,7 @@
 <h1>NAVAI Exhibition (Next.js)</h1>
 
 <p align="center">
-  <img src="./public/navai_banner.png" alt="NAVAI Exhibition banner" />
+  <img src="./public/navai_banner.webp" alt="NAVAI Exhibition banner" />
 </p>
 
 <p align="center">

@@ -104,14 +104,14 @@ export const metadata: Metadata = {
   icons: {
     icon: [
       {
-        url: "/navai_logo.png",
+        url: "/navai_logo.webp",
         type: "image/png",
       },
     ],
-    shortcut: ["/navai_logo.png"],
+    shortcut: ["/navai_logo.webp"],
     apple: [
       {
-        url: "/navai_logo.png",
+        url: "/navai_logo.webp",
         type: "image/png",
       },
     ],
@@ -122,7 +122,7 @@ export const metadata: Metadata = {
       "NAVAI enables voice-first navigation and safe function execution across web and mobile apps.",
     images: [
       {
-        url: "/navai_banner.png",
+        url: "/navai_banner.webp",
         width: 420,
         height: 150,
         alt: "NAVAI",
@@ -134,7 +134,7 @@ export const metadata: Metadata = {
     title: "NAVAI - Realtime Voice AI for UI Navigation & Function Execution",
     description:
       "NAVAI enables voice-first navigation and safe function execution across web and mobile apps.",
-    images: ["/navai_banner.png"],
+    images: ["/navai_banner.webp"],
   },
 };
 

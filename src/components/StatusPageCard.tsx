@@ -40,7 +40,7 @@ export default function StatusPageCard({
     <section className={styles.root}>
       <div className={styles.card}>
         <Image
-          src="/navai_banner.png"
+          src="/navai_banner.webp"
           alt="NAVAI"
           width={420}
           height={150}

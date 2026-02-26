@@ -71,7 +71,7 @@ export default function KnowledgeTemplate({
       <header className="docs-topbar">
         <div className="docs-topbar-left">
           <Link href="/" className="docs-brand" aria-label={messages.common.homeLinkAria}>
-            <Image src="/navai_banner.png" alt={messages.common.bannerAlt} width={140} height={50} priority />
+            <Image src="/navai_banner.webp" alt={messages.common.bannerAlt} width={140} height={50} priority />
           </Link>
 
           <nav className="docs-top-tabs">

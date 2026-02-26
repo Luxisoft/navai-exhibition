@@ -67,7 +67,7 @@ export default function HomeHero({ hasBackendApiKey }: HomeHeroProps) {
       <div className="home-content">
         <div className="home-brand">
           <Image
-            src="/navai_banner.png"
+            src="/navai_banner.webp"
             alt={messages.common.bannerAlt}
             width={250}
             height={89}
