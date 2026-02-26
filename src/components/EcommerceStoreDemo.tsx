@@ -15,6 +15,14 @@ import {
   subscribeEcommerceLocalState,
   updateEcommerceLocalProduct,
 } from "@/lib/ecommerce-demo-local";
+import { useI18n } from "@/i18n/provider";
+import {
+  getEcommerceStoreDemoBuyerName,
+  getEcommerceStoreDemoRuntimeMessage,
+  getEcommerceStoreDemoStatusLabel,
+  getEcommerceStoreDemoText,
+  isEcommerceStoreDemoDefaultBuyerName,
+} from "@/i18n/ecommerce-store-demo";
 
 type OverviewResponse = {
   ok: boolean;
@@ -107,7 +115,12 @@ function productFormFromLocalProduct(product: EcommerceLocalProduct): ProductFor
   };
 }
 
+
+
 export default function EcommerceStoreDemo() {
+  const { language } = useI18n();
+  const t = (en: string) => getEcommerceStoreDemoText(language, en);
+
   const [serverData, setServerData] = useState<OverviewResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -122,7 +135,7 @@ export default function EcommerceStoreDemo() {
 
   const [purchaseProductId, setPurchaseProductId] = useState("");
   const [purchaseQty, setPurchaseQty] = useState("1");
-  const [buyerName, setBuyerName] = useState("Demo Buyer");
+  const [buyerName, setBuyerName] = useState(() => getEcommerceStoreDemoBuyerName(language));
   const [buyerEmail, setBuyerEmail] = useState("demo.buyer@example.com");
   const [purchaseMessage, setPurchaseMessage] = useState<string | null>(null);
 
@@ -147,11 +160,15 @@ export default function EcommerceStoreDemo() {
         });
       }
     } catch (nextError) {
-      setError(nextError instanceof Error ? nextError.message : "Failed to load demo seed.");
+      setError(
+        nextError instanceof Error
+          ? getEcommerceStoreDemoRuntimeMessage(language, nextError.message)
+          : getEcommerceStoreDemoText(language, "Failed to load demo seed.")
+      );
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [language]);
 
   useEffect(() => {
     void loadSeedDemo();
@@ -167,6 +184,15 @@ export default function EcommerceStoreDemo() {
     sync();
     return subscribeEcommerceLocalState(sync);
   }, []);
+
+  useEffect(() => {
+    setBuyerName((current) => {
+      if (isEcommerceStoreDemoDefaultBuyerName(current)) {
+        return getEcommerceStoreDemoBuyerName(language);
+      }
+      return current;
+    });
+  }, [language]);
 
   const seedProducts = serverData?.snapshot.products ?? EMPTY_SEED_PRODUCTS;
   const seedCategories = serverData?.snapshot.categories ?? EMPTY_SEED_CATEGORIES;
@@ -266,7 +292,9 @@ export default function EcommerceStoreDemo() {
           stock: Number(productForm.stock),
           status: productForm.status,
         });
-        setProductFormMessage("Product updated in localStorage (seed data remains read-only).");
+        setProductFormMessage(
+          t("Product updated in localStorage (seed data remains read-only).")
+        );
       } else {
         createEcommerceLocalProduct({
           name: productForm.name,
@@ -277,17 +305,23 @@ export default function EcommerceStoreDemo() {
           stock: Number(productForm.stock),
           status: productForm.status,
         });
-        setProductFormMessage("Product created in localStorage.");
+        setProductFormMessage(t("Product created in localStorage."));
       }
       setProductForm(emptyProductForm());
     } catch (nextError) {
-      setProductFormMessage(nextError instanceof Error ? nextError.message : "Failed to save product.");
+      setProductFormMessage(
+        nextError instanceof Error
+          ? getEcommerceStoreDemoRuntimeMessage(language, nextError.message)
+          : t("Failed to save product.")
+      );
     }
   }
 
   function handleEditUserProduct(product: EcommerceLocalProduct) {
     setProductForm(productFormFromLocalProduct(product));
-    setProductFormMessage("Editing your local product (seed products cannot be edited).");
+    setProductFormMessage(
+      t("Editing your local product (seed products cannot be edited).")
+    );
   }
 
   function handleDeleteUserProduct(productId: string) {
@@ -295,9 +329,13 @@ export default function EcommerceStoreDemo() {
     try {
       deleteEcommerceLocalProduct(productId);
       if (productForm.id === productId) setProductForm(emptyProductForm());
-      setProductFormMessage("Local product deleted.");
+      setProductFormMessage(t("Local product deleted."));
     } catch (nextError) {
-      setProductFormMessage(nextError instanceof Error ? nextError.message : "Failed to delete product.");
+      setProductFormMessage(
+        nextError instanceof Error
+          ? getEcommerceStoreDemoRuntimeMessage(language, nextError.message)
+          : t("Failed to delete product.")
+      );
     }
   }
 
@@ -311,10 +349,14 @@ export default function EcommerceStoreDemo() {
         buyerName,
         buyerEmail,
       });
-      setPurchaseMessage(result.note);
+      setPurchaseMessage(getEcommerceStoreDemoRuntimeMessage(language, result.note));
       setPurchaseQty("1");
     } catch (nextError) {
-      setPurchaseMessage(nextError instanceof Error ? nextError.message : "Failed to simulate purchase.");
+      setPurchaseMessage(
+        nextError instanceof Error
+          ? getEcommerceStoreDemoRuntimeMessage(language, nextError.message)
+          : t("Failed to simulate purchase.")
+      );
     }
   }
 
@@ -322,19 +364,18 @@ export default function EcommerceStoreDemo() {
 
   return (
     <div className={`docs-markdown-body ${styles.root}`}>
-      <h2 id="ecommerce-demo-overview">Ecommerce Demo Overview</h2>
+      <h2 id="ecommerce-demo-overview">{t("Ecommerce Demo Overview")}</h2>
       <p>
-        This demo simulates a realistic ecommerce environment for NAVAI. The seed catalog, customers, and orders are read-only
-        and come from a SQLite demo database. User-created products and purchase simulations are stored only in localStorage.
+        {t("This demo simulates a realistic ecommerce environment for NAVAI. The seed catalog, customers, and orders are read-only and come from a SQLite demo database. User-created products and purchase simulations are stored only in localStorage.")}
       </p>
 
-      {loading ? <p className={styles.info}>Loading SQLite demo seed...</p> : null}
+      {loading ? <p className={styles.info}>{t("Loading SQLite demo seed...")}</p> : null}
       {error ? (
         <div className={styles.errorBox}>
-          <p><strong>Could not load the ecommerce demo seed.</strong></p>
+          <p><strong>{t("Could not load the ecommerce demo seed.")}</strong></p>
           <p>{error}</p>
           <button type="button" className={styles.smallButton} onClick={() => setRefreshKey((v) => v + 1)}>
-            Retry
+            {t("Retry")}
           </button>
         </div>
       ) : null}
@@ -343,40 +384,40 @@ export default function EcommerceStoreDemo() {
         <>
           <div className={styles.banner}>
             <div>
-              <p className={styles.badge}>SQLite Seed (Read-Only)</p>
-              <h3 className={styles.bannerTitle}>Safe ecommerce sandbox for NAVAI demos</h3>
+              <p className={styles.badge}>{t("SQLite Seed (Read-Only)")}</p>
+              <h3 className={styles.bannerTitle}>{t("Safe ecommerce sandbox for NAVAI demos")}</h3>
               <p className={styles.bannerText}>
-                Users can query/report on realistic seed data and create their own products locally without modifying the seed database.
+                {t("Users can query/report on realistic seed data and create their own products locally without modifying the seed database.")}
               </p>
             </div>
             <div className={styles.bannerActions}>
               <button type="button" className={styles.smallButton} onClick={() => setRefreshKey((v) => v + 1)}>
-                Refresh seed snapshot
+                {t("Refresh seed snapshot")}
               </button>
-              <span className={styles.meta}>Generated: {serverData.snapshot.generatedAt}</span>
+              <span className={styles.meta}>{t("Generated")}: {serverData.snapshot.generatedAt}</span>
             </div>
           </div>
 
-          <h2 id="ecommerce-demo-reports">Reports & KPIs (SQLite)</h2>
+          <h2 id="ecommerce-demo-reports">{t("Reports & KPIs (SQLite)")}</h2>
           <div className={styles.gridCards}>
-            <article className={styles.card}><span>Seed Products</span><strong>{serverData.snapshot.kpis.productCount}</strong></article>
-            <article className={styles.card}><span>Customers</span><strong>{serverData.snapshot.kpis.customerCount}</strong></article>
-            <article className={styles.card}><span>Orders (30d)</span><strong>{overview?.overview.orderCount ?? 0}</strong></article>
-            <article className={styles.card}><span>Revenue Paid (30d)</span><strong>{formatCurrency(overview?.overview.revenuePaid ?? 0)}</strong></article>
-            <article className={styles.card}><span>AOV (30d)</span><strong>{formatCurrency(overview?.overview.avgOrderValuePaid ?? 0)}</strong></article>
-            <article className={styles.card}><span>Units Ordered (30d)</span><strong>{overview?.overview.unitsOrdered ?? 0}</strong></article>
-            <article className={styles.card}><span>User Products (local)</span><strong>{localProducts.length}</strong></article>
-            <article className={styles.card}><span>Local Purchases</span><strong>{localPurchases.length}</strong></article>
-            <article className={styles.card}><span>Local Revenue</span><strong>{formatCurrency(localRevenue)}</strong></article>
+            <article className={styles.card}><span>{t("Seed Products")}</span><strong>{serverData.snapshot.kpis.productCount}</strong></article>
+            <article className={styles.card}><span>{t("Customers")}</span><strong>{serverData.snapshot.kpis.customerCount}</strong></article>
+            <article className={styles.card}><span>{t("Orders (30d)")}</span><strong>{overview?.overview.orderCount ?? 0}</strong></article>
+            <article className={styles.card}><span>{t("Revenue Paid (30d)")}</span><strong>{formatCurrency(overview?.overview.revenuePaid ?? 0)}</strong></article>
+            <article className={styles.card}><span>{t("AOV (30d)")}</span><strong>{formatCurrency(overview?.overview.avgOrderValuePaid ?? 0)}</strong></article>
+            <article className={styles.card}><span>{t("Units Ordered (30d)")}</span><strong>{overview?.overview.unitsOrdered ?? 0}</strong></article>
+            <article className={styles.card}><span>{t("User Products (local)")}</span><strong>{localProducts.length}</strong></article>
+            <article className={styles.card}><span>{t("Local Purchases")}</span><strong>{localPurchases.length}</strong></article>
+            <article className={styles.card}><span>{t("Local Revenue")}</span><strong>{formatCurrency(localRevenue)}</strong></article>
           </div>
 
           <div className={styles.twoCols}>
             <section className={styles.panel}>
-              <h3>Sales by Category (30d)</h3>
+              <h3>{t("Sales by Category (30d)")}</h3>
               <div className={styles.tableWrap}>
                 <table className={styles.table}>
                   <thead>
-                    <tr><th>Category</th><th>Orders</th><th>Units</th><th>Revenue</th></tr>
+                    <tr><th>{t("Category")}</th><th>{t("Orders")}</th><th>{t("Units")}</th><th>{t("Revenue")}</th></tr>
                   </thead>
                   <tbody>
                     {salesByCategory.map((row) => (
@@ -393,12 +434,12 @@ export default function EcommerceStoreDemo() {
             </section>
 
             <section className={styles.panel}>
-              <h3>Order Status Breakdown (30d)</h3>
+              <h3>{t("Order Status Breakdown (30d)")}</h3>
               <ul className={styles.list}>
                 {(overview?.statusBreakdown ?? []).map((row) => (
                   <li key={row.status} className={styles.listRow}>
-                    <span>{row.status}</span>
-                    <span>{row.orders} orders</span>
+                    <span>{getEcommerceStoreDemoStatusLabel(language, row.status)}</span>
+                    <span>{row.orders} {t("orders")}</span>
                     <strong>{formatCurrency(row.amount)}</strong>
                   </li>
                 ))}
@@ -406,17 +447,17 @@ export default function EcommerceStoreDemo() {
             </section>
           </div>
 
-          <h2 id="ecommerce-demo-catalog">Catalog Browser (Seed + User products)</h2>
+          <h2 id="ecommerce-demo-catalog">{t("Catalog Browser (Seed + User products)")}</h2>
           <div className={styles.filters}>
             <input
               className={styles.input}
               type="search"
-              placeholder="Search by product, brand, SKU..."
+              placeholder={t("Search by product, brand, SKU...")}
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
             />
             <select className={styles.select} value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)}>
-              <option value="all">All categories</option>
+              <option value="all">{t("All categories")}</option>
               {combinedCategories.map((category) => (
                 <option key={category.code} value={category.code}>{category.name}</option>
               ))}
@@ -427,7 +468,7 @@ export default function EcommerceStoreDemo() {
             <table className={styles.table}>
               <thead>
                 <tr>
-                  <th>Source</th><th>Product</th><th>SKU</th><th>Category</th><th>Price</th><th>Stock</th><th>Units Sold</th><th>Revenue</th><th>Actions</th>
+                  <th>{t("Source")}</th><th>{t("Product")}</th><th>SKU</th><th>{t("Category")}</th><th>{t("Price")}</th><th>{t("Stock")}</th><th>{t("Units Sold")}</th><th>{t("Revenue")}</th><th>{t("Actions")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -435,7 +476,7 @@ export default function EcommerceStoreDemo() {
                   <tr key={`${row.source}-${row.id}`}>
                     <td>
                       <span className={`${styles.sourceTag} ${row.source === "seed" ? styles.seedTag : styles.userTag}`}>
-                        {row.source === "seed" ? "Seed SQLite" : "User local"}
+                        {row.source === "seed" ? t("Seed SQLite") : t("User local")}
                       </span>
                     </td>
                     <td>
@@ -461,18 +502,18 @@ export default function EcommerceStoreDemo() {
                               if (local) handleEditUserProduct(local);
                             }}
                           >
-                            Edit
+                            {t("Edit")}
                           </button>
                           <button
                             type="button"
                             className={`${styles.tableButton} ${styles.danger}`}
                             onClick={() => handleDeleteUserProduct(row.id)}
                           >
-                            Delete
+                            {t("Delete")}
                           </button>
                         </div>
                       ) : (
-                        <span className={styles.lockedNote}>Read-only</span>
+                        <span className={styles.lockedNote}>{t("Read-only")}</span>
                       )}
                     </td>
                   </tr>
@@ -481,120 +522,120 @@ export default function EcommerceStoreDemo() {
             </table>
           </div>
 
-          <h2 id="ecommerce-demo-product-crud">Create / Edit / Delete User Products (localStorage)</h2>
+          <h2 id="ecommerce-demo-product-crud">{t("Create / Edit / Delete User Products (localStorage)")}</h2>
           <p>
-            This form only writes to localStorage. Seed SQLite products are immutable and cannot be edited/deleted.
+            {t("This form only writes to localStorage. Seed SQLite products are immutable and cannot be edited/deleted.")}
           </p>
           <form className={styles.formPanel} onSubmit={handleSubmitProductForm}>
             <div className={styles.formGrid}>
               <label className={styles.field}>
-                <span>Name</span>
+                <span>{t("Name")}</span>
                 <input className={styles.input} value={productForm.name} onChange={(e) => handleProductFormChange("name", e.target.value)} />
               </label>
               <label className={styles.field}>
-                <span>Brand</span>
+                <span>{t("Brand")}</span>
                 <input className={styles.input} value={productForm.brand} onChange={(e) => handleProductFormChange("brand", e.target.value)} />
               </label>
               <label className={styles.field}>
-                <span>Category</span>
+                <span>{t("Category")}</span>
                 <select className={styles.select} value={productForm.categoryCode} onChange={(e) => handleProductFormChange("categoryCode", e.target.value)}>
                   {combinedCategories.map((category) => (
                     <option key={category.code} value={category.code}>{category.name}</option>
                   ))}
-                  <option value="misc">Misc</option>
+                  <option value="misc">{t("Misc")}</option>
                 </select>
               </label>
               <label className={styles.field}>
-                <span>Status</span>
+                <span>{t("Status")}</span>
                 <select className={styles.select} value={productForm.status} onChange={(e) => handleProductFormChange("status", e.target.value as "active" | "draft")}>
-                  <option value="active">Active</option>
-                  <option value="draft">Draft</option>
+                  <option value="active">{t("Active")}</option>
+                  <option value="draft">{t("Draft")}</option>
                 </select>
               </label>
               <label className={styles.field}>
-                <span>Price (USD)</span>
+                <span>{t("Price (USD)")}</span>
                 <input className={styles.input} type="number" min="0" step="0.01" value={productForm.price} onChange={(e) => handleProductFormChange("price", e.target.value)} />
               </label>
               <label className={styles.field}>
-                <span>Stock</span>
+                <span>{t("Stock")}</span>
                 <input className={styles.input} type="number" min="0" step="1" value={productForm.stock} onChange={(e) => handleProductFormChange("stock", e.target.value)} />
               </label>
               <label className={`${styles.field} ${styles.span2}`}>
-                <span>Description</span>
+                <span>{t("Description")}</span>
                 <textarea className={styles.textarea} value={productForm.description} onChange={(e) => handleProductFormChange("description", e.target.value)} rows={3} />
               </label>
             </div>
             <div className={styles.formActions}>
               <button type="submit" className={styles.primaryButton}>
-                {productForm.id ? "Update local product" : "Create local product"}
+                {productForm.id ? t("Update local product") : t("Create local product")}
               </button>
               {productForm.id ? (
                 <button type="button" className={styles.smallButton} onClick={() => setProductForm(emptyProductForm())}>
-                  Cancel edit
+                  {t("Cancel edit")}
                 </button>
               ) : null}
             </div>
             {productFormMessage ? <p className={styles.info}>{productFormMessage}</p> : null}
           </form>
 
-          <h2 id="ecommerce-demo-purchase-form">Purchase Simulator (localStorage)</h2>
+          <h2 id="ecommerce-demo-purchase-form">{t("Purchase Simulator (localStorage)")}</h2>
           <p>
-            Buying a seed product records a local purchase only (for demo/testing). Buying a user product also updates local stock.
+            {t("Buying a seed product records a local purchase only (for demo/testing). Buying a user product also updates local stock.")}
           </p>
           <form className={styles.formPanel} onSubmit={handleSubmitPurchaseForm}>
             <div className={styles.formGrid}>
               <label className={`${styles.field} ${styles.span2}`}>
-                <span>Product</span>
+                <span>{t("Product")}</span>
                 <select className={styles.select} value={purchaseProductId} onChange={(e) => setPurchaseProductId(e.target.value)}>
                   {catalogRows.map((row) => (
                     <option key={`${row.source}-${row.id}`} value={row.id}>
-                      [{row.source === "seed" ? "Seed" : "User"}] {row.name} - {formatCurrency(row.price)}
+                      [{row.source === "seed" ? t("Seed") : t("User")}] {row.name} - {formatCurrency(row.price)}
                     </option>
                   ))}
                 </select>
               </label>
               <label className={styles.field}>
-                <span>Quantity</span>
+                <span>{t("Quantity")}</span>
                 <input className={styles.input} type="number" min="1" step="1" value={purchaseQty} onChange={(e) => setPurchaseQty(e.target.value)} />
               </label>
               <label className={styles.field}>
-                <span>Buyer name</span>
+                <span>{t("Buyer name")}</span>
                 <input className={styles.input} value={buyerName} onChange={(e) => setBuyerName(e.target.value)} />
               </label>
               <label className={styles.field}>
-                <span>Buyer email</span>
+                <span>{t("Buyer email")}</span>
                 <input className={styles.input} type="email" value={buyerEmail} onChange={(e) => setBuyerEmail(e.target.value)} />
               </label>
               <div className={styles.previewBox}>
-                <span>Selected product</span>
-                <strong>{selectedCatalogRow ? selectedCatalogRow.name : "Select a product"}</strong>
+                <span>{t("Selected product")}</span>
+                <strong>{selectedCatalogRow ? selectedCatalogRow.name : t("Select a product")}</strong>
                 <small>
                   {selectedCatalogRow
-                    ? `${selectedCatalogRow.source === "seed" ? "Seed SQLite (read-only)" : "User local product"} · ${formatCurrency(selectedCatalogRow.price)}`
+                    ? `${selectedCatalogRow.source === "seed" ? t("Seed SQLite (read-only)") : t("User local product")} - ${formatCurrency(selectedCatalogRow.price)}`
                     : ""}
                 </small>
               </div>
             </div>
             <div className={styles.formActions}>
-              <button type="submit" className={styles.primaryButton}>Simulate purchase</button>
+              <button type="submit" className={styles.primaryButton}>{t("Simulate purchase")}</button>
             </div>
             {purchaseMessage ? <p className={styles.info}>{purchaseMessage}</p> : null}
           </form>
 
-          <h3 id="ecommerce-demo-local-purchases">Recent local purchases</h3>
+          <h3 id="ecommerce-demo-local-purchases">{t("Recent local purchases")}</h3>
           <div className={styles.tableWrap}>
             <table className={styles.table}>
               <thead>
-                <tr><th>Date</th><th>Source</th><th>Product</th><th>Qty</th><th>Buyer</th><th>Total</th></tr>
+                <tr><th>{t("Date")}</th><th>{t("Source")}</th><th>{t("Product")}</th><th>{t("Qty")}</th><th>{t("Buyer")}</th><th>{t("Total")}</th></tr>
               </thead>
               <tbody>
                 {localPurchases.length === 0 ? (
-                  <tr><td colSpan={6}>No local purchases yet. Use the simulator or ask NAVAI to call the purchase tool.</td></tr>
+                  <tr><td colSpan={6}>{t("No local purchases yet. Use the simulator or ask NAVAI to call the purchase tool.")}</td></tr>
                 ) : (
                   localPurchases.slice(0, 12).map((purchase) => (
                     <tr key={purchase.id}>
                       <td>{purchase.createdAt}</td>
-                      <td>{purchase.source}</td>
+                      <td>{purchase.source === "seed" ? t("Seed") : t("User")}</td>
                       <td>{purchase.productName}</td>
                       <td>{purchase.quantity}</td>
                       <td>{purchase.buyerName}</td>
@@ -606,11 +647,11 @@ export default function EcommerceStoreDemo() {
             </table>
           </div>
 
-          <h2 id="ecommerce-demo-seed-orders">Seed recent orders (SQLite, read-only)</h2>
+          <h2 id="ecommerce-demo-seed-orders">{t("Seed recent orders (SQLite, read-only)")}</h2>
           <div className={styles.tableWrap}>
             <table className={styles.table}>
               <thead>
-                <tr><th>Order</th><th>Customer</th><th>City</th><th>Status</th><th>Payment</th><th>Total</th><th>Date</th></tr>
+                <tr><th>{t("Order")}</th><th>{t("Customer")}</th><th>{t("City")}</th><th>{t("Status")}</th><th>{t("Payment")}</th><th>{t("Total")}</th><th>{t("Date")}</th></tr>
               </thead>
               <tbody>
                 {seedRecentOrders.map((order) => (
@@ -618,8 +659,8 @@ export default function EcommerceStoreDemo() {
                     <td>{order.orderNumber}</td>
                     <td>{order.customerName}</td>
                     <td>{order.city}</td>
-                    <td>{order.status}</td>
-                    <td>{order.paymentStatus}</td>
+                    <td>{getEcommerceStoreDemoStatusLabel(language, order.status)}</td>
+                    <td>{getEcommerceStoreDemoStatusLabel(language, order.paymentStatus)}</td>
                     <td>{formatCurrency(order.totalAmount)}</td>
                     <td>{order.createdAt}</td>
                   </tr>

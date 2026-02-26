@@ -5,7 +5,7 @@
   <a href="./README.en.md"><img alt="Language English" src="https://img.shields.io/badge/Language-EN-1D9A6C?style=for-the-badge"></a>
 </p>
 
-Mobile package to run Navai voice agents in React Native applications.
+Mobile package to run NAVAI voice agents in React Native applications.
 
 It provides a complete mobile stack for:
 
@@ -46,7 +46,7 @@ This package is organized in layers:
 
 4. Backend bridge layer
 - `src/backend.ts`
-- API client for Navai backend routes.
+- API client for NAVAI backend routes.
 
 5. Session orchestration layer
 - `src/session.ts`

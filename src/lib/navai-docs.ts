@@ -7,6 +7,7 @@ export type NavaiDocSlug =
   | "installation-api"
   | "installation-web"
   | "installation-mobile"
+  | "installation-wordpress"
   | "playground-api"
   | "playground-web"
   | "playground-mobile"
@@ -72,6 +73,14 @@ export const NAVAI_DOCS: NavaiDocMeta[] = [
     groupKey: "installation",
     sourcePath: "README.es.md",
     fileName: "installation-mobile.md",
+  },
+  {
+    slug: "installation-wordpress",
+    title: "WordPress",
+    summary: "WordPress plugin setup, required NAVAI endpoints, and integration checklist.",
+    groupKey: "installation",
+    sourcePath: "src/content/navai-readmes/installation-wordpress.md",
+    fileName: "installation-wordpress.md",
   },
   {
     slug: "playground-api",

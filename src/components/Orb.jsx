@@ -298,8 +298,18 @@ export default function Orb({
     container.addEventListener('mouseleave', handleMouseLeave);
 
     let rafId;
+    let lastRenderTime = 0;
+    const frameIntervalMs = 1000 / 30;
     const update = t => {
       rafId = requestAnimationFrame(update);
+      if (document.hidden) {
+        return;
+      }
+      if (t - lastRenderTime < frameIntervalMs) {
+        return;
+      }
+      lastRenderTime = t;
+
       const dt = (t - lastTime) * 0.001;
       lastTime = t;
       program.uniforms.iTime.value = t * 0.001;

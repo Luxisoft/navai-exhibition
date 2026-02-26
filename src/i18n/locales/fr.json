@@ -5,8 +5,8 @@
     "themeDark": "Sombre",
     "themeLight": "Clair",
     "byLuxisoft": "Par LUXISOFT",
-    "homeLinkAria": "Aller à l'accueil Navai",
-    "bannerAlt": "Navai",
+    "homeLinkAria": "Aller à l'accueil NAVAI",
+    "bannerAlt": "NAVAI",
     "githubRepository": "Dépôt GitHub",
     "docsNavigation": "Navigation",
     "docsOnThisPage": "Sur cette page",
@@ -30,7 +30,8 @@
     "home": "Accueil",
     "docsInstallApi": "Installation API",
     "docsInstallWeb": "Installation Web",
-    "docsInstallMobile": "Installation Mobile"
+    "docsInstallMobile": "Installation Mobile",
+    "docsGroupExamples": "Exemples"
   },
   "home": {
     "documentationButton": "Documentation",
@@ -42,8 +43,8 @@
     "apiKeyPlaceholder": "Collez votre clé API OpenAI",
     "apiKeyNotice": "La clé API saisie n'est pas stockée. Elle est utilisée uniquement pour tester NAVAI.",
     "apiKeyNoticeRepoLabel": "Voir le dépôt",
-    "ariaStart": "Démarrer la session vocale Navai",
-    "ariaStop": "Arrêter la session vocale Navai",
+    "ariaStart": "Démarrer la session vocale NAVAI",
+    "ariaStop": "Arrêter la session vocale NAVAI",
     "connecting": "Connexion de la session vocale...",
     "active": "Session vocale active",
     "activeDetail": "Session vocale active. Parlez maintenant ou appuyez pour arrêter.",
@@ -55,14 +56,14 @@
   },
   "docsPage": {
     "badge": "📘 Documentation Produit",
-    "title": "📚 Documentation Navai Voice Runtime",
-    "description": "🧠 Résumé technique du dépôt officiel Luxisoft/Navai.",
+    "title": "📚 Documentation NAVAI Voice Runtime",
+    "description": "🧠 Résumé technique du dépôt officiel Luxisoft/NAVAI.",
     "sidebarTitle": "Sur cette page",
     "sections": [
       {
         "id": "overview",
-        "title": "Ce que Navai propose",
-        "description": "Navai est un environnement d'exécution axé sur la voix qui permet à un agent d'IA de naviguer dans l'interface utilisateur de l'application et d'exécuter les fonctions frontend/backend autorisées en temps réel.",
+        "title": "Ce que NAVAI propose",
+        "description": "NAVAI est un environnement d'exécution axé sur la voix qui permet à un agent d'IA de naviguer dans l'interface utilisateur de l'application et d'exécuter les fonctions frontend/backend autorisées en temps réel.",
         "bullets": [
           "Packages de base : @navai/voice-backend, @navai/voice-frontend, @navai/voice-mobile.",
           "Le backend crée un client_secret éphémère sécurisé pour OpenAI Realtime.",
@@ -122,7 +123,7 @@
   },
   "implementationPage": {
     "badge": "💼 Services Professionnels",
-    "title": "🚀 Demander une implémentation Navai",
+    "title": "🚀 Demander une implémentation NAVAI",
     "description": "🎙️ Nous intégrons la navigation vocale et l'exécution de fonctions dans votre site/app avec un niveau production.",
     "sidebarTitle": "🧩 Portée du service",
     "sections": [
@@ -131,7 +132,7 @@
         "title": "✅ Ce qui est inclus",
         "description": "Portée livrée pour chaque plan :",
         "bullets": [
-          "Intégration du contrat backend Navai et du runtime frontend.",
+          "Intégration du contrat backend NAVAI et du runtime frontend.",
           "Cartographie des routes et synonymes selon la structure de votre application.",
           "Validation, checklist QA et accompagnement au déploiement."
         ]
@@ -161,7 +162,7 @@
         "timeline": "5-7 jours ouvrés",
         "highlights": [
           "Navigation vocale sur les routes principales",
-          "Mise en place du contrat backend (3 endpoints Navai)",
+          "Mise en place du contrat backend (3 endpoints NAVAI)",
           "Ajustement d'intentions de base + transfert QA"
         ]
       },
@@ -200,7 +201,7 @@
       }
     ],
     "whatsappButtonLabel": "💬 Contacter via WhatsApp",
-    "whatsappPrefill": "Bonjour Luxisoft, je souhaite un devis pour intégrer la navigation vocale Navai dans mon site ou mon application.",
+    "whatsappPrefill": "Bonjour Luxisoft, je souhaite un devis pour intégrer la navigation vocale NAVAI dans mon site ou mon application.",
     "contactSectionTitle": "📨 Formulaire de contact",
     "contactSectionDescription": "🧾 Partagez les détails de votre projet et nous préparerons un devis. Ce formulaire envoie un email à quote@luxisoft.com.",
     "contactNameLabel": "Nom complet",
@@ -222,6 +223,6 @@
     "contactSubmitLabel": "📤 Envoyer la demande de devis",
     "contactDisclaimer": "🔒 Votre demande est envoyée de façon sécurisée à quote@luxisoft.com.",
     "ctaLabel": "🧾 Demander une proposition",
-    "ctaHref": "mailto:quote@luxisoft.com?subject=Navai%20Implementation%20Request"
+    "ctaHref": "mailto:quote@luxisoft.com?subject=NAVAI%20Implementation%20Request"
   }
 }

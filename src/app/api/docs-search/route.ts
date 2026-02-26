@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { getLocalizedNavaiDocs } from "@/i18n/docs-catalog";
 import { APP_MESSAGES, DEFAULT_LANGUAGE, type LanguageCode } from "@/i18n/messages";
+import { getLocalizedWordpressPage } from "@/i18n/wordpress-page";
 import { NAVAI_DOCS, getNavaiDocPageBySlug, type NavaiDocPage } from "@/lib/navai-docs";
 
 type SearchScope = "documentation" | "implementation";
@@ -95,7 +96,9 @@ function makeSnippet(rawText: string, query: string) {
 
 async function getDocsCache() {
   if (!docsCachePromise) {
-    docsCachePromise = Promise.all(NAVAI_DOCS.map((doc) => getNavaiDocPageBySlug(doc.slug))).then((pages) =>
+    docsCachePromise = Promise.all(
+      NAVAI_DOCS.filter((doc) => doc.slug !== "playground-stores").map((doc) => getNavaiDocPageBySlug(doc.slug))
+    ).then((pages) =>
       pages.filter((page): page is NavaiDocPage => Boolean(page))
     );
   }
@@ -201,6 +204,54 @@ function buildImplementationSearchEntries(language: LanguageCode, query: string,
   return entries;
 }
 
+function buildWordpressSearchEntries(language: LanguageCode, query: string, tokens: string[]) {
+  const wordpress = getLocalizedWordpressPage(language);
+  const entries: RankedSearchResult[] = [];
+
+  const pageBodyRaw = [
+    wordpress.title,
+    wordpress.description,
+    ...wordpress.sections.map((section) => section.title),
+    ...wordpress.sections.map((section) => section.description),
+    ...wordpress.sections.flatMap((section) => section.bullets ?? []),
+  ].join(" ");
+
+  const pageTitle = normalizeText(wordpress.title);
+  const pageBody = normalizeText(pageBodyRaw);
+
+  if (containsAllTokens(`${pageTitle} ${pageBody}`, tokens)) {
+    entries.push({
+      id: "wordpress-page",
+      href: "/wordpress",
+      scope: "documentation",
+      title: wordpress.title,
+      snippet: makeSnippet(wordpress.description, query),
+      score: scoreMatch(pageTitle, pageBody, normalizeText(query), tokens),
+    });
+  }
+
+  for (const section of wordpress.sections) {
+    const sectionBodyRaw = [section.description, ...(section.bullets ?? [])].join(" ");
+    const sectionText = normalizeText(`${section.title} ${sectionBodyRaw}`);
+    const sectionTitle = normalizeText(section.title);
+
+    if (!containsAllTokens(sectionText, tokens)) {
+      continue;
+    }
+
+    entries.push({
+      id: `wordpress-section-${section.id}`,
+      href: `/wordpress#${section.id}`,
+      scope: "documentation",
+      title: section.title,
+      snippet: makeSnippet(sectionBodyRaw, query),
+      score: scoreMatch(sectionTitle, sectionText, normalizeText(query), tokens),
+    });
+  }
+
+  return entries;
+}
+
 function dedupeResults(results: RankedSearchResult[]) {
   const byKey = new Map<string, RankedSearchResult>();
 
@@ -271,6 +322,7 @@ export async function GET(request: NextRequest) {
   }
 
   ranked.push(...buildImplementationSearchEntries(language, queryRaw, tokens));
+  ranked.push(...buildWordpressSearchEntries(language, queryRaw, tokens));
 
   const results = dedupeResults(ranked)
     .sort((a, b) => b.score - a.score)

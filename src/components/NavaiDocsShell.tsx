@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Github, Menu, X } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 
@@ -10,12 +11,14 @@ import LanguageSwitcher from "@/components/LanguageSwitcher";
 import ThemeSwitcher from "@/components/ThemeSwitcher";
 import { getLocalizedNavaiDocs } from "@/i18n/docs-catalog";
 import { useI18n } from "@/i18n/provider";
+import { getLocalizedWordpressPage } from "@/i18n/wordpress-page";
 
 type NavaiDocSlug =
   | "home"
   | "installation-api"
   | "installation-web"
   | "installation-mobile"
+  | "installation-wordpress"
   | "playground-api"
   | "playground-web"
   | "playground-mobile"
@@ -32,17 +35,27 @@ type RightItem = {
   depth?: 2 | 3;
 };
 
+type DocsNavGroup = {
+  groupKey: string;
+  label?: string;
+  items: Array<{ slug: string; title: string; children?: Array<{ slug: string; title: string }> }>;
+};
+
 type NavaiDocsShellProps = {
-  activeSlug?: NavaiDocSlug;
+  activeSlug?: string;
   badge: string;
   title: string;
   description: string;
-  homeItem?: { slug: NavaiDocSlug; title: string };
-  groups: Array<{ groupKey: NavaiDocGroupKey; items: Array<{ slug: NavaiDocSlug; title: string }> }>;
+  homeItem?: { slug: string; title: string };
+  groups: DocsNavGroup[];
   hideMainHeader?: boolean;
   sourceHref?: string;
   sourceLabel?: string;
   rightTitle?: string;
+  sidebarNavTitle?: string;
+  sidebarBasePath?: string;
+  topNavActive?: "documentation" | "examples";
+  defaultExpandedGroupKey?: string;
   rightItems: RightItem[];
   children: ReactNode;
 };
@@ -62,11 +75,17 @@ export default function NavaiDocsShell({
   sourceHref,
   sourceLabel,
   rightTitle,
+  sidebarNavTitle,
+  sidebarBasePath = "/documentation",
+  topNavActive,
+  defaultExpandedGroupKey,
   rightItems,
   children,
 }: NavaiDocsShellProps) {
   const { language, messages } = useI18n();
+  const pathname = usePathname();
   const localizedDocs = useMemo(() => getLocalizedNavaiDocs(language), [language]);
+  const wordpressPage = useMemo(() => getLocalizedWordpressPage(language), [language]);
   const [resolvedRightItems, setResolvedRightItems] = useState<RightItem[]>(rightItems);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const rightItemsSignature = useMemo(
@@ -74,14 +93,34 @@ export default function NavaiDocsShell({
     [rightItems]
   );
 
-  const secondaryGroups = groups.filter((group) => group.groupKey !== "home");
+  const secondaryGroups = groups.filter((group) => group.groupKey !== "home" && group.groupKey !== "examples");
+  const localizedDocEntry = activeSlug ? localizedDocs.entries[activeSlug as NavaiDocSlug] : undefined;
+  const getLocalizedDocTitle = (slug: string, fallbackTitle: string) =>
+    localizedDocs.entries[slug as NavaiDocSlug]?.title ?? fallbackTitle;
+  const getLocalizedGroupLabel = (groupKey: string, fallbackLabel?: string) =>
+    localizedDocs.groupLabels[groupKey as NavaiDocGroupKey] ?? fallbackLabel ?? groupKey;
+  const itemContainsActive = (item: DocsNavGroup["items"][number]) =>
+    item.slug === activeSlug || Boolean(item.children?.some((child) => child.slug === activeSlug));
+  const localizeNavItem = (item: DocsNavGroup["items"][number]) => ({
+    slug: item.slug,
+    title: getLocalizedDocTitle(item.slug, item.title),
+    children: item.children?.map((child) => ({
+      slug: child.slug,
+      title: getLocalizedDocTitle(child.slug, child.title),
+    })),
+  });
+  const activeGroupKeyResolved = groups.find((group) => group.items.some((item) => itemContainsActive(item)))?.groupKey;
 
-  const displayTitle = activeSlug ? (localizedDocs.entries[activeSlug]?.title ?? title) : title;
-  const displayDescription = activeSlug ? (localizedDocs.entries[activeSlug]?.summary ?? description) : description;
+  const displayTitle = activeSlug ? (localizedDocEntry?.title ?? title) : title;
+  const displayDescription = activeSlug ? (localizedDocEntry?.summary ?? description) : description;
 
   const displayBadge = isDocGroupKey(badge) ? (localizedDocs.groupLabels[badge] ?? badge) : badge;
   const resolvedSourceLabel = sourceLabel ?? messages.common.docsOpenReadmeGithub;
   const resolvedRightTitle = rightTitle ?? messages.common.docsOnThisPage;
+  const resolvedSidebarNavTitle = sidebarNavTitle ?? messages.common.docsSidebarTitle;
+  const isDocumentationTabActive = topNavActive ? topNavActive === "documentation" : activeGroupKeyResolved !== "examples";
+  const isWordpressTabActive = pathname === "/wordpress";
+  const isExamplesEcommerceBuyerModule = topNavActive === "examples" && Boolean(activeSlug?.startsWith("ecommerce/consumer-"));
 
   useEffect(() => {
     setResolvedRightItems(rightItems);
@@ -127,7 +166,9 @@ export default function NavaiDocsShell({
   }, [activeSlug, language, rightItemsSignature]);
 
   return (
-    <section className="docs-layout">
+    <section
+      className={`docs-layout${topNavActive === "examples" ? " is-examples-layout" : ""}${isExamplesEcommerceBuyerModule ? " is-examples-buyer-module-layout" : ""}`}
+    >
       <header className="docs-topbar">
         <div className="docs-topbar-left">
           <Link href="/" className="docs-brand" aria-label={messages.common.homeLinkAria}>
@@ -135,11 +176,14 @@ export default function NavaiDocsShell({
           </Link>
 
           <nav className="docs-top-tabs">
-            <Link href="/documentation" className="docs-top-tab is-active">
+            <Link href="/documentation/home" className={`docs-top-tab${isDocumentationTabActive ? " is-active" : ""}`}>
               {messages.common.documentation}
             </Link>
             <Link href="/request-implementation" className="docs-top-tab">
               {messages.common.requestImplementation}
+            </Link>
+            <Link href="/wordpress" className={`docs-top-tab${isWordpressTabActive ? " is-active" : ""}`}>
+              {wordpressPage.navigationLabel}
             </Link>
           </nav>
         </div>
@@ -179,7 +223,11 @@ export default function NavaiDocsShell({
 
       <div className={`docs-mobile-menu${isMobileMenuOpen ? " is-open" : ""}`}>
         <nav className="docs-top-tabs docs-mobile-top-tabs">
-          <Link href="/documentation" className="docs-top-tab is-active" onClick={() => setIsMobileMenuOpen(false)}>
+          <Link
+            href="/documentation/home"
+            className={`docs-top-tab${isDocumentationTabActive ? " is-active" : ""}`}
+            onClick={() => setIsMobileMenuOpen(false)}
+          >
             {messages.common.documentation}
           </Link>
           <Link
@@ -189,50 +237,55 @@ export default function NavaiDocsShell({
           >
             {messages.common.requestImplementation}
           </Link>
+          <Link
+            href="/wordpress"
+            className={`docs-top-tab${isWordpressTabActive ? " is-active" : ""}`}
+            onClick={() => setIsMobileMenuOpen(false)}
+          >
+            {wordpressPage.navigationLabel}
+          </Link>
         </nav>
 
         <DocsSidebarAccordion
-          navTitle={messages.common.docsSidebarTitle}
+          navTitle={resolvedSidebarNavTitle}
           activeSlug={activeSlug}
           onNavigate={() => setIsMobileMenuOpen(false)}
+          defaultExpandedGroupKey={defaultExpandedGroupKey}
+          basePath={sidebarBasePath}
           homeItem={
             homeItem
               ? {
                   slug: homeItem.slug,
-                  title: localizedDocs.entries[homeItem.slug]?.title ?? homeItem.title,
+                  title: getLocalizedDocTitle(homeItem.slug, homeItem.title),
                 }
               : undefined
           }
           groups={secondaryGroups.map((group) => ({
             groupKey: group.groupKey,
-            label: localizedDocs.groupLabels[group.groupKey] ?? group.groupKey,
-            items: group.items.map((item) => ({
-              slug: item.slug,
-              title: localizedDocs.entries[item.slug]?.title ?? item.title,
-            })),
+            label: getLocalizedGroupLabel(group.groupKey, group.label),
+            items: group.items.map(localizeNavItem),
           }))}
         />
       </div>
 
       <div className="docs-shell">
         <DocsSidebarAccordion
-          navTitle={messages.common.docsSidebarTitle}
+          navTitle={resolvedSidebarNavTitle}
           activeSlug={activeSlug}
+          defaultExpandedGroupKey={defaultExpandedGroupKey}
+          basePath={sidebarBasePath}
           homeItem={
             homeItem
               ? {
                   slug: homeItem.slug,
-                  title: localizedDocs.entries[homeItem.slug]?.title ?? homeItem.title,
+                  title: getLocalizedDocTitle(homeItem.slug, homeItem.title),
                 }
               : undefined
           }
           groups={secondaryGroups.map((group) => ({
             groupKey: group.groupKey,
-            label: localizedDocs.groupLabels[group.groupKey] ?? group.groupKey,
-            items: group.items.map((item) => ({
-              slug: item.slug,
-              title: localizedDocs.entries[item.slug]?.title ?? item.title,
-            })),
+            label: getLocalizedGroupLabel(group.groupKey, group.label),
+            items: group.items.map(localizeNavItem),
           }))}
         />
 
@@ -254,18 +307,21 @@ export default function NavaiDocsShell({
         </article>
 
         <aside className="docs-rightbar">
-          <p className="docs-sidebar-title">{resolvedRightTitle}</p>
-          <nav className="docs-toc">
-            {resolvedRightItems.map((item) => (
-              <a
-                key={`${item.href}-${item.label}`}
-                href={item.href}
-                className={`docs-toc-link${item.depth === 3 ? " is-subitem" : ""}`}
-              >
-                {item.label}
-              </a>
-            ))}
-          </nav>
+          {!isExamplesEcommerceBuyerModule ? <p className="docs-sidebar-title">{resolvedRightTitle}</p> : null}
+          {!isExamplesEcommerceBuyerModule ? (
+            <nav className="docs-toc">
+              {resolvedRightItems.map((item) => (
+                <a
+                  key={`${item.href}-${item.label}`}
+                  href={item.href}
+                  className={`docs-toc-link${item.depth === 3 ? " is-subitem" : ""}`}
+                >
+                  {item.label}
+                </a>
+              ))}
+            </nav>
+          ) : null}
+          <div id="docs-rightbar-extra-slot" className="docs-rightbar-extra-slot" />
         </aside>
       </div>
     </section>

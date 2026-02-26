@@ -5,8 +5,8 @@
     "themeDark": "Тёмная",
     "themeLight": "Светлая",
     "byLuxisoft": "От LUXISOFT",
-    "homeLinkAria": "Перейти на главную Navai",
-    "bannerAlt": "Navai",
+    "homeLinkAria": "Перейти на главную NAVAI",
+    "bannerAlt": "NAVAI",
     "githubRepository": "Репозиторий GitHub",
     "docsNavigation": "Навигация",
     "docsOnThisPage": "На этой странице",
@@ -30,7 +30,8 @@
     "home": "Главная",
     "docsInstallApi": "Установка API",
     "docsInstallWeb": "Установка Web",
-    "docsInstallMobile": "Установка Mobile"
+    "docsInstallMobile": "Установка Mobile",
+    "docsGroupExamples": "???????"
   },
   "home": {
     "documentationButton": "Документация",
@@ -42,8 +43,8 @@
     "apiKeyPlaceholder": "Вставьте API-ключ OpenAI",
     "apiKeyNotice": "Введенный API-ключ не сохраняется. Он используется только для проверки работы NAVAI.",
     "apiKeyNoticeRepoLabel": "Открыть репозиторий",
-    "ariaStart": "Запустить голосовую сессию Navai",
-    "ariaStop": "Остановить голосовую сессию Navai",
+    "ariaStart": "Запустить голосовую сессию NAVAI",
+    "ariaStop": "Остановить голосовую сессию NAVAI",
     "connecting": "Подключение голосовой сессии...",
     "active": "Голосовая сессия активна",
     "activeDetail": "Голосовая сессия активна. Говорите или нажмите, чтобы остановить.",
@@ -55,14 +56,14 @@
   },
   "docsPage": {
     "badge": "📘 Документация продукта",
-    "title": "📚 Документация Navai Voice Runtime",
-    "description": "🧠 Техническое резюме на основе официального репозитория Luxisoft/Navai.",
+    "title": "📚 Документация NAVAI Voice Runtime",
+    "description": "🧠 Техническое резюме на основе официального репозитория Luxisoft/NAVAI.",
     "sidebarTitle": "Содержание",
     "sections": [
       {
         "id": "overview",
         "title": "Что дает Наваи",
-        "description": "Navai — это голосовая среда выполнения, которая позволяет агенту ИИ перемещаться по пользовательскому интерфейсу приложения и выполнять разрешенные функции внешнего и внутреннего интерфейса в режиме реального времени.",
+        "description": "NAVAI — это голосовая среда выполнения, которая позволяет агенту ИИ перемещаться по пользовательскому интерфейсу приложения и выполнять разрешенные функции внешнего и внутреннего интерфейса в режиме реального времени.",
         "bullets": [
           "Основные пакеты: @navai/voice-backend, @navai/voice-frontend, @navai/voice-mobile.",
           "Серверная часть обеспечивает защиту эфемерного client_secret для OpenAI Realtime.",
@@ -122,7 +123,7 @@
   },
   "implementationPage": {
     "badge": "💼 Профессиональные услуги",
-    "title": "🚀 Заказать внедрение Navai",
+    "title": "🚀 Заказать внедрение NAVAI",
     "description": "🎙️ Реализация голосовой навигации для сайта/приложения.",
     "sidebarTitle": "🧩 Объем работ",
     "sections": [
@@ -131,7 +132,7 @@
         "title": "✅ Что входит",
         "description": "Состав поставки для каждого плана:",
         "bullets": [
-          "Интеграция backend-контракта Navai и frontend runtime.",
+          "Интеграция backend-контракта NAVAI и frontend runtime.",
           "Карта маршрутов и синонимов под структуру вашего приложения.",
           "Валидация, QA-чеклист и поддержка запуска."
         ]
@@ -161,7 +162,7 @@
         "timeline": "5-7 рабочих дней",
         "highlights": [
           "Голосовая навигация по основным маршрутам",
-          "Настройка backend-контракта (3 endpoint Navai)",
+          "Настройка backend-контракта (3 endpoint NAVAI)",
           "Базовая настройка интентов + передача QA"
         ]
       },
@@ -200,7 +201,7 @@
       }
     ],
     "whatsappButtonLabel": "💬 Связаться через WhatsApp",
-    "whatsappPrefill": "Здравствуйте, Luxisoft! Нужен расчет стоимости внедрения Navai voice navigation на мой сайт или приложение.",
+    "whatsappPrefill": "Здравствуйте, Luxisoft! Нужен расчет стоимости внедрения NAVAI voice navigation на мой сайт или приложение.",
     "contactSectionTitle": "📨 Контактная форма",
     "contactSectionDescription": "🧾 Опишите ваш проект, и мы подготовим предложение. Форма отправляет письмо на quote@luxisoft.com.",
     "contactNameLabel": "Полное имя",
@@ -222,6 +223,6 @@
     "contactSubmitLabel": "📤 Отправить запрос",
     "contactDisclaimer": "🔒 Ваш запрос безопасно отправляется на quote@luxisoft.com.",
     "ctaLabel": "🧾 Запросить предложение",
-    "ctaHref": "mailto:quote@luxisoft.com?subject=Navai%20Implementation%20Request"
+    "ctaHref": "mailto:quote@luxisoft.com?subject=NAVAI%20Implementation%20Request"
   }
 }

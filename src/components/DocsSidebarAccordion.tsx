@@ -4,15 +4,16 @@ import Link from "next/link";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { useState } from "react";
 
-type NavaiDocGroupKey = "home" | "installation" | "demo" | "examples" | "libraries";
+type DocsSidebarGroupKey = string;
 
 type DocsSidebarItem = {
   slug: string;
   title: string;
+  children?: DocsSidebarItem[];
 };
 
 type DocsSidebarGroup = {
-  groupKey: NavaiDocGroupKey;
+  groupKey: DocsSidebarGroupKey;
   label: string;
   items: DocsSidebarItem[];
 };
@@ -23,6 +24,8 @@ type DocsSidebarAccordionProps = {
   groups: DocsSidebarGroup[];
   activeSlug?: string;
   onNavigate?: () => void;
+  defaultExpandedGroupKey?: string;
+  basePath?: string;
 };
 
 export default function DocsSidebarAccordion({
@@ -31,12 +34,29 @@ export default function DocsSidebarAccordion({
   groups,
   activeSlug,
   onNavigate,
+  defaultExpandedGroupKey,
+  basePath = "/documentation",
 }: DocsSidebarAccordionProps) {
-  const [expandedGroup, setExpandedGroup] = useState<NavaiDocGroupKey | null>(() => {
-    const activeGroup = groups.find((group) => group.items.some((item) => item.slug === activeSlug))?.groupKey;
-    const defaultGroup = groups.find((group) => group.groupKey === "demo")?.groupKey ?? groups[0]?.groupKey ?? null;
+  const itemContainsActive = (item: DocsSidebarItem): boolean =>
+    item.slug === activeSlug || Boolean(item.children?.some((child) => itemContainsActive(child)));
+
+  const [expandedGroup, setExpandedGroup] = useState<DocsSidebarGroupKey | null>(() => {
+    const activeGroup = groups.find((group) => group.items.some((item) => itemContainsActive(item)))?.groupKey;
+    const defaultGroup =
+      defaultExpandedGroupKey ??
+      groups.find((group) => group.groupKey === "demo")?.groupKey ??
+      groups[0]?.groupKey ??
+      null;
     return activeGroup ?? defaultGroup;
   });
+  const [expandedBranches, setExpandedBranches] = useState<Record<string, boolean>>(() =>
+    Object.fromEntries(
+      groups
+        .flatMap((group) => group.items)
+        .filter((item) => item.children && item.children.length > 0)
+        .map((item) => [item.slug, itemContainsActive(item)])
+    )
+  );
 
   return (
     <aside className="docs-sidebar">
@@ -44,7 +64,7 @@ export default function DocsSidebarAccordion({
       {homeItem ? (
         <div className="docs-nav-list">
           <Link
-            href={`/documentation/${homeItem.slug}`}
+            href={`${basePath}/${homeItem.slug}`}
             className={`docs-nav-item${activeSlug === homeItem.slug ? " is-active" : ""}`}
             onClick={onNavigate}
           >
@@ -78,16 +98,73 @@ export default function DocsSidebarAccordion({
               </button>
 
               <div id={panelId} className={`docs-group-panel${isOpen ? " is-open" : ""}`} hidden={!isOpen}>
-                {group.items.map((doc) => (
-                  <Link
-                    key={doc.slug}
-                    href={`/documentation/${doc.slug}`}
-                    className={`docs-nav-item docs-nav-subitem${activeSlug === doc.slug ? " is-active" : ""}`}
-                    onClick={onNavigate}
-                  >
-                    {doc.title}
-                  </Link>
-                ))}
+                {group.items.map((doc) => {
+                  const hasChildren = Boolean(doc.children?.length);
+                  if (!hasChildren) {
+                    return (
+                      <Link
+                        key={doc.slug}
+                        href={`${basePath}/${doc.slug}`}
+                        className={`docs-nav-item docs-nav-subitem${activeSlug === doc.slug ? " is-active" : ""}`}
+                        onClick={onNavigate}
+                      >
+                        {doc.title}
+                      </Link>
+                    );
+                  }
+
+                  const branchOpen = expandedBranches[doc.slug] ?? false;
+                  const branchPanelId = `docs-branch-panel-${group.groupKey}-${doc.slug}`;
+                  const branchActive = itemContainsActive(doc);
+
+                  return (
+                    <div key={doc.slug} className={`docs-nav-branch${branchOpen ? " is-open" : ""}`}>
+                      <div className={`docs-nav-branch-row${branchActive ? " is-active" : ""}`}>
+                        <Link
+                          href={`${basePath}/${doc.slug}`}
+                          className={`docs-nav-item docs-nav-subitem docs-nav-branch-link${activeSlug === doc.slug ? " is-active" : ""}`}
+                          onClick={onNavigate}
+                        >
+                          {doc.title}
+                        </Link>
+                        <button
+                          type="button"
+                          className="docs-nav-branch-toggle"
+                          aria-expanded={branchOpen}
+                          aria-controls={branchPanelId}
+                          onClick={() =>
+                            setExpandedBranches((current) => ({ ...current, [doc.slug]: !branchOpen }))
+                          }
+                        >
+                          {branchOpen ? (
+                            <ChevronUp className="docs-group-arrow" aria-hidden="true" />
+                          ) : (
+                            <ChevronDown className="docs-group-arrow" aria-hidden="true" />
+                          )}
+                        </button>
+                      </div>
+
+                      <div
+                        id={branchPanelId}
+                        className={`docs-nav-subpanel${branchOpen ? " is-open" : ""}`}
+                        hidden={!branchOpen}
+                      >
+                        {doc.children?.map((child) => (
+                          <Link
+                            key={child.slug}
+                            href={`${basePath}/${child.slug}`}
+                            className={`docs-nav-item docs-nav-subitem docs-nav-subsubitem${
+                              activeSlug === child.slug ? " is-active" : ""
+                            }`}
+                            onClick={onNavigate}
+                          >
+                            {child.title}
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           );

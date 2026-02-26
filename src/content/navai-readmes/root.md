@@ -1,7 +1,7 @@
 <h1 align="center">🦉 NAVAI — Realtime Voice AI for UI Navigation & Function Execution</h1>
 
 <p align="center">
-  <a href="https://luxisoft.com/en/">
+  <a href="https://github.com/Luxisoft/navai">
     <img src="./assets/img/navai.png" alt="NAVAI by LUXISOFT" height="120" />
   </a>
 </p>

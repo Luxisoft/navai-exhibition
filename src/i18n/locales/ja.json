@@ -5,8 +5,8 @@
     "themeDark": "ダーク",
     "themeLight": "ライト",
     "byLuxisoft": "LUXISOFT 提供",
-    "homeLinkAria": "Navai ホームへ移動",
-    "bannerAlt": "Navai",
+    "homeLinkAria": "NAVAI ホームへ移動",
+    "bannerAlt": "NAVAI",
     "githubRepository": "GitHub リポジトリ",
     "docsNavigation": "ナビゲーション",
     "docsOnThisPage": "このページ",
@@ -30,7 +30,8 @@
     "home": "ホーム",
     "docsInstallApi": "API インストール",
     "docsInstallWeb": "Web インストール",
-    "docsInstallMobile": "Mobile インストール"
+    "docsInstallMobile": "Mobile インストール",
+    "docsGroupExamples": "?"
   },
   "home": {
     "documentationButton": "ドキュメント",
@@ -42,8 +43,8 @@
     "apiKeyPlaceholder": "OpenAI APIキーを貼り付け",
     "apiKeyNotice": "入力したAPIキーは保存されません。NAVAIの動作確認のためだけに使用されます。",
     "apiKeyNoticeRepoLabel": "リポジトリを見る",
-    "ariaStart": "Navai 音声セッションを開始",
-    "ariaStop": "Navai 音声セッションを停止",
+    "ariaStart": "NAVAI 音声セッションを開始",
+    "ariaStop": "NAVAI 音声セッションを停止",
     "connecting": "音声セッションに接続中...",
     "active": "音声セッションが有効です",
     "activeDetail": "音声セッションが有効です。話しかけるか、停止ボタンを押してください。",
@@ -55,14 +56,14 @@
   },
   "docsPage": {
     "badge": "📘 製品ドキュメント",
-    "title": "📚 Navai Voice Runtime ドキュメント",
-    "description": "🧠 公式 Luxisoft/Navai リポジトリに基づく技術要約。",
+    "title": "📚 NAVAI Voice Runtime ドキュメント",
+    "description": "🧠 公式 Luxisoft/NAVAI リポジトリに基づく技術要約。",
     "sidebarTitle": "このページ",
     "sections": [
       {
         "id": "overview",
-        "title": "Navai が提供するもの",
-        "description": "Navai は、AI エージェントがアプリ UI を操作し、許可されたフロントエンド/バックエンド機能をリアルタイムで実行できる音声ファースト ランタイムです。",
+        "title": "NAVAI が提供するもの",
+        "description": "NAVAI は、AI エージェントがアプリ UI を操作し、許可されたフロントエンド/バックエンド機能をリアルタイムで実行できる音声ファースト ランタイムです。",
         "bullets": [
           "コア パッケージ: @navai/voice-backend、@navai/voice-frontend、@navai/voice-mobile。",
           "バックエンドは、OpenAI Realtime 用に安全な一時的な client_secret を作成します。",
@@ -122,7 +123,7 @@
   },
   "implementationPage": {
     "badge": "💼 プロフェッショナルサービス",
-    "title": "🚀 Navai 導入のご相談",
+    "title": "🚀 NAVAI 導入のご相談",
     "description": "🎙️ Web/アプリへの音声導入を本番品質で実装します。",
     "sidebarTitle": "🧩 サービス範囲",
     "sections": [
@@ -131,7 +132,7 @@
         "title": "✅ 含まれる内容",
         "description": "すべてのプランに含まれる提供範囲:",
         "bullets": [
-          "Navai バックエンド契約とフロントエンドランタイムの統合",
+          "NAVAI バックエンド契約とフロントエンドランタイムの統合",
           "アプリ構造に合わせたルートマッピングと同義語設定",
           "検証、QA チェックリスト、リリース支援"
         ]
@@ -161,7 +162,7 @@
         "timeline": "5-7 営業日",
         "highlights": [
           "主要ルートの音声ナビゲーション",
-          "バックエンド契約セットアップ（Navai 3 エンドポイント）",
+          "バックエンド契約セットアップ（NAVAI 3 エンドポイント）",
           "基本インテント調整 + QA 引き継ぎ"
         ]
       },
@@ -200,7 +201,7 @@
       }
     ],
     "whatsappButtonLabel": "💬 WhatsApp で連絡",
-    "whatsappPrefill": "こんにちは Luxisoft、私のサイトまたはアプリに Navai 音声ナビゲーションを導入する見積もりをお願いします。",
+    "whatsappPrefill": "こんにちは Luxisoft、私のサイトまたはアプリに NAVAI 音声ナビゲーションを導入する見積もりをお願いします。",
     "contactSectionTitle": "📨 お問い合わせフォーム",
     "contactSectionDescription": "🧾 プロジェクト内容を共有してください。お見積もりを作成します。このフォームは quote@luxisoft.com 宛に送信されます。",
     "contactNameLabel": "氏名",
@@ -222,6 +223,6 @@
     "contactSubmitLabel": "📤 見積もり依頼を送信",
     "contactDisclaimer": "🔒 あなたの依頼は quote@luxisoft.com に安全に送信されます。",
     "ctaLabel": "🧾 見積もりを依頼",
-    "ctaHref": "mailto:quote@luxisoft.com?subject=Navai%20Implementation%20Request"
+    "ctaHref": "mailto:quote@luxisoft.com?subject=NAVAI%20Implementation%20Request"
   }
 }

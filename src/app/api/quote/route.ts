@@ -108,7 +108,7 @@ export async function POST(request: NextRequest) {
   });
 
   const fromEmail = process.env.SMTP_FROM ?? smtpUser;
-  const subject = `Navai Quote Request - ${parsed.data.name}`;
+  const subject = `NAVAI Quote Request - ${parsed.data.name}`;
   const text = [
     "New implementation quote request",
     "",

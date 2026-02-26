@@ -1,6 +1,5 @@
 import { notFound } from "next/navigation";
 
-import EcommerceStoreDemo from "@/components/EcommerceStoreDemo";
 import NavaiDocMarkdown from "@/components/NavaiDocMarkdown";
 import NavaiDocsShell from "@/components/NavaiDocsShell";
 import { NAVAI_DOCS, getNavaiDocPageBySlug, getNavaiDocSourceUrl, getNavaiDocsGrouped } from "@/lib/navai-docs";
@@ -12,15 +11,18 @@ type DocPageProps = {
 };
 
 export function generateStaticParams() {
-  return NAVAI_DOCS.map((doc) => ({ slug: doc.slug }));
+  return NAVAI_DOCS.filter((doc) => doc.slug !== "playground-stores").map((doc) => ({ slug: doc.slug }));
 }
 
 export default async function DocumentacionDetallePage({ params }: DocPageProps) {
   const { slug } = await params;
+  if (slug === "playground-stores") {
+    notFound();
+  }
   const doc = await getNavaiDocPageBySlug(slug);
   const groupedDocs = getNavaiDocsGrouped();
   const homeItem = groupedDocs.find((group) => group.groupKey === "home")?.items[0];
-  const groups = groupedDocs.filter((group) => group.groupKey !== "home");
+  const groups = groupedDocs.filter((group) => group.groupKey !== "home" && group.groupKey !== "examples");
 
   if (!doc) {
     notFound();
@@ -38,7 +40,7 @@ export default async function DocumentacionDetallePage({ params }: DocPageProps)
         items: group.items.map((item) => ({ slug: item.slug, title: item.title })),
       }))}
       hideMainHeader={doc.slug === "home"}
-      sourceHref={doc.slug === "playground-stores" ? undefined : getNavaiDocSourceUrl(doc.sourcePath)}
+      sourceHref={getNavaiDocSourceUrl(doc.sourcePath)}
       rightItems={doc.sections.map((section) => ({
         href: `#${section.id}`,
         label: section.title,
@@ -46,7 +48,6 @@ export default async function DocumentacionDetallePage({ params }: DocPageProps)
       }))}
     >
       <NavaiDocMarkdown doc={doc} />
-      {doc.slug === "playground-stores" ? <EcommerceStoreDemo /> : null}
     </NavaiDocsShell>
   );
 }

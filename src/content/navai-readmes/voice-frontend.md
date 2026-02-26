@@ -5,7 +5,7 @@
   <a href="./README.en.md"><img alt="Language English" src="https://img.shields.io/badge/Language-EN-1D9A6C?style=for-the-badge"></a>
 </p>
 
-Frontend package to build Navai voice agents in web applications.
+Frontend package to build NAVAI voice agents in web applications.
 
 It removes repeated boilerplate for:
 
@@ -69,7 +69,7 @@ Hook-driven runtime flow (`useWebVoiceAgent`):
 3. On `start()`:
 - request client secret.
 - fetch backend function list.
-- build Navai agent with local + backend functions.
+- build NAVAI agent with local + backend functions.
 - connect `RealtimeSession`.
 4. On `stop()`:
 - close session and reset state.

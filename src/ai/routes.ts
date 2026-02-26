@@ -14,9 +14,22 @@ type NavigationCatalogData = {
 
 const catalog = navigationCatalog as NavigationCatalogData;
 
-export const NAVAI_ROUTE_ITEMS: NavaiRoute[] = catalog.routes.map((route) => ({
-  name: route.name,
-  path: route.path,
-  description: route.description,
-  synonyms: route.synonyms,
-}));
+const EXCLUDED_PATH_PREFIXES = ["/example"];
+const EXCLUDED_PATHS = new Set<string>(["/documentation/playground-stores"]);
+
+export const NAVAI_ROUTE_ITEMS: NavaiRoute[] = catalog.routes
+  .filter((route) => {
+    if (EXCLUDED_PATHS.has(route.path)) {
+      return false;
+    }
+    if (route.path.startsWith("/documentation/playground-stores#")) {
+      return false;
+    }
+    return !EXCLUDED_PATH_PREFIXES.some((prefix) => route.path.startsWith(prefix));
+  })
+  .map((route) => ({
+    name: route.name,
+    path: route.path,
+    description: route.description,
+    synonyms: route.synonyms,
+  }));

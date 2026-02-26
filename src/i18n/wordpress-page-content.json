@@ -1,0 +1,1505 @@
+{
+  "es": {
+    "navigationLabel": "Wordpress",
+    "badge": "WordPress Integracion",
+    "title": "NAVAI Voice para WordPress",
+    "description": "Guia funcional del plugin WordPress de NAVAI basada en el branch wordpress-phase-1-guardrails: instalacion, configuracion, seguridad y operacion.",
+    "sidebarTitle": "Guia WordPress",
+    "sections": [
+      {
+        "id": "overview",
+        "title": "Que es el plugin",
+        "description": "Plugin en PHP + JavaScript vanilla que integra NAVAI Voice con OpenAI Realtime en WordPress sin Node.js.",
+        "bullets": [
+          "Agrega widget de voz al sitio publico y a `wp-admin` (para administradores).",
+          "Permite navegar por rutas habilitadas y ejecutar funciones personalizadas.",
+          "Incluye panel admin para navegacion, funciones, seguridad, aprobaciones, trazas, historial, agentes y MCP."
+        ]
+      },
+      {
+        "id": "quick-access",
+        "title": "Accesos rapidos",
+        "description": "Resumen operativo tomado del README del plugin.",
+        "bullets": [
+          "Instalacion: carga ZIP desde `Plugins > Add New > Upload Plugin` o copia manual en `wp-content/plugins/navai-voice`.",
+          "Configuracion rapida: define `OpenAI API Key`, modelo `gpt-realtime` y voz `marin`.",
+          "Uso: activa boton global flotante o shortcode manual `[navai_voice]`.",
+          "Operacion: genera ZIP con `apps/wordpress-plugin/release/build-zip.ps1` y aplica checklist de troubleshooting."
+        ]
+      },
+      {
+        "id": "capabilities",
+        "title": "Capacidades actuales",
+        "description": "Funciones principales reportadas en la version wordpress-phase-1-guardrails.",
+        "bullets": [
+          "Rutas publicas y privadas por rol con descripciones para mejorar decisiones de navegacion.",
+          "Funciones personalizadas en JavaScript con `function_name`, scope, timeout, retries, aprobacion y JSON Schema.",
+          "Prueba de funciones (`Test function`), activacion por checkbox e import/export de paquetes `.js`.",
+          "Selector de idioma del panel y control de visibilidad del widget por rol, incluyendo invitados.",
+          "Guardrails Fase 1 y fases avanzadas Fase 2 a Fase 7 (aprobaciones, trazas, historial, multiagente, MCP)."
+        ]
+      },
+      {
+        "id": "requirements",
+        "title": "Requisitos",
+        "description": "Requisitos minimos indicados en el README del plugin.",
+        "bullets": [
+          "WordPress `6.2+`",
+          "PHP `8.0+`",
+          "API Key de OpenAI con acceso a Realtime"
+        ]
+      },
+      {
+        "id": "installation-admin",
+        "title": "Instalacion desde WordPress admin",
+        "description": "Flujo recomendado para equipos no tecnicos.",
+        "bullets": [
+          "1) Genera u obtiene `navai-voice.zip`.",
+          "2) Ve a `Plugins > Add New > Upload Plugin`.",
+          "3) Sube el ZIP, activa el plugin y abre `NAVAI Voice`."
+        ]
+      },
+      {
+        "id": "installation-manual",
+        "title": "Instalacion manual (filesystem)",
+        "description": "Alternativa para despliegues por servidor o CI/CD.",
+        "bullets": [
+          "Copia `apps/wordpress-plugin` como `wp-content/plugins/navai-voice`.",
+          "Activa `NAVAI Voice` desde el administrador de plugins."
+        ]
+      },
+      {
+        "id": "quick-setup",
+        "title": "Configuracion rapida recomendada",
+        "description": "Parametros minimos para iniciar una sesion de voz funcional.",
+        "bullets": [
+          "Configura `OpenAI API Key`, `Modelo Realtime` (default `gpt-realtime`) y `Voz` (default `marin`).",
+          "Selecciona modo de render: `Boton global flotante` o `Solo shortcode manual`.",
+          "Define visibilidad por rol (incluyendo invitados, si aplica).",
+          "Guarda cambios y valida navegacion/funciones desde el widget."
+        ]
+      },
+      {
+        "id": "usage",
+        "title": "Modos de uso",
+        "description": "El plugin soporta modo global y modo manual por shortcode.",
+        "bullets": [
+          "Opcion A: `Boton global flotante` para sitio publico y `wp-admin` (admin).",
+          "Opcion B: `Solo shortcode manual` para render explicito dentro de paginas o plantillas.",
+          "Shortcode soporta `label`, `stop_label`, `model`, `voice`, `instructions`, `language` y `debug`."
+        ],
+        "code": "[navai_voice]\n\n[navai_voice label=\"Hablar con NAVAI\" stop_label=\"Detener NAVAI\" model=\"gpt-realtime\" voice=\"marin\" debug=\"1\"]"
+      },
+      {
+        "id": "admin-tabs",
+        "title": "Panel de administracion",
+        "description": "Modulos clave disponibles en el dashboard `NAVAI Voice`.",
+        "bullets": [
+          "`Navegacion`: rutas publicas/privadas, descripciones y filtros.",
+          "`Funciones`: editor JS en modal, metadata, testing e import/export.",
+          "`Ajustes`: General, Seguridad (Fase 1), Aprobaciones, Trazas e Historial.",
+          "`Agentes`: multiagente + reglas de handoff configuradas.",
+          "`MCP`: servidores remotos, sync de tools y politicas allow/deny por rol/agente."
+        ]
+      },
+      {
+        "id": "guardrails-phases",
+        "title": "Guardrails y fases avanzadas",
+        "description": "Roadmap integrado reportado en el README.",
+        "bullets": [
+          "Fase 1: reglas de guardrail para `input`, `tool` y `output` con `keyword` o `regex` (`block`, `warn`, `allow`).",
+          "Fase 2: aprobaciones humanas (HITL) y trazas runtime con timeline.",
+          "Fase 3: sesiones, transcriptos y retencion/limpieza de historial.",
+          "Fase 4: UX de voz avanzada con VAD, interrupciones y fallback texto/voz.",
+          "Fase 5: funciones robustas (schema, timeout, retries, test, asignacion por agente).",
+          "Fase 6: arquitectura multiagente con handoffs por intencion, funcion, payload, roles y contexto.",
+          "Fase 7: integracion MCP (JSON-RPC HTTP), tools remotas y politicas por rol/agent_key."
+        ]
+      },
+      {
+        "id": "rest-endpoints",
+        "title": "Endpoints REST actuales",
+        "description": "Contrato REST principal expuesto por el plugin.",
+        "bullets": [
+          "Realtime: `POST /wp-json/navai/v1/realtime/client-secret`.",
+          "Funciones: `GET /wp-json/navai/v1/functions`, `POST /wp-json/navai/v1/functions/execute`, `POST /wp-json/navai/v1/functions/test`.",
+          "Rutas: `GET /wp-json/navai/v1/routes`.",
+          "Seguridad: CRUD `guardrails` + `POST /wp-json/navai/v1/guardrails/test`.",
+          "Administracion avanzada: endpoints de `approvals`, `traces`, `sessions`, `agents` y `mcp/*` (admin)."
+        ],
+        "code": "POST /wp-json/navai/v1/realtime/client-secret\nGET /wp-json/navai/v1/functions\nPOST /wp-json/navai/v1/functions/execute\nGET /wp-json/navai/v1/routes"
+      },
+      {
+        "id": "backend-extensibility",
+        "title": "Extensibilidad backend (filters)",
+        "description": "Filters documentados para extender capacidades sin tocar el core del plugin.",
+        "bullets": [
+          "`navai_voice_functions_registry`: registrar tools backend en PHP.",
+          "`navai_voice_plugin_actions`: acciones backend legacy tipo `@action:`.",
+          "`navai_voice_routes`: extender catalogo de rutas navegables.",
+          "`navai_voice_frontend_config`: ajustar configuracion frontend antes de render."
+        ]
+      },
+      {
+        "id": "security",
+        "title": "Notas de seguridad",
+        "description": "Lineamientos de seguridad incluidos en la documentacion del plugin.",
+        "bullets": [
+          "La API key de OpenAI permanece en servidor.",
+          "`client_secret` publico y funciones backend publicas se pueden habilitar/deshabilitar por configuracion.",
+          "Guardrails pueden bloquear por `input`, `tool` y `output` antes/despues de ejecutar funciones.",
+          "Callbacks PHP/backend registrados por filtros deben tratarse como codigo confiable de administrador.",
+          "Restringe rutas y funciones a lo estrictamente necesario por rol."
+        ]
+      },
+      {
+        "id": "operations",
+        "title": "Operaciones y troubleshooting",
+        "description": "Checklist operativo para empaquetado, actualizacion y diagnostico.",
+        "bullets": [
+          "Genera ZIP instalable con script PowerShell y distribuye `release/navai-voice.zip`.",
+          "Tras actualizar, limpia cache de navegador/plugin y OPcache/PHP-FPM si aplica.",
+          "Si una actualizacion rompe admin, haz reemplazo limpio del directorio del plugin.",
+          "Si el widget no inicia, valida API key, permisos de microfono, modelo/voz y acceso REST."
+        ],
+        "code": "& \"apps/wordpress-plugin/release/build-zip.ps1\""
+      }
+    ]
+  },
+  "en": {
+    "navigationLabel": "Wordpress",
+    "badge": "WordPress Integration",
+    "title": "NAVAI Voice for WordPress",
+    "description": "Functional guide to the NAVAI WordPress plugin based on the wordpress-phase-1-guardrails branch: installation, configuration, security and operation.",
+    "sidebarTitle": "WordPress Guide",
+    "sections": [
+      {
+        "id": "overview",
+        "title": "What is the plugin",
+        "description": "Plugin in PHP + vanilla JavaScript that integrates NAVAI Voice with OpenAI Realtime in WordPress without Node.js.",
+        "bullets": [
+          "Add voice widget to public site and `wp-admin` (for administrators).",
+          "Allows you to navigate enabled routes and execute custom functions.",
+          "Includes admin panel for navigation, functions, security, approvals, traces, history, agents and MCP."
+        ]
+      },
+      {
+        "id": "quick-access",
+        "title": "Quick access",
+        "description": "Operational summary taken from the plugin's README.",
+        "bullets": [
+          "Installation: ZIP upload from `Plugins > Add New > Upload Plugin` or manual copy to `wp-content/plugins/navai-voice`.",
+          "Quick setup: define `OpenAI API Key`, model `gpt-realtime` and voice `marin`.",
+          "Use: activate floating global button or manual shortcode `[navai_voice]`.",
+          "Operation: generate ZIP with `apps/wordpress-plugin/release/build-zip.ps1` and apply troubleshooting checklist."
+        ]
+      },
+      {
+        "id": "capabilities",
+        "title": "Current capabilities",
+        "description": "Main features reported in the wordpress-phase-1-guardrails version.",
+        "bullets": [
+          "Public and private routes by role with descriptions to improve navigation decisions.",
+          "Custom functions in JavaScript with `function_name`, scope, timeout, retries, approval and JSON Schema.",
+          "Testing functions (`Test function`), activation by checkbox and import/export of packages `.js`.",
+          "Panel language selector and widget visibility control by role, including guests.",
+          "Guardrails Phase 1 and advanced phases Phase 2 to Phase 7 (approvals, traces, history, multi-agent, MCP)."
+        ]
+      },
+      {
+        "id": "requirements",
+        "title": "Requirements",
+        "description": "Minimum requirements indicated in the plugin README.",
+        "bullets": [
+          "WordPress `6.2+`",
+          "PHP `8.0+`",
+          "OpenAI API Key with access to Realtime"
+        ]
+      },
+      {
+        "id": "installation-admin",
+        "title": "Installation from WordPress admin",
+        "description": "Recommended flow for non-technical equipment.",
+        "bullets": [
+          "1) Generate or get `navai-voice.zip`.",
+          "2) Go to `Plugins > Add New > Upload Plugin`.",
+          "3) Upload the ZIP, activate the plugin and open `NAVAI Voice`."
+        ]
+      },
+      {
+        "id": "installation-manual",
+        "title": "Manual installation (filesystem)",
+        "description": "Alternative for server or CI/CD deployments.",
+        "bullets": [
+          "Copy `apps/wordpress-plugin` as `wp-content/plugins/navai-voice`.",
+          "Activate `NAVAI Voice` from the plugin manager."
+        ]
+      },
+      {
+        "id": "quick-setup",
+        "title": "Recommended quick setup",
+        "description": "Minimum parameters to start a functional voice session.",
+        "bullets": [
+          "Configure `OpenAI API Key`, `Modelo Realtime` (default `gpt-realtime`) and `Voz` (default `marin`).",
+          "Select render mode: `Boton global flotante` or `Solo shortcode manual`.",
+          "Define visibility by role (including guests, if applicable).",
+          "Save changes and validate navigation/functions from the widget."
+        ]
+      },
+      {
+        "id": "usage",
+        "title": "Modes of use",
+        "description": "The plugin supports global mode and manual mode by shortcode.",
+        "bullets": [
+          "Option A: `Boton global flotante` for public site and `wp-admin` (admin).",
+          "Option B: `Solo shortcode manual` for explicit rendering within pages or templates.",
+          "Shortcode supports `label`, `stop_label`, `model`, `voice`, `instructions`, `language` and `debug`."
+        ],
+        "code": "[navai_voice]\n\n[navai_voice label=\"Hablar con NAVAI\" stop_label=\"Detener NAVAI\" model=\"gpt-realtime\" voice=\"marin\" debug=\"1\"]"
+      },
+      {
+        "id": "admin-tabs",
+        "title": "administration panel",
+        "description": "Key modules available on the dashboard `NAVAI Voice`.",
+        "bullets": [
+          "`Navegacion`: public/private routes, descriptions and filters.",
+          "`Funciones`: JS editor in modal, metadata, testing and import/export.",
+          "`Ajustes`: General, Safety (Phase 1), Approvals, Traces and History.",
+          "`Agentes`: multi-agent + handoff rules configured.",
+          "`MCP`: remote servers, tools sync and allow/deny policies by role/agent."
+        ]
+      },
+      {
+        "id": "guardrails-phases",
+        "title": "Guardrails and advanced phases",
+        "description": "Integrated roadmap reported in the README.",
+        "bullets": [
+          "Phase 1: guardrail rules for `input`, `tool` and `output` with `keyword` or `regex` (`block`, `warn`, `allow`).",
+          "Phase 2: human approvals (HITL) and runtime traces with timeline.",
+          "Phase 3: sessions, transcripts and history retention/cleaning.",
+          "Phase 4: Advanced voice UX with VAD, interruptions and text/voice fallback.",
+          "Phase 5: robust functions (schema, timeout, retries, test, assignment by agent).",
+          "Phase 6: multi-agent architecture with handoffs by intent, function, payload, roles and context.",
+          "Phase 7: MCP integration (JSON-RPC HTTP), remote tools and policies by role/agent_key."
+        ]
+      },
+      {
+        "id": "rest-endpoints",
+        "title": "Current REST endpoints",
+        "description": "Main REST contract exposed by the plugin.",
+        "bullets": [
+          "Realtime: `POST /wp-json/navai/v1/realtime/client-secret`.",
+          "Functions: `GET /wp-json/navai/v1/functions`, `POST /wp-json/navai/v1/functions/execute`, `POST /wp-json/navai/v1/functions/test`.",
+          "Routes: `GET /wp-json/navai/v1/routes`.",
+          "Security: CRUD `guardrails` + `POST /wp-json/navai/v1/guardrails/test`.",
+          "Advanced administration: endpoints of `approvals`, `traces`, `sessions`, `agents` and `mcp/*` (admin)."
+        ],
+        "code": "POST /wp-json/navai/v1/realtime/client-secret\nGET /wp-json/navai/v1/functions\nPOST /wp-json/navai/v1/functions/execute\nGET /wp-json/navai/v1/routes"
+      },
+      {
+        "id": "backend-extensibility",
+        "title": "Backend extensibility (filters)",
+        "description": "Documented filters to extend capabilities without touching the core of the plugin.",
+        "bullets": [
+          "`navai_voice_functions_registry`: register backend tools in PHP.",
+          "`navai_voice_plugin_actions`: legacy backend actions of type `@action:`.",
+          "`navai_voice_routes`: extend catalog of navigable routes.",
+          "`navai_voice_frontend_config`: adjust frontend configuration before rendering."
+        ]
+      },
+      {
+        "id": "security",
+        "title": "Safety notes",
+        "description": "Security guidelines included in the plugin documentation.",
+        "bullets": [
+          "The OpenAI API key remains on the server.",
+          "`client_secret` public and public backend functions can be enabled/disabled by configuration.",
+          "Guardrails can block by `input`, `tool` and `output` before/after executing functions.",
+          "PHP/backend callbacks registered by filters should be treated as trusted administrator code.",
+          "Restrict routes and functions to what is strictly necessary per role."
+        ]
+      },
+      {
+        "id": "operations",
+        "title": "Operations and troubleshooting",
+        "description": "Operational checklist for packaging, updating and diagnosis.",
+        "bullets": [
+          "Generate installable ZIP with PowerShell script and distribute `release/navai-voice.zip`.",
+          "After updating, clear browser/plugin cache and OPcache/PHP-FPM if applicable.",
+          "If an update breaks admin, do a clean replacement of the plugin directory.",
+          "If the widget does not start, validate API key, microphone permissions, model/voice and REST access."
+        ],
+        "code": "& \"apps/wordpress-plugin/release/build-zip.ps1\""
+      }
+    ]
+  },
+  "fr": {
+    "navigationLabel": "Wordpress",
+    "badge": "Intégration WordPress",
+    "title": "NAVAI Voix pour WordPress",
+    "description": "Guide fonctionnel du plugin WordPress NAVAI basé sur la branche wordpress-phase-1-guardrails : installation, configuration, sécurité et fonctionnement.",
+    "sidebarTitle": "Guide WordPress",
+    "sections": [
+      {
+        "id": "overview",
+        "title": "Quel est le plugin",
+        "description": "Plugin en PHP + Vanilla JavaScript qui intègre NAVAI Voice avec OpenAI Realtime dans WordPress sans Node.js.",
+        "bullets": [
+          "Ajoutez un widget vocal au site public et `wp-admin` (pour les administrateurs).",
+          "Vous permet de parcourir les itinéraires activés et d'exécuter des fonctions personnalisées.",
+          "Comprend un panneau d'administration pour la navigation, les fonctions, la sécurité, les approbations, les traces, l'historique, les agents et MCP."
+        ]
+      },
+      {
+        "id": "quick-access",
+        "title": "Accès rapide",
+        "description": "Résumé opérationnel tiré du README du plugin.",
+        "bullets": [
+          "Installation : téléchargement ZIP depuis `Plugins > Add New > Upload Plugin` ou copie manuelle vers `wp-content/plugins/navai-voice`.",
+          "Configuration rapide : définissez `OpenAI API Key`, le modèle `gpt-realtime` et la voix `marin`.",
+          "Utilisation : activer le bouton global flottant ou le shortcode manuel `[navai_voice]`.",
+          "Opération : générez un ZIP avec `apps/wordpress-plugin/release/build-zip.ps1` et appliquez la liste de contrôle de dépannage."
+        ]
+      },
+      {
+        "id": "capabilities",
+        "title": "Capacités actuelles",
+        "description": "Principales fonctionnalités rapportées dans la version wordpress-phase-1-guardrails.",
+        "bullets": [
+          "Itinéraires publics et privés par rôle avec des descriptions pour améliorer les décisions de navigation.",
+          "Fonctions personnalisées en JavaScript avec `function_name`, portée, délai d'attente, tentatives, approbation et schéma JSON.",
+          "Fonctions de test (`Test function`), activation par case à cocher et import/export de packages `.js`.",
+          "Sélecteur de langue du panneau et contrôle de la visibilité des widgets par rôle, y compris les invités.",
+          "Guardrails Phase 1 et phases avancées Phase 2 à Phase 7 (approbations, traces, historique, multi-agents, MCP)."
+        ]
+      },
+      {
+        "id": "requirements",
+        "title": "Exigences",
+        "description": "Configuration minimale indiquée dans le plugin README.",
+        "bullets": [
+          "WordPress `6.2+`",
+          "PHP `8.0+`",
+          "Clé API OpenAI avec accès au temps réel"
+        ]
+      },
+      {
+        "id": "installation-admin",
+        "title": "Installation depuis l'administrateur WordPress",
+        "description": "Débit recommandé pour les équipements non techniques.",
+        "bullets": [
+          "1) Générez ou obtenez `navai-voice.zip`.",
+          "2) Accédez à `Plugins > Add New > Upload Plugin`.",
+          "3) Téléchargez le ZIP, activez le plugin et ouvrez `NAVAI Voice`."
+        ]
+      },
+      {
+        "id": "installation-manual",
+        "title": "Installation manuelle (système de fichiers)",
+        "description": "Alternative pour les déploiements serveur ou CI/CD.",
+        "bullets": [
+          "Copiez `apps/wordpress-plugin` sous `wp-content/plugins/navai-voice`.",
+          "Activez `NAVAI Voice` depuis le gestionnaire de plugins."
+        ]
+      },
+      {
+        "id": "quick-setup",
+        "title": "Configuration rapide recommandée",
+        "description": "Paramètres minimaux pour démarrer une session vocale fonctionnelle.",
+        "bullets": [
+          "Configurez `OpenAI API Key`, `Modelo Realtime` (par défaut `gpt-realtime`) et `Voz` (par défaut `marin`).",
+          "Sélectionnez le mode de rendu : `Boton global flotante` ou `Solo shortcode manual`.",
+          "Définissez la visibilité par rôle (y compris les invités, le cas échéant).",
+          "Enregistrez les modifications et validez la navigation/les fonctions depuis le widget."
+        ]
+      },
+      {
+        "id": "usage",
+        "title": "Modes d'utilisation",
+        "description": "Le plugin prend en charge le mode global et le mode manuel par shortcode.",
+        "bullets": [
+          "Option A : `Boton global flotante` pour le site public et `wp-admin` (administrateur).",
+          "Option B : `Solo shortcode manual` pour un rendu explicite dans les pages ou les modèles.",
+          "Le shortcode prend en charge `label`, `stop_label`, `model`, `voice`, `instructions`, `language` et `debug`."
+        ],
+        "code": "[navai_voice]\n\n[navai_voice label=\"Hablar con NAVAI\" stop_label=\"Detener NAVAI\" model=\"gpt-realtime\" voice=\"marin\" debug=\"1\"]"
+      },
+      {
+        "id": "admin-tabs",
+        "title": "panneau d'administration",
+        "description": "Modules clés disponibles sur le tableau de bord `NAVAI Voice`.",
+        "bullets": [
+          "`Navegacion` : itinéraires publics/privés, descriptions et filtres.",
+          "`Funciones` : Editeur JS en modal, métadonnées, tests et import/export.",
+          "`Ajustes` : Général, Sécurité (Phase 1), Approbations, Traces et Historique.",
+          "`Agentes` : multi-agent + règles de transfert configurées.",
+          "`MCP` : serveurs distants, outils de synchronisation et politiques d'autorisation/refus par rôle/agent."
+        ]
+      },
+      {
+        "id": "guardrails-phases",
+        "title": "Garde-corps et phases avancées",
+        "description": "Feuille de route intégrée rapportée dans le README.",
+        "bullets": [
+          "Phase 1 : règles de garde-fou pour `input`, `tool` et `output` avec `keyword` ou `regex` (`block`, `warn`, `allow`).",
+          "Phase 2 : approbations humaines (HITL) et traces d'exécution avec chronologie.",
+          "Phase 3 : sessions, transcriptions et conservation/nettoyage de l’historique.",
+          "Phase 4 : UX vocal avancé avec VAD, interruptions et repli texte/voix.",
+          "Phase 5 : fonctions robustes (schéma, timeout, tentatives, test, affectation par agent).",
+          "Phase 6 : architecture multi-agents avec transferts par intention, fonction, charge utile, rôles et contexte.",
+          "Phase 7 : Intégration MCP (JSON-RPC HTTP), outils et politiques distants par rôle/agent_key."
+        ]
+      },
+      {
+        "id": "rest-endpoints",
+        "title": "Points de terminaison REST actuels",
+        "description": "Contrat REST principal exposé par le plugin.",
+        "bullets": [
+          "Temps réel : `POST /wp-json/navai/v1/realtime/client-secret`.",
+          "Fonctions : `GET /wp-json/navai/v1/functions`, `POST /wp-json/navai/v1/functions/execute`, `POST /wp-json/navai/v1/functions/test`.",
+          "Itinéraires : `GET /wp-json/navai/v1/routes`.",
+          "Sécurité : CRUD `guardrails` + `POST /wp-json/navai/v1/guardrails/test`.",
+          "Administration avancée : points de terminaison de `approvals`, `traces`, `sessions`, `agents` et `mcp/*` (admin)."
+        ],
+        "code": "POST /wp-json/navai/v1/realtime/client-secret\nGET /wp-json/navai/v1/functions\nPOST /wp-json/navai/v1/functions/execute\nGET /wp-json/navai/v1/routes"
+      },
+      {
+        "id": "backend-extensibility",
+        "title": "Extensibilité du backend (filtres)",
+        "description": "Filtres documentés pour étendre les capacités sans toucher au cœur du plugin.",
+        "bullets": [
+          "`navai_voice_functions_registry` : enregistrez les outils backend en PHP.",
+          "`navai_voice_plugin_actions` : actions backend héritées de type `@action:`.",
+          "`navai_voice_routes` : étendre le catalogue d'itinéraires navigables.",
+          "`navai_voice_frontend_config` : ajustez la configuration du frontend avant le rendu."
+        ]
+      },
+      {
+        "id": "security",
+        "title": "Notes de sécurité",
+        "description": "Consignes de sécurité incluses dans la documentation du plugin.",
+        "bullets": [
+          "La clé API OpenAI reste sur le serveur.",
+          "`client_secret` Les fonctions publiques et backend publiques peuvent être activées/désactivées par configuration.",
+          "Les garde-corps peuvent bloquer par `input`, `tool` et `output` avant/après l'exécution des fonctions.",
+          "Les rappels PHP/backend enregistrés par les filtres doivent être traités comme du code administrateur de confiance.",
+          "Limitez les itinéraires et les fonctions à ce qui est strictement nécessaire pour chaque rôle."
+        ]
+      },
+      {
+        "id": "operations",
+        "title": "Opérations et dépannage",
+        "description": "Check-list opérationnelle pour le conditionnement, la mise à jour et le diagnostic.",
+        "bullets": [
+          "Générez un ZIP installable avec le script PowerShell et distribuez `release/navai-voice.zip`.",
+          "Après la mise à jour, effacez le cache du navigateur/plugin et OPcache/PHP-FPM le cas échéant.",
+          "Si une mise à jour interrompt l'administrateur, effectuez un remplacement propre du répertoire du plugin.",
+          "Si le widget ne démarre pas, validez la clé API, les autorisations du microphone, le modèle/voix et l'accès REST."
+        ],
+        "code": "& \"apps/wordpress-plugin/release/build-zip.ps1\""
+      }
+    ]
+  },
+  "pt": {
+    "navigationLabel": "Wordpress",
+    "badge": "Integração WordPress",
+    "title": "Voz NAVAI para WordPress",
+    "description": "Guia funcional do plugin NAVAI WordPress baseado no ramo wordpress-phase-1-guardrails: instalação, configuração, segurança e operação.",
+    "sidebarTitle": "Guia WordPress",
+    "sections": [
+      {
+        "id": "overview",
+        "title": "Qual é o plug-in",
+        "description": "Plugin em PHP + Vanilla JavaScript que integra NAVAI Voice com OpenAI Realtime em WordPress sem Node.js.",
+        "bullets": [
+          "Adicione widget de voz ao site público e `wp-admin` (para administradores).",
+          "Permite navegar por rotas habilitadas e executar funções personalizadas.",
+          "Inclui painel de administração para navegação, funções, segurança, aprovações, rastreamentos, histórico, agentes e MCP."
+        ]
+      },
+      {
+        "id": "quick-access",
+        "title": "Acesso rápido",
+        "description": "Resumo operacional retirado do README do plugin.",
+        "bullets": [
+          "Instalação: upload ZIP de `Plugins > Add New > Upload Plugin` ou cópia manual para `wp-content/plugins/navai-voice`.",
+          "Configuração rápida: defina `OpenAI API Key`, modelo `gpt-realtime` e voz `marin`.",
+          "Use: ative o botão global flutuante ou o shortcode manual `[navai_voice]`.",
+          "Operação: gere ZIP com `apps/wordpress-plugin/release/build-zip.ps1` e aplique a lista de verificação de solução de problemas."
+        ]
+      },
+      {
+        "id": "capabilities",
+        "title": "Capacidades atuais",
+        "description": "Principais funcionalidades relatadas na versão wordpress-phase-1-guardrails.",
+        "bullets": [
+          "Rotas públicas e privadas por função com descrições para melhorar as decisões de navegação.",
+          "Funções personalizadas em JavaScript com `function_name`, escopo, tempo limite, novas tentativas, aprovação e esquema JSON.",
+          "Funções de teste (`Test function`), ativação por checkbox e importação/exportação de pacotes `.js`.",
+          "Seletor de idioma do painel e controle de visibilidade do widget por função, incluindo convidados.",
+          "Guardrails Fase 1 e fases avançadas Fase 2 a Fase 7 (aprovações, rastreamentos, histórico, multiagente, MCP)."
+        ]
+      },
+      {
+        "id": "requirements",
+        "title": "Requisitos",
+        "description": "Requisitos mínimos indicados no plugin README.",
+        "bullets": [
+          "WordPress `6.2+`",
+          "`8.0+`",
+          "Chave de API OpenAI com acesso ao Realtime"
+        ]
+      },
+      {
+        "id": "installation-admin",
+        "title": "Instalação do administrador do WordPress",
+        "description": "Fluxo recomendado para equipamentos não técnicos.",
+        "bullets": [
+          "1) Gere ou obtenha `navai-voice.zip`.",
+          "2) Vá para `Plugins > Add New > Upload Plugin`.",
+          "3) Carregue o ZIP, ative o plugin e abra `NAVAI Voice`."
+        ]
+      },
+      {
+        "id": "installation-manual",
+        "title": "Instalação manual (sistema de arquivos)",
+        "description": "Alternativa para implantações de servidor ou CI/CD.",
+        "bullets": [
+          "Copie `apps/wordpress-plugin` como `wp-content/plugins/navai-voice`.",
+          "Ative `NAVAI Voice` no gerenciador de plugins."
+        ]
+      },
+      {
+        "id": "quick-setup",
+        "title": "Configuração rápida recomendada",
+        "description": "Parâmetros mínimos para iniciar uma sessão de voz funcional.",
+        "bullets": [
+          "Configure `OpenAI API Key`, `Modelo Realtime` (padrão `gpt-realtime`) e `Voz` (padrão `marin`).",
+          "Selecione o modo de renderização: `Boton global flotante` ou `Solo shortcode manual`.",
+          "Defina a visibilidade por função (incluindo convidados, se aplicável).",
+          "Salve as alterações e valide a navegação/funções do widget."
+        ]
+      },
+      {
+        "id": "usage",
+        "title": "Modos de uso",
+        "description": "O plugin suporta modo global e modo manual por shortcode.",
+        "bullets": [
+          "Opção A: `Boton global flotante` para site público e `wp-admin` (admin).",
+          "Opção B: `Solo shortcode manual` para renderização explícita em páginas ou modelos.",
+          "Shortcode suporta `label`, `stop_label`, `model`, `voice`, `instructions`, `language` e `debug`."
+        ],
+        "code": "[navai_voice]\n\n[navai_voice label=\"Hablar con NAVAI\" stop_label=\"Detener NAVAI\" model=\"gpt-realtime\" voice=\"marin\" debug=\"1\"]"
+      },
+      {
+        "id": "admin-tabs",
+        "title": "painel de administração",
+        "description": "Módulos principais disponíveis no painel `NAVAI Voice`.",
+        "bullets": [
+          "`Navegacion`: rotas públicas/privadas, descrições e filtros.",
+          "`Funciones`: Editor JS em modal, metadados, testes e importação/exportação.",
+          "`Ajustes`: Geral, Segurança (Fase 1), Homologações, Traços e Histórico.",
+          "`Agentes`: regras multiagentes + transferência configuradas.",
+          "`MCP`: servidores remotos, sincronização de ferramentas e políticas de permissão/negação por função/agente."
+        ]
+      },
+      {
+        "id": "guardrails-phases",
+        "title": "Guarda-corpos e fases avançadas",
+        "description": "Roteiro integrado relatado no README.",
+        "bullets": [
+          "Fase 1: regras de proteção para `input`, `tool` e `output` com `keyword` ou `regex` (`block`, `warn`, `allow`).",
+          "Fase 2: aprovações humanas (HITL) e rastreamentos de tempo de execução com cronograma.",
+          "Fase 3: sessões, transcrições e retenção/limpeza do histórico.",
+          "Fase 4: UX de voz avançada com VAD, interrupções e substituto de texto/voz.",
+          "Fase 5: funções robustas (esquema, timeout, novas tentativas, teste, atribuição por agente).",
+          "Fase 6: arquitetura multiagente com transferências por intenção, função, carga útil, funções e contexto.",
+          "Fase 7: Integração MCP (JSON-RPC HTTP), ferramentas remotas e políticas por role/agent_key."
+        ]
+      },
+      {
+        "id": "rest-endpoints",
+        "title": "Pontos de extremidade REST atuais",
+        "description": "Contrato REST principal exposto pelo plugin.",
+        "bullets": [
+          "Tempo real: `POST /wp-json/navai/v1/realtime/client-secret`.",
+          "Funções: `GET /wp-json/navai/v1/functions`, `POST /wp-json/navai/v1/functions/execute`, `POST /wp-json/navai/v1/functions/test`.",
+          "Rotas: `GET /wp-json/navai/v1/routes`.",
+          "Segurança: CRUD `guardrails` + `POST /wp-json/navai/v1/guardrails/test`.",
+          "Administração avançada: endpoints de `approvals`, `traces`, `sessions`, `agents` e `mcp/*` (admin)."
+        ],
+        "code": "POST /wp-json/navai/v1/realtime/client-secret\nGET /wp-json/navai/v1/functions\nPOST /wp-json/navai/v1/functions/execute\nGET /wp-json/navai/v1/routes"
+      },
+      {
+        "id": "backend-extensibility",
+        "title": "Extensibilidade de back-end (filtros)",
+        "description": "Filtros documentados para estender os recursos sem tocar no núcleo do plugin.",
+        "bullets": [
+          "`navai_voice_functions_registry`: registre ferramentas de backend em PHP.",
+          "`navai_voice_plugin_actions`: ações de back-end herdadas do tipo `@action:`.",
+          "`navai_voice_routes`: amplia o catálogo de rotas navegáveis.",
+          "`navai_voice_frontend_config`: ajuste a configuração do frontend antes da renderização."
+        ]
+      },
+      {
+        "id": "security",
+        "title": "Notas de segurança",
+        "description": "Diretrizes de segurança incluídas na documentação do plugin.",
+        "bullets": [
+          "A chave da API OpenAI permanece no servidor.",
+          "`client_secret` funções públicas e de back-end públicas podem ser ativadas/desativadas por configuração.",
+          "Guardrails podem bloquear `input`, `tool` e `output` antes/depois de executar funções.",
+          "Retornos de chamada PHP/backend registrados por filtros devem ser tratados como código de administrador confiável.",
+          "Restrinja rotas e funções ao estritamente necessário por função."
+        ]
+      },
+      {
+        "id": "operations",
+        "title": "Operações e solução de problemas",
+        "description": "Checklist operacional para embalagem, atualização e diagnóstico.",
+        "bullets": [
+          "Gere ZIP instalável com script PowerShell e distribua `release/navai-voice.zip`.",
+          "Após a atualização, limpe o cache do navegador/plugin e OPcache/PHP-FPM, se aplicável.",
+          "Se uma atualização interromper o administrador, faça uma substituição limpa do diretório do plugin.",
+          "Se o widget não iniciar, valide a chave API, permissões de microfone, modelo/voz e acesso REST."
+        ],
+        "code": "& \"apps/wordpress-plugin/release/build-zip.ps1\""
+      }
+    ]
+  },
+  "zh": {
+    "navigationLabel": "Wordpress",
+    "badge": "WordPress 集成",
+    "title": "适用于 WordPress 的 NAVAI 语音",
+    "description": "基于 wordpress-phase-1-guardrails 分支的 NAVAI WordPress 插件功能指南：安装、配置、安全和操作。",
+    "sidebarTitle": "WordPress 指南",
+    "sections": [
+      {
+        "id": "overview",
+        "title": "插件是什么",
+        "description": "PHP + vanilla JavaScript 插件，在 WordPress 中集成 NAVAI Voice 和 OpenAI Realtime，无需 Node.js。",
+        "bullets": [
+          "将语音小部件添加到公共站点和`wp-admin`（针对管理员）。",
+          "允许您导航已启用的路线并执行自定义功能。",
+          "包括用于导航、功能、安全、批准、跟踪、历史记录、代理和 MCP 的管理面板。"
+        ]
+      },
+      {
+        "id": "quick-access",
+        "title": "快速访问",
+        "description": "操作摘要取自插件的自述文件。",
+        "bullets": [
+          "安装：从`Plugins > Add New > Upload Plugin` ZIP 上传或手动复制到`wp-content/plugins/navai-voice`。",
+          "快速设置：定义`OpenAI API Key`、模型`gpt-realtime`和语音`marin`。",
+          "使用：激活浮动全局按钮或手动简码`[navai_voice]`。",
+          "操作：使用`apps/wordpress-plugin/release/build-zip.ps1`生成ZIP并应用故障排除清单。"
+        ]
+      },
+      {
+        "id": "capabilities",
+        "title": "目前的能力",
+        "description": "wordpress-phase-1-guardrails 版本中报告的主要功能。",
+        "bullets": [
+          "按角色划分的公共和私人路线以及改进导航决策的描述。",
+          "JavaScript 中的自定义函数，具有 `function_name`、范围、超时、重试、批准和 JSON 架构。",
+          "测试功能 (`Test function`)、通过复选框激活以及包`.js` 的导入/导出。",
+          "按角色（包括客人）控制面板语言选择器和小部件可见性。",
+          "Guardrails 第 1 阶段和高级阶段第 2 阶段到第 7 阶段（批准、跟踪、历史记录、多代理、MCP）。"
+        ]
+      },
+      {
+        "id": "requirements",
+        "title": "要求",
+        "description": "插件自述文件中指出了最低要求。",
+        "bullets": [
+          "WordPress `6.2+`",
+          "PHP`8.0+`",
+          "可访问实时的 OpenAI API 密钥"
+        ]
+      },
+      {
+        "id": "installation-admin",
+        "title": "从 WordPress 管理员安装",
+        "description": "非技术设备的推荐流程。",
+        "bullets": [
+          "1）生成或获取`navai-voice.zip`。",
+          "2) 转到`Plugins > Add New > Upload Plugin`。",
+          "3) 上传ZIP，激活插件并打开`NAVAI Voice`。"
+        ]
+      },
+      {
+        "id": "installation-manual",
+        "title": "手动安装（文件系统）",
+        "description": "服务器或 CI/CD 部署的替代方案。",
+        "bullets": [
+          "将`apps/wordpress-plugin` 复制为`wp-content/plugins/navai-voice`。",
+          "从插件管理器激活`NAVAI Voice`。"
+        ]
+      },
+      {
+        "id": "quick-setup",
+        "title": "推荐的快速设置",
+        "description": "启动功能性语音会话的最低参数。",
+        "bullets": [
+          "配置`OpenAI API Key`、`Modelo Realtime`（默认`gpt-realtime`）和`Voz`（默认`marin`）。",
+          "选择渲染模式：`Boton global flotante` 或`Solo shortcode manual`。",
+          "按角色定义可见性（包括访客，如果适用）。",
+          "保存更改并验证小部件中的导航/功能。"
+        ]
+      },
+      {
+        "id": "usage",
+        "title": "使用方式",
+        "description": "该插件通过简码支持全局模式和手动模式。",
+        "bullets": [
+          "选项 A：`Boton global flotante` 用于公共站点，`wp-admin`（管理员）。",
+          "选项 B：`Solo shortcode manual` 用于在页面或模板中显式呈现。",
+          "简码支持 `label`、`stop_label`、`model`、`voice`、`instructions`、`language` 和 `debug`。"
+        ],
+        "code": "[navai_voice]\n\n[navai_voice label=\"Hablar con NAVAI\" stop_label=\"Detener NAVAI\" model=\"gpt-realtime\" voice=\"marin\" debug=\"1\"]"
+      },
+      {
+        "id": "admin-tabs",
+        "title": "管理小组",
+        "description": "仪表板上可用的关键模块`NAVAI Voice`。",
+        "bullets": [
+          "`Navegacion`：公共/私人路线、描述和过滤器。",
+          "`Funciones`：模态、元数据、测试和导入/导出的 JS 编辑器。",
+          "`Ajustes`：一般、安全（第一阶段）、批准、痕迹和历史。",
+          "`Agentes`：已配置多代理+切换规则。",
+          "`MCP`：远程服务器、工具按角色/代理同步和允许/拒绝策略。"
+        ]
+      },
+      {
+        "id": "guardrails-phases",
+        "title": "护栏和高级阶段",
+        "description": "自述文件中报告了综合路线图。",
+        "bullets": [
+          "第 1 阶段：`input`、`tool` 和 `output` 以及 `keyword` 或 `regex`（`block`、`warn`、`allow`）的护栏规则。",
+          "第 2 阶段：人工批准 (HITL) 和带有时间线的运行时跟踪。",
+          "第 3 阶段：会议、记录和历史记录保留/清理。",
+          "第 4 阶段：带有 VAD、中断和文本/语音回退的高级语音用户体验。",
+          "第 5 阶段：强大的功能（架构、超时、重试、测试、代理分配）。",
+          "第 6 阶段：多代理架构，按意图、功能、有效负载、角色和上下文进行切换。",
+          "第 7 阶段：MCP 集成（JSON-RPC HTTP）、按角色/agent_key 的远程工具和策略。"
+        ]
+      },
+      {
+        "id": "rest-endpoints",
+        "title": "当前 REST 端点",
+        "description": "插件公开的主要 REST 合约。",
+        "bullets": [
+          "实时：`POST /wp-json/navai/v1/realtime/client-secret`。",
+          "功能：`GET /wp-json/navai/v1/functions`、`POST /wp-json/navai/v1/functions/execute`、`POST /wp-json/navai/v1/functions/test`。",
+          "路线：`GET /wp-json/navai/v1/routes`。",
+          "安全性：CRUD `guardrails` + `POST /wp-json/navai/v1/guardrails/test`。",
+          "高级管理：`approvals`、`traces`、`sessions`、`agents` 和`mcp/*`（管理）端点。"
+        ],
+        "code": "POST /wp-json/navai/v1/realtime/client-secret\nGET /wp-json/navai/v1/functions\nPOST /wp-json/navai/v1/functions/execute\nGET /wp-json/navai/v1/routes"
+      },
+      {
+        "id": "backend-extensibility",
+        "title": "后端可扩展性（过滤器）",
+        "description": "记录过滤器以扩展功能而不触及插件的核心。",
+        "bullets": [
+          "`navai_voice_functions_registry`：在PHP中注册后端工具。",
+          "`navai_voice_plugin_actions`：`@action:` 类型的遗留后端操作。",
+          "`navai_voice_routes`：扩展可航行路线的目录。",
+          "`navai_voice_frontend_config`：渲染前调整前端配置。"
+        ]
+      },
+      {
+        "id": "security",
+        "title": "安全注意事项",
+        "description": "插件文档中包含安全指南。",
+        "bullets": [
+          "OpenAI API 密钥保留在服务器上。",
+          "`client_secret` 公共和公共后端功能可以通过配置启用/禁用。",
+          "护栏可以在执行功能之前/之后通过`input`、`tool` 和`output` 进行阻挡。",
+          "由过滤器注册的 PHP/后端回调应被视为受信任的管理员代码。",
+          "将路由和功能限制为每个角色严格必需的内容。"
+        ]
+      },
+      {
+        "id": "operations",
+        "title": "操作及故障排除",
+        "description": "打包、更新和诊断的操作清单。",
+        "bullets": [
+          "使用 PowerShell 脚本生成可安装的 ZIP 并分发 `release/navai-voice.zip`。",
+          "更新后，清除浏览器/插件缓存和 OPcache/PHP-FPM（如果适用）。",
+          "如果更新破坏了管理，请彻底替换插件目录。",
+          "如果小部件未启动，请验证 API 密钥、麦克风权限、模型/语音和 REST 访问。"
+        ],
+        "code": "& \"apps/wordpress-plugin/release/build-zip.ps1\""
+      }
+    ]
+  },
+  "ja": {
+    "navigationLabel": "Wordpress",
+    "badge": "WordPress の統合",
+    "title": "NAVAI Voice for WordPress",
+    "description": "wordpress-phase-1-guardrails ブランチに基づく NAVAI WordPress プラグインの機能ガイド: インストール、構成、セキュリティ、操作。",
+    "sidebarTitle": "WordPress ガイド",
+    "sections": [
+      {
+        "id": "overview",
+        "title": "プラグインとは何ですか",
+        "description": "Node.js を使用せずに、WordPress で NAVAI Voice と OpenAI Realtime を統合する PHP + バニラ JavaScript のプラグイン。",
+        "bullets": [
+          "公開サイトと`wp-admin`（管理者用）に音声ウィジェットを追加します。",
+          "有効なルートをナビゲートし、カスタム機能を実行できます。",
+          "ナビゲーション、機能、セキュリティ、承認、トレース、履歴、エージェント、MCP 用の管理パネルが含まれています。"
+        ]
+      },
+      {
+        "id": "quick-access",
+        "title": "クイックアクセス",
+        "description": "プラグインの README から抜粋した操作の概要。",
+        "bullets": [
+          "インストール: `Plugins > Add New > Upload Plugin` から ZIP アップロードするか、`wp-content/plugins/navai-voice` に手動でコピーします。",
+          "クイックセットアップ: `OpenAI API Key`、モデル `gpt-realtime`、および音声 `marin` を定義します。",
+          "使用方法: フローティング グローバル ボタンまたは手動ショートコード `[navai_voice]` を有効にします。",
+          "操作: `apps/wordpress-plugin/release/build-zip.ps1` を使用して ZIP を生成し、トラブルシューティング チェックリストを適用します。"
+        ]
+      },
+      {
+        "id": "capabilities",
+        "title": "現在の機能",
+        "description": "wordpress-phase-1-guardrails バージョンで報告されている主な機能。",
+        "bullets": [
+          "ナビゲーションの決定を改善するための説明を含む役割別のパブリックおよびプライベート ルート。",
+          "`function_name`、スコープ、タイムアウト、再試行、承認、JSON スキーマを使用した JavaScript のカスタム関数。",
+          "テスト機能 (`Test function`)、チェックボックスによるアクティブ化、パッケージのインポート/エクスポート `.js`。",
+          "パネルの言語セレクターとウィジェットの表示設定を、ゲストを含む役割ごとに制御します。",
+          "ガードレール フェーズ 1 および高度なフェーズ フェーズ 2 からフェーズ 7 (承認、トレース、履歴、マルチエージェント、MCP)。"
+        ]
+      },
+      {
+        "id": "requirements",
+        "title": "要件",
+        "description": "最小要件はプラグインの README に記載されています。",
+        "bullets": [
+          "ワードプレス `6.2+`",
+          "PHP `8.0+`",
+          "Realtime にアクセスできる OpenAI API キー"
+        ]
+      },
+      {
+        "id": "installation-admin",
+        "title": "WordPress管理者からのインストール",
+        "description": "非技術的な機器の推奨フロー。",
+        "bullets": [
+          "1) `navai-voice.zip` を生成または取得します。",
+          "2) `Plugins > Add New > Upload Plugin` に移動します。",
+          "3) ZIP をアップロードし、プラグインを有効にして、`NAVAI Voice` を開きます。"
+        ]
+      },
+      {
+        "id": "installation-manual",
+        "title": "手動インストール (ファイルシステム)",
+        "description": "サーバーまたは CI/CD デプロイメントの代替手段。",
+        "bullets": [
+          "`apps/wordpress-plugin` を `wp-content/plugins/navai-voice` としてコピーします。",
+          "プラグインマネージャーから`NAVAI Voice`を有効化します。"
+        ]
+      },
+      {
+        "id": "quick-setup",
+        "title": "推奨されるクイックセットアップ",
+        "description": "機能的な音声セッションを開始するための最小限のパラメータ。",
+        "bullets": [
+          "`OpenAI API Key`、`Modelo Realtime` (デフォルト `gpt-realtime`)、および `Voz` (デフォルト `marin`) を設定します。",
+          "レンダリング モードを選択します: `Boton global flotante` または `Solo shortcode manual`。",
+          "役割ごとに公開範囲を定義します (該当する場合はゲストも含みます)。",
+          "変更を保存し、ウィジェットからのナビゲーション/機能を検証します。"
+        ]
+      },
+      {
+        "id": "usage",
+        "title": "使用方法",
+        "description": "プラグインはショートコードによるグローバルモードとマニュアルモードをサポートしています。",
+        "bullets": [
+          "オプション A: `Boton global flotante` (公開サイトの場合) および `wp-admin` (管理者)。",
+          "オプション B: `Solo shortcode manual` ページまたはテンプレート内での明示的なレンダリング用。",
+          "ショートコードは `label`、`stop_label`、`model`、`voice`、`instructions`、`language`、`debug` をサポートしています。"
+        ],
+        "code": "[navai_voice]\n\n[navai_voice label=\"Hablar con NAVAI\" stop_label=\"Detener NAVAI\" model=\"gpt-realtime\" voice=\"marin\" debug=\"1\"]"
+      },
+      {
+        "id": "admin-tabs",
+        "title": "管理パネル",
+        "description": "主要なモジュールはダッシュボード `NAVAI Voice` で利用できます。",
+        "bullets": [
+          "`Navegacion`: パブリック/プライベート ルート、説明、フィルター。",
+          "`Funciones`: モーダル、メタデータ、テスト、インポート/エクスポートの JS エディター。",
+          "`Ajustes`: 一般、安全性 (フェーズ 1)、承認、追跡および履歴。",
+          "`Agentes`: マルチエージェント + ハンドオフ ルールが設定されています。",
+          "`MCP`: リモート サーバー、ツールはロール/エージェントごとに同期し、ポリシーを許可/拒否します。"
+        ]
+      },
+      {
+        "id": "guardrails-phases",
+        "title": "ガードレールと高度なフェーズ",
+        "description": "統合ロードマップは README で報告されています。",
+        "bullets": [
+          "フェーズ 1: `input`、`tool`、`output` と `keyword` または `regex` (`block`、`warn`、`allow`) のガードレール ルール。",
+          "フェーズ 2: 人間の承認 (HITL) とタイムラインによるランタイム トレース。",
+          "フェーズ 3: セッション、トランスクリプト、履歴の保存/クリーニング。",
+          "フェーズ 4: VAD、中断、テキスト/音声フォールバックを備えた高度な音声 UX。",
+          "フェーズ 5: 堅牢な機能 (スキーマ、タイムアウト、再試行、テスト、エージェントによる割り当て)。",
+          "フェーズ 6: 意図、機能、ペイロード、役割、コンテキストごとにハンドオフを行うマルチエージェント アーキテクチャ。",
+          "フェーズ 7: MCP 統合 (JSON-RPC HTTP)、ロール/agent_key によるリモート ツールとポリシー。"
+        ]
+      },
+      {
+        "id": "rest-endpoints",
+        "title": "現在の REST エンドポイント",
+        "description": "プラグインによって公開されるメインの REST コントラクト。",
+        "bullets": [
+          "リアルタイム: `POST /wp-json/navai/v1/realtime/client-secret`。",
+          "機能: `GET /wp-json/navai/v1/functions`、`POST /wp-json/navai/v1/functions/execute`、`POST /wp-json/navai/v1/functions/test`。",
+          "ルート: `GET /wp-json/navai/v1/routes`。",
+          "セキュリティ: CRUD `guardrails` + `POST /wp-json/navai/v1/guardrails/test`。",
+          "高度な管理: `approvals`、`traces`、`sessions`、`agents`、および `mcp/*` (管理者) のエンドポイント。"
+        ],
+        "code": "POST /wp-json/navai/v1/realtime/client-secret\nGET /wp-json/navai/v1/functions\nPOST /wp-json/navai/v1/functions/execute\nGET /wp-json/navai/v1/routes"
+      },
+      {
+        "id": "backend-extensibility",
+        "title": "バックエンドの拡張性 (フィルター)",
+        "description": "プラグインのコアに触れることなく機能を拡張するための文書化されたフィルター。",
+        "bullets": [
+          "`navai_voice_functions_registry`: PHP にバックエンド ツールを登録します。",
+          "`navai_voice_plugin_actions`: `@action:` タイプのレガシー バックエンド アクション。",
+          "`navai_voice_routes`: 航行可能なルートのカタログを拡張します。",
+          "`navai_voice_frontend_config`: レンダリング前にフロントエンド構成を調整します。"
+        ]
+      },
+      {
+        "id": "security",
+        "title": "安全上の注意事項",
+        "description": "セキュリティ ガイドラインはプラグインのドキュメントに含まれています。",
+        "bullets": [
+          "OpenAI API キーはサーバー上に残ります。",
+          "`client_secret` パブリックおよびパブリック バックエンド機能は構成によって有効/無効にすることができます。",
+          "ガードレールは、関数の実行前後に `input`、`tool`、`output` によってブロックできます。",
+          "フィルターによって登録された PHP/バックエンド コールバックは、信頼できる管理者コードとして扱われる必要があります。",
+          "ルートと機能を役割ごとに厳密に必要なものに制限します。"
+        ]
+      },
+      {
+        "id": "operations",
+        "title": "操作とトラブルシューティング",
+        "description": "パッケージ化、更新、診断のための動作チェックリスト。",
+        "bullets": [
+          "PowerShell スクリプトを使用してインストール可能な ZIP を生成し、`release/navai-voice.zip` を配布します。",
+          "更新後、ブラウザ/プラグインのキャッシュと、該当する場合は OPcache/PHP-FPM をクリアします。",
+          "更新によって管理機能が壊れた場合は、プラグイン ディレクトリを完全に置き換えます。",
+          "ウィジェットが起動しない場合は、API キー、マイクの権限、モデル/音声、および REST アクセスを検証します。"
+        ],
+        "code": "& \"apps/wordpress-plugin/release/build-zip.ps1\""
+      }
+    ]
+  },
+  "ru": {
+    "navigationLabel": "Wordpress",
+    "badge": "Интеграция WordPress",
+    "title": "Голос NAVAI для WordPress",
+    "description": "Функциональное руководство по плагину NAVAI WordPress на основе ветки wordpress-phase-1-guardrails: установка, настройка, безопасность и работа.",
+    "sidebarTitle": "Руководство по WordPress",
+    "sections": [
+      {
+        "id": "overview",
+        "title": "Что такое плагин",
+        "description": "Плагин на PHP + ванильный JavaScript, который интегрирует NAVAI Voice с OpenAI Realtime в WordPress без Node.js.",
+        "bullets": [
+          "Добавьте голосовой виджет на общедоступный сайт и `wp-admin` (для администраторов).",
+          "Позволяет перемещаться по включенным маршрутам и выполнять пользовательские функции.",
+          "Включает панель администратора для навигации, функций, безопасности, утверждений, отслеживания, истории, агентов и MCP."
+        ]
+      },
+      {
+        "id": "quick-access",
+        "title": "Быстрый доступ",
+        "description": "Краткое описание работы взято из README плагина.",
+        "bullets": [
+          "Установка: загрузка ZIP с `Plugins > Add New > Upload Plugin` или ручное копирование на `wp-content/plugins/navai-voice`.",
+          "Быстрая настройка: определите `OpenAI API Key`, модель `gpt-realtime` и голос `marin`.",
+          "Использование: активируйте плавающую глобальную кнопку или ручной короткий код `[navai_voice]`.",
+          "Операция: сгенерируйте ZIP-файл с помощью `apps/wordpress-plugin/release/build-zip.ps1` и примените контрольный список для устранения неполадок."
+        ]
+      },
+      {
+        "id": "capabilities",
+        "title": "Текущие возможности",
+        "description": "Основные функции, представленные в версии wordpress-phase-1-guardrails.",
+        "bullets": [
+          "Общественные и частные маршруты по ролям с описаниями для улучшения навигационных решений.",
+          "Пользовательские функции в JavaScript с `function_name`, областью действия, временем ожидания, повторами, утверждением и схемой JSON.",
+          "Функции тестирования (`Test function`), активация по флажку и импорт/экспорт пакетов `.js`.",
+          "Выбор языка панели и управление видимостью виджетов по ролям, включая гостей.",
+          "Ограждения Фаза 1 и расширенные фазы Фаза 2–7 (утверждения, отслеживание, история, мультиагентность, MCP)."
+        ]
+      },
+      {
+        "id": "requirements",
+        "title": "Требования",
+        "description": "Минимальные требования указаны в README плагина.",
+        "bullets": [
+          "WordPress `6.2+`",
+          "PHP `8.0+`",
+          "Ключ OpenAI API с доступом к реальному времени"
+        ]
+      },
+      {
+        "id": "installation-admin",
+        "title": "Установка от администратора WordPress",
+        "description": "Рекомендуемый расход для нетехнического оборудования.",
+        "bullets": [
+          "1) Сгенерировать или получить `navai-voice.zip`.",
+          "2) Зайдите в `Plugins > Add New > Upload Plugin`.",
+          "3) Загрузите ZIP, активируйте плагин и откройте `NAVAI Voice`."
+        ]
+      },
+      {
+        "id": "installation-manual",
+        "title": "Ручная установка (файловая система)",
+        "description": "Альтернатива для развертываний сервера или CI/CD.",
+        "bullets": [
+          "Скопируйте `apps/wordpress-plugin` как `wp-content/plugins/navai-voice`.",
+          "Активируйте `NAVAI Voice` в менеджере плагинов."
+        ]
+      },
+      {
+        "id": "quick-setup",
+        "title": "Рекомендуем быструю настройку",
+        "description": "Минимальные параметры для запуска функционального голосового сеанса.",
+        "bullets": [
+          "Настройте `OpenAI API Key`, `Modelo Realtime` (по умолчанию `gpt-realtime`) и `Voz` (по умолчанию `marin`).",
+          "Выберите режим рендеринга: `Boton global flotante` или `Solo shortcode manual`.",
+          "Определите видимость по ролям (включая гостей, если применимо).",
+          "Сохраните изменения и проверьте навигацию/функции виджета."
+        ]
+      },
+      {
+        "id": "usage",
+        "title": "Режимы использования",
+        "description": "Плагин поддерживает глобальный режим и ручной режим с помощью короткого кода.",
+        "bullets": [
+          "Вариант А: `Boton global flotante` для общедоступного сайта и `wp-admin` (администратор).",
+          "Вариант Б: `Solo shortcode manual` для явного рендеринга на страницах или шаблонах.",
+          "Шорткод поддерживает `label`, `stop_label`, `model`, `voice`, `instructions`, `language` и `debug`."
+        ],
+        "code": "[navai_voice]\n\n[navai_voice label=\"Hablar con NAVAI\" stop_label=\"Detener NAVAI\" model=\"gpt-realtime\" voice=\"marin\" debug=\"1\"]"
+      },
+      {
+        "id": "admin-tabs",
+        "title": "панель администрирования",
+        "description": "Ключевые модули доступны на панели управления `NAVAI Voice`.",
+        "bullets": [
+          "`Navegacion`: общедоступные/частные маршруты, описания и фильтры.",
+          "`Funciones`: JS-редактор модальных изображений, метаданных, тестирования и импорта/экспорта.",
+          "`Ajustes`: Общие сведения, Безопасность (Фаза 1), Разрешения, Следы и История.",
+          "`Agentes`: настроены правила мультиагента + передачи обслуживания.",
+          "`MCP`: удаленные серверы, инструменты синхронизации и политики разрешения/запрета по роли/агенту."
+        ]
+      },
+      {
+        "id": "guardrails-phases",
+        "title": "Ограждения и продвинутые этапы",
+        "description": "Интегрированная дорожная карта представлена ​​в README.",
+        "bullets": [
+          "Этап 1: правила ограждения для `input`, `tool` и `output` с `keyword` или `regex` (`block`, `warn`, `allow`).",
+          "Этап 2: одобрение человеком (HITL) и отслеживание времени выполнения с временной шкалой.",
+          "Этап 3: сеансы, стенограммы и сохранение/очистка истории.",
+          "Этап 4: Расширенный голосовой интерфейс с VAD, прерываниями и резервным копированием текста/голоса.",
+          "Этап 5: надежные функции (схема, тайм-аут, повторы, тест, назначение агентом).",
+          "Этап 6: многоагентная архитектура с передачей обслуживания по намерениям, функциям, полезной нагрузке, ролям и контексту.",
+          "Этап 7: интеграция MCP (JSON-RPC HTTP), удаленные инструменты и политики по роли/агенту_ключа."
+        ]
+      },
+      {
+        "id": "rest-endpoints",
+        "title": "Текущие конечные точки REST",
+        "description": "Основной контракт REST, предоставляемый плагином.",
+        "bullets": [
+          "В реальном времени: `POST /wp-json/navai/v1/realtime/client-secret`.",
+          "Функции: `GET /wp-json/navai/v1/functions`, `POST /wp-json/navai/v1/functions/execute`, `POST /wp-json/navai/v1/functions/test`.",
+          "Маршруты: `GET /wp-json/navai/v1/routes`.",
+          "Безопасность: CRUD `guardrails` + `POST /wp-json/navai/v1/guardrails/test`.",
+          "Расширенное администрирование: конечные точки `approvals`, `traces`, `sessions`, `agents` и `mcp/*` (админ)."
+        ],
+        "code": "POST /wp-json/navai/v1/realtime/client-secret\nGET /wp-json/navai/v1/functions\nPOST /wp-json/navai/v1/functions/execute\nGET /wp-json/navai/v1/routes"
+      },
+      {
+        "id": "backend-extensibility",
+        "title": "Расширяемость серверной части (фильтры)",
+        "description": "Документированные фильтры для расширения возможностей, не затрагивая ядро ​​плагина.",
+        "bullets": [
+          "`navai_voice_functions_registry`: зарегистрируйте серверные инструменты на PHP.",
+          "`navai_voice_plugin_actions`: устаревшие действия серверной части типа `@action:`.",
+          "`navai_voice_routes`: расширить каталог навигационных маршрутов.",
+          "`navai_voice_frontend_config`: настройте конфигурацию интерфейса перед рендерингом."
+        ]
+      },
+      {
+        "id": "security",
+        "title": "Примечания по безопасности",
+        "description": "Рекомендации по безопасности включены в документацию плагина.",
+        "bullets": [
+          "Ключ OpenAI API остается на сервере.",
+          "`client_secret` общедоступные и общедоступные серверные функции можно включать/отключать с помощью конфигурации.",
+          "Ограждения могут блокировать `input`, `tool` и `output` до/после выполнения функций.",
+          "Обратные вызовы PHP/бэкенда, зарегистрированные фильтрами, следует рассматривать как код доверенного администратора.",
+          "Ограничьте маршруты и функции тем, что строго необходимо для каждой роли."
+        ]
+      },
+      {
+        "id": "operations",
+        "title": "Операции и устранение неполадок",
+        "description": "Оперативный контрольный список для упаковки, обновления и диагностики.",
+        "bullets": [
+          "Создайте устанавливаемый ZIP-файл с помощью сценария PowerShell и распространите `release/navai-voice.zip`.",
+          "После обновления очистите кеш браузера/плагина и OPcache/PHP-FPM, если применимо.",
+          "Если обновление нарушает работу администратора, выполните чистую замену каталога плагина.",
+          "Если виджет не запускается, проверьте ключ API, разрешения микрофона, модель/голос и доступ к REST."
+        ],
+        "code": "& \"apps/wordpress-plugin/release/build-zip.ps1\""
+      }
+    ]
+  },
+  "ko": {
+    "navigationLabel": "Wordpress",
+    "badge": "워드프레스 통합",
+    "title": "WordPress용 NAVAI 보이스",
+    "description": "wordpress-phase-1-guardrails 브랜치를 기반으로 하는 NAVAI WordPress 플러그인에 대한 기능 가이드: 설치, 구성, 보안 및 운영.",
+    "sidebarTitle": "워드프레스 가이드",
+    "sections": [
+      {
+        "id": "overview",
+        "title": "플러그인은 무엇입니까?",
+        "description": "Node.js 없이 WordPress에서 NAVAI Voice와 OpenAI Realtime을 통합하는 PHP + 바닐라 JavaScript 플러그인입니다.",
+        "bullets": [
+          "공개 사이트 및 `wp-admin`(관리자용)에 음성 위젯을 추가합니다.",
+          "활성화된 경로를 탐색하고 사용자 정의 기능을 실행할 수 있습니다.",
+          "탐색, 기능, 보안, 승인, 추적, 기록, 에이전트 및 MCP를 위한 관리 패널이 포함되어 있습니다."
+        ]
+      },
+      {
+        "id": "quick-access",
+        "title": "빠른 액세스",
+        "description": "플러그인의 README에서 가져온 작업 요약입니다.",
+        "bullets": [
+          "설치: `Plugins > Add New > Upload Plugin`에서 ZIP으로 업로드하거나 `wp-content/plugins/navai-voice`으로 수동 복사합니다.",
+          "빠른 설정: `OpenAI API Key`, 모델 `gpt-realtime` 및 음성 `marin`을 정의합니다.",
+          "사용: 플로팅 글로벌 버튼 또는 수동 단축 코드 `[navai_voice]`을 활성화합니다.",
+          "작업: `apps/wordpress-plugin/release/build-zip.ps1`으로 ZIP을 생성하고 문제 해결 체크리스트를 적용합니다."
+        ]
+      },
+      {
+        "id": "capabilities",
+        "title": "현재 기능",
+        "description": "wordpress-phase-1-guardrails 버전에 보고된 주요 기능입니다.",
+        "bullets": [
+          "탐색 결정을 개선하기 위한 설명이 포함된 역할별 공개 및 비공개 경로.",
+          "`function_name`, 범위, 시간 초과, 재시도, 승인 및 JSON 스키마를 사용하는 JavaScript의 사용자 정의 함수입니다.",
+          "테스트 기능(`Test function`), 확인란을 통한 활성화 및 패키지 가져오기/내보내기 `.js`.",
+          "게스트를 포함한 역할별 패널 언어 선택기 및 위젯 가시성 제어.",
+          "Guardrails 1단계 및 고급 단계 2단계 - 7단계(승인, 추적, 기록, 다중 에이전트, MCP)."
+        ]
+      },
+      {
+        "id": "requirements",
+        "title": "요구사항",
+        "description": "플러그인 README에 표시된 최소 요구 사항.",
+        "bullets": [
+          "워드프레스 `6.2+`",
+          "PHP `8.0+`",
+          "실시간 액세스가 가능한 OpenAI API 키"
+        ]
+      },
+      {
+        "id": "installation-admin",
+        "title": "WordPress 관리자에서 설치",
+        "description": "비기술 장비에 권장되는 흐름입니다.",
+        "bullets": [
+          "1) `navai-voice.zip`을 생성하거나 가져옵니다.",
+          "2) `Plugins > Add New > Upload Plugin`으로 이동합니다.",
+          "3) ZIP을 업로드하고 플러그인을 활성화한 후 `NAVAI Voice`을 엽니다."
+        ]
+      },
+      {
+        "id": "installation-manual",
+        "title": "수동 설치(파일 시스템)",
+        "description": "서버 또는 CI/CD 배포를 위한 대안입니다.",
+        "bullets": [
+          "`apps/wordpress-plugin`을 `wp-content/plugins/navai-voice`로 복사합니다.",
+          "플러그인 관리자에서 `NAVAI Voice`을 활성화하세요."
+        ]
+      },
+      {
+        "id": "quick-setup",
+        "title": "권장되는 빠른 설정",
+        "description": "기능적 음성 세션을 시작하기 위한 최소 매개변수입니다.",
+        "bullets": [
+          "`OpenAI API Key`, `Modelo Realtime`(기본값 `gpt-realtime`) 및 `Voz`(기본값 `marin`)을 구성합니다.",
+          "렌더링 모드를 선택합니다: `Boton global flotante` 또는 `Solo shortcode manual`.",
+          "역할별로 가시성을 정의합니다(해당하는 경우 게스트 포함).",
+          "변경 사항을 저장하고 위젯에서 탐색/기능을 확인하세요."
+        ]
+      },
+      {
+        "id": "usage",
+        "title": "사용 모드",
+        "description": "플러그인은 단축 코드로 전역 모드와 수동 모드를 지원합니다.",
+        "bullets": [
+          "옵션 A: 공개 사이트의 경우 `Boton global flotante` 및 `wp-admin`(관리자).",
+          "옵션 B: `Solo shortcode manual` 페이지 또는 템플릿 내의 명시적 렌더링을 위한 것입니다.",
+          "단축 코드는 `label`, `stop_label`, `model`, `voice`, `instructions`, `language` 및 `debug`을 지원합니다."
+        ],
+        "code": "[navai_voice]\n\n[navai_voice label=\"Hablar con NAVAI\" stop_label=\"Detener NAVAI\" model=\"gpt-realtime\" voice=\"marin\" debug=\"1\"]"
+      },
+      {
+        "id": "admin-tabs",
+        "title": "관리 패널",
+        "description": "`NAVAI Voice` 대시보드에서 주요 모듈을 사용할 수 있습니다.",
+        "bullets": [
+          "`Navegacion`: 공개/비공개 경로, 설명 및 필터.",
+          "`Funciones`: 모달, 메타데이터, 테스트 및 가져오기/내보내기의 JS 편집기입니다.",
+          "`Ajustes`: 일반, 안전(1단계), 승인, 추적 및 이력.",
+          "`Agentes`: 다중 에이전트 + 핸드오프 규칙이 구성되었습니다.",
+          "`MCP`: 원격 서버, 도구는 역할/에이전트별로 정책을 동기화하고 허용/거부합니다."
+        ]
+      },
+      {
+        "id": "guardrails-phases",
+        "title": "가드레일 및 고급 단계",
+        "description": "README에 보고된 통합 로드맵입니다.",
+        "bullets": [
+          "1단계: `input`, `tool` 및 `output`에 대한 가드레일 규칙(`keyword` 또는 `regex`(`block`, `warn`, `allow`).",
+          "2단계: 사람 승인(HITL) 및 타임라인이 포함된 런타임 추적.",
+          "3단계: 세션, 기록 및 기록 보존/정리.",
+          "4단계: VAD, 중단 및 텍스트/음성 대체 기능을 갖춘 고급 음성 UX.",
+          "5단계: 강력한 기능(스키마, 시간 초과, 재시도, 테스트, 에이전트별 할당)",
+          "6단계: 의도, 기능, 페이로드, 역할 및 컨텍스트별로 핸드오프하는 다중 에이전트 아키텍처.",
+          "7단계: MCP 통합(JSON-RPC HTTP), 역할/에이전트_키별 원격 도구 및 정책."
+        ]
+      },
+      {
+        "id": "rest-endpoints",
+        "title": "현재 REST 엔드포인트",
+        "description": "플러그인에 의해 노출되는 기본 REST 계약입니다.",
+        "bullets": [
+          "실시간: `POST /wp-json/navai/v1/realtime/client-secret`.",
+          "기능: `GET /wp-json/navai/v1/functions`, `POST /wp-json/navai/v1/functions/execute`, `POST /wp-json/navai/v1/functions/test`.",
+          "경로: `GET /wp-json/navai/v1/routes`.",
+          "보안: CRUD `guardrails` + `POST /wp-json/navai/v1/guardrails/test`.",
+          "고급 관리: `approvals`, `traces`, `sessions`, `agents` 및 `mcp/*`의 끝점(관리자)."
+        ],
+        "code": "POST /wp-json/navai/v1/realtime/client-secret\nGET /wp-json/navai/v1/functions\nPOST /wp-json/navai/v1/functions/execute\nGET /wp-json/navai/v1/routes"
+      },
+      {
+        "id": "backend-extensibility",
+        "title": "백엔드 확장성(필터)",
+        "description": "플러그인의 핵심을 건드리지 않고 기능을 확장하기 위한 문서화된 필터입니다.",
+        "bullets": [
+          "`navai_voice_functions_registry`: PHP에 백엔드 도구를 등록합니다.",
+          "`navai_voice_plugin_actions`: `@action:` 유형의 레거시 백엔드 작업입니다.",
+          "`navai_voice_routes`: 탐색 가능한 경로의 카탈로그를 확장합니다.",
+          "`navai_voice_frontend_config`: 렌더링하기 전에 프런트엔드 구성을 조정합니다."
+        ]
+      },
+      {
+        "id": "security",
+        "title": "안전 참고 사항",
+        "description": "플러그인 문서에 포함된 보안 지침.",
+        "bullets": [
+          "OpenAI API 키는 서버에 남아 있습니다.",
+          "`client_secret` 공개 및 공개 백엔드 기능은 구성에 따라 활성화/비활성화될 수 있습니다.",
+          "가드레일은 기능 실행 전/후에 `input`, `tool`, `output`으로 차단할 수 있습니다.",
+          "필터로 등록된 PHP/백엔드 콜백은 신뢰할 수 있는 관리자 코드로 처리되어야 합니다.",
+          "역할별로 꼭 필요한 것으로 경로와 기능을 제한합니다."
+        ]
+      },
+      {
+        "id": "operations",
+        "title": "운영 및 문제 해결",
+        "description": "패키징, 업데이트, 진단을 위한 운영 체크리스트입니다.",
+        "bullets": [
+          "PowerShell 스크립트로 설치 가능한 ZIP을 생성하고 `release/navai-voice.zip`을 배포합니다.",
+          "업데이트 후 해당하는 경우 브라우저/플러그인 캐시 및 OPcache/PHP-FPM을 삭제하세요.",
+          "업데이트로 인해 관리자가 중단되면 플러그인 디렉터리를 완전히 교체하세요.",
+          "위젯이 시작되지 않으면 API 키, 마이크 권한, 모델/음성 및 REST 액세스를 확인하세요."
+        ],
+        "code": "& \"apps/wordpress-plugin/release/build-zip.ps1\""
+      }
+    ]
+  },
+  "hi": {
+    "navigationLabel": "Wordpress",
+    "badge": "वर्डप्रेस एकीकरण",
+    "title": "वर्डप्रेस के लिए NAVAI वॉयस",
+    "description": "वर्डप्रेस-फेज-1-गार्डरेल्स शाखा पर आधारित NAVAI वर्डप्रेस प्लगइन के लिए कार्यात्मक गाइड: इंस्टॉलेशन, कॉन्फ़िगरेशन, सुरक्षा और संचालन।",
+    "sidebarTitle": "वर्डप्रेस गाइड",
+    "sections": [
+      {
+        "id": "overview",
+        "title": "प्लगइन क्या है",
+        "description": "PHP + वेनिला जावास्क्रिप्ट में प्लगइन जो Node.js के बिना वर्डप्रेस में OpenAI रीयलटाइम के साथ NAVAI वॉयस को एकीकृत करता है।",
+        "bullets": [
+          "सार्वजनिक साइट पर वॉयस विजेट और `wp-admin` (प्रशासक के लिए) जोड़ें।",
+          "आपको सक्षम मार्गों पर नेविगेट करने और कस्टम फ़ंक्शन निष्पादित करने की अनुमति देता है।",
+          "नेविगेशन, फ़ंक्शंस, सुरक्षा, अनुमोदन, निशान, इतिहास, एजेंट और एमसीपी के लिए व्यवस्थापक पैनल शामिल है।"
+        ]
+      },
+      {
+        "id": "quick-access",
+        "title": "त्वरित पहुंच",
+        "description": "परिचालन सारांश प्लगइन के README से लिया गया है।",
+        "bullets": [
+          "इंस्टालेशन: `Plugins > Add New > Upload Plugin` से ज़िप अपलोड या `wp-content/plugins/navai-voice` पर मैन्युअल कॉपी।",
+          "त्वरित सेटअप: `OpenAI API Key`, मॉडल `gpt-realtime` और आवाज `marin` परिभाषित करें।",
+          "उपयोग करें: फ्लोटिंग ग्लोबल बटन या मैन्युअल शोर्टकोड `[navai_voice]` सक्रिय करें।",
+          "ऑपरेशन: `apps/wordpress-plugin/release/build-zip.ps1` के साथ ज़िप उत्पन्न करें और समस्या निवारण चेकलिस्ट लागू करें।"
+        ]
+      },
+      {
+        "id": "capabilities",
+        "title": "वर्तमान क्षमताएँ",
+        "description": "वर्डप्रेस-फ़ेज़-1-गार्डरेल्स संस्करण में रिपोर्ट की गई मुख्य विशेषताएं।",
+        "bullets": [
+          "नेविगेशन निर्णयों को बेहतर बनाने के लिए विवरण के साथ भूमिका के अनुसार सार्वजनिक और निजी मार्ग।",
+          "`function_name`, स्कोप, टाइमआउट, पुनः प्रयास, अनुमोदन और JSON स्कीमा के साथ जावास्क्रिप्ट में कस्टम फ़ंक्शन।",
+          "परीक्षण कार्य (`Test function`), चेकबॉक्स द्वारा सक्रियण और पैकेजों का आयात/निर्यात `.js`।",
+          "पैनल भाषा चयनकर्ता और मेहमानों सहित भूमिका के आधार पर विजेट दृश्यता नियंत्रण।",
+          "रेलिंग चरण 1 और उन्नत चरण चरण 2 से चरण 7 (अनुमोदन, निशान, इतिहास, मल्टी-एजेंट, एमसीपी)।"
+        ]
+      },
+      {
+        "id": "requirements",
+        "title": "आवश्यकताएं",
+        "description": "प्लगइन README में न्यूनतम आवश्यकताएं दर्शाई गई हैं।",
+        "bullets": [
+          "वर्डप्रेस `6.2+`",
+          "पीएचपी `8.0+`",
+          "रीयलटाइम तक पहुंच के साथ OpenAI API कुंजी"
+        ]
+      },
+      {
+        "id": "installation-admin",
+        "title": "वर्डप्रेस एडमिन से इंस्टालेशन",
+        "description": "गैर-तकनीकी उपकरणों के लिए अनुशंसित प्रवाह।",
+        "bullets": [
+          "1) `navai-voice.zip` उत्पन्न करें या प्राप्त करें।",
+          "2) `Plugins > Add New > Upload Plugin` पर जाएं।",
+          "3) ज़िप अपलोड करें, प्लगइन सक्रिय करें और `NAVAI Voice` खोलें।"
+        ]
+      },
+      {
+        "id": "installation-manual",
+        "title": "मैन्युअल स्थापना (फ़ाइल सिस्टम)",
+        "description": "सर्वर या सीआई/सीडी परिनियोजन के लिए वैकल्पिक।",
+        "bullets": [
+          "`apps/wordpress-plugin` को `wp-content/plugins/navai-voice` के रूप में कॉपी करें।",
+          "प्लगइन मैनेजर से `NAVAI Voice` सक्रिय करें।"
+        ]
+      },
+      {
+        "id": "quick-setup",
+        "title": "त्वरित सेटअप की अनुशंसा की गई",
+        "description": "कार्यात्मक ध्वनि सत्र शुरू करने के लिए न्यूनतम पैरामीटर।",
+        "bullets": [
+          "`OpenAI API Key`, `Modelo Realtime` (डिफ़ॉल्ट `gpt-realtime`) और `Voz` (डिफ़ॉल्ट `marin`) कॉन्फ़िगर करें।",
+          "रेंडर मोड चुनें: `Boton global flotante` या `Solo shortcode manual`।",
+          "भूमिका के आधार पर दृश्यता को परिभाषित करें (यदि लागू हो तो मेहमानों सहित)।",
+          "परिवर्तन सहेजें और विजेट से नेविगेशन/फ़ंक्शन मान्य करें।"
+        ]
+      },
+      {
+        "id": "usage",
+        "title": "उपयोग के तरीके",
+        "description": "प्लगइन शॉर्टकोड द्वारा ग्लोबल मोड और मैनुअल मोड का समर्थन करता है।",
+        "bullets": [
+          "विकल्प ए: सार्वजनिक साइट के लिए `Boton global flotante` और `wp-admin` (एडमिन)।",
+          "विकल्प बी: `Solo shortcode manual` पृष्ठों या टेम्पलेट्स के भीतर स्पष्ट प्रतिपादन के लिए।",
+          "शॉर्टकोड `label`, `stop_label`, `model`, `voice`, `instructions`, `language` और `debug` को सपोर्ट करता है।"
+        ],
+        "code": "[navai_voice]\n\n[navai_voice label=\"Hablar con NAVAI\" stop_label=\"Detener NAVAI\" model=\"gpt-realtime\" voice=\"marin\" debug=\"1\"]"
+      },
+      {
+        "id": "admin-tabs",
+        "title": "प्रशासन पैनल",
+        "description": "मुख्य मॉड्यूल डैशबोर्ड `NAVAI Voice` पर उपलब्ध हैं।",
+        "bullets": [
+          "`Navegacion`: सार्वजनिक/निजी मार्ग, विवरण और फ़िल्टर।",
+          "`Funciones`: मोडल, मेटाडेटा, परीक्षण और आयात/निर्यात में जेएस संपादक।",
+          "`Ajustes`: सामान्य, सुरक्षा (चरण 1), अनुमोदन, निशान और इतिहास।",
+          "`Agentes`: मल्टी-एजेंट + हैंडऑफ़ नियम कॉन्फ़िगर किए गए।",
+          "`MCP`: रिमोट सर्वर, टूल सिंक और भूमिका/एजेंट द्वारा नीतियों को अनुमति/अस्वीकार करते हैं।"
+        ]
+      },
+      {
+        "id": "guardrails-phases",
+        "title": "रेलिंग और उन्नत चरण",
+        "description": "एकीकृत रोडमैप README में रिपोर्ट किया गया।",
+        "bullets": [
+          "चरण 1: `input`, `tool` और `output` के लिए `keyword` या `regex` (`block`, `warn`, `allow`) के साथ रेलिंग नियम।",
+          "चरण 2: मानव अनुमोदन (एचआईटीएल) और टाइमलाइन के साथ रनटाइम ट्रेस।",
+          "चरण 3: सत्र, प्रतिलेख और इतिहास प्रतिधारण/सफाई।",
+          "चरण 4: वीएडी, रुकावटों और टेक्स्ट/वॉयस फ़ॉलबैक के साथ उन्नत वॉयस यूएक्स।",
+          "चरण 5: मजबूत कार्य (स्कीमा, टाइमआउट, पुनः प्रयास, परीक्षण, एजेंट द्वारा असाइनमेंट)।",
+          "चरण 6: इरादे, कार्य, पेलोड, भूमिकाओं और संदर्भ के आधार पर हैंडऑफ़ के साथ मल्टी-एजेंट आर्किटेक्चर।",
+          "चरण 7: एमसीपी एकीकरण (जेएसओएन-आरपीसी HTTP), भूमिका/एजेंट_की द्वारा दूरस्थ उपकरण और नीतियां।"
+        ]
+      },
+      {
+        "id": "rest-endpoints",
+        "title": "वर्तमान REST समापनबिंदु",
+        "description": "मुख्य REST अनुबंध प्लगइन द्वारा उजागर किया गया।",
+        "bullets": [
+          "रीयलटाइम: `POST /wp-json/navai/v1/realtime/client-secret`।",
+          "कार्य: `GET /wp-json/navai/v1/functions`, `POST /wp-json/navai/v1/functions/execute`, `POST /wp-json/navai/v1/functions/test`।",
+          "रूट: `GET /wp-json/navai/v1/routes`.",
+          "सुरक्षा: CRUD `guardrails` + `POST /wp-json/navai/v1/guardrails/test`।",
+          "उन्नत प्रशासन: `approvals`, `traces`, `sessions`, `agents` और `mcp/*` (एडमिन) के समापन बिंदु।"
+        ],
+        "code": "POST /wp-json/navai/v1/realtime/client-secret\nGET /wp-json/navai/v1/functions\nPOST /wp-json/navai/v1/functions/execute\nGET /wp-json/navai/v1/routes"
+      },
+      {
+        "id": "backend-extensibility",
+        "title": "बैकएंड एक्स्टेंसिबिलिटी (फ़िल्टर)",
+        "description": "प्लगइन के मूल को छुए बिना क्षमताओं का विस्तार करने के लिए प्रलेखित फ़िल्टर।",
+        "bullets": [
+          "`navai_voice_functions_registry`: PHP में बैकएंड टूल पंजीकृत करें।",
+          "`navai_voice_plugin_actions`: `@action:` प्रकार की लीगेसी बैकएंड क्रियाएँ।",
+          "`navai_voice_routes`: नौगम्य मार्गों की सूची का विस्तार करें।",
+          "`navai_voice_frontend_config`: रेंडर करने से पहले फ्रंटएंड कॉन्फ़िगरेशन समायोजित करें।"
+        ]
+      },
+      {
+        "id": "security",
+        "title": "सुरक्षा नोट",
+        "description": "प्लगइन दस्तावेज़ीकरण में सुरक्षा दिशानिर्देश शामिल हैं।",
+        "bullets": [
+          "OpenAI API कुंजी सर्वर पर बनी रहती है।",
+          "`client_secret` सार्वजनिक और सार्वजनिक बैकएंड फ़ंक्शंस को कॉन्फ़िगरेशन द्वारा सक्षम/अक्षम किया जा सकता है।",
+          "रेलिंग कार्यों को निष्पादित करने से पहले/बाद में `input`, `tool` और `output` द्वारा ब्लॉक कर सकती है।",
+          "फ़िल्टर द्वारा पंजीकृत PHP/बैकएंड कॉलबैक को विश्वसनीय व्यवस्थापक कोड माना जाना चाहिए।",
+          "मार्गों और कार्यों को उसी तक सीमित रखें जो प्रति भूमिका के लिए अत्यंत आवश्यक है।"
+        ]
+      },
+      {
+        "id": "operations",
+        "title": "संचालन एवं समस्या निवारण",
+        "description": "पैकेजिंग, अद्यतनीकरण और निदान के लिए परिचालन चेकलिस्ट।",
+        "bullets": [
+          "PowerShell स्क्रिप्ट के साथ इंस्टॉल करने योग्य ज़िप जेनरेट करें और `release/navai-voice.zip` वितरित करें।",
+          "अद्यतन करने के बाद, यदि लागू हो तो ब्राउज़र/प्लगइन कैश और OPcache/PHP-FPM साफ़ करें।",
+          "यदि कोई अपडेट एडमिन को तोड़ता है, तो प्लगइन निर्देशिका का साफ़ प्रतिस्थापन करें।",
+          "यदि विजेट प्रारंभ नहीं होता है, तो API कुंजी, माइक्रोफ़ोन अनुमतियाँ, मॉडल/आवाज़ और REST एक्सेस मान्य करें।"
+        ],
+        "code": "& \"apps/wordpress-plugin/release/build-zip.ps1\""
+      }
+    ]
+  }
+}

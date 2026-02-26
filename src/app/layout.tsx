@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import {
   IBM_Plex_Mono,
   Noto_Sans,
@@ -96,9 +97,10 @@ const GOOGLE_ANALYTICS_INIT_SCRIPT = `
 `;
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://navai.luxisoft.com"),
   title: "NAVAI - Realtime Voice AI for UI Navigation & Function Execution",
   description:
-    "Navai enables voice-first navigation and safe function execution across web and mobile apps.",
+    "NAVAI enables voice-first navigation and safe function execution across web and mobile apps.",
   icons: {
     icon: [
       {
@@ -117,13 +119,13 @@ export const metadata: Metadata = {
   openGraph: {
     title: "NAVAI - Realtime Voice AI for UI Navigation & Function Execution",
     description:
-      "Navai enables voice-first navigation and safe function execution across web and mobile apps.",
+      "NAVAI enables voice-first navigation and safe function execution across web and mobile apps.",
     images: [
       {
         url: "/navai_banner.png",
         width: 420,
         height: 150,
-        alt: "Navai",
+        alt: "NAVAI",
       },
     ],
   },
@@ -131,7 +133,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "NAVAI - Realtime Voice AI for UI Navigation & Function Execution",
     description:
-      "Navai enables voice-first navigation and safe function execution across web and mobile apps.",
+      "NAVAI enables voice-first navigation and safe function execution across web and mobile apps.",
     images: ["/navai_banner.png"],
   },
 };
@@ -141,17 +143,29 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const isAnalyticsEnabled = process.env.NODE_ENV === "production";
+
   return (
     <html lang="es" className="light" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: LANGUAGE_INIT_SCRIPT }} />
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
-        <script async src={`https://www.googletagmanager.com/gtag/js?id=${GOOGLE_TAG_ID}`} />
-        <script dangerouslySetInnerHTML={{ __html: GOOGLE_ANALYTICS_INIT_SCRIPT }} />
       </head>
       <body
         className={`${spaceGrotesk.variable} ${ibmPlexMono.variable} ${notoSans.variable} ${notoSansSc.variable} ${notoSansJp.variable} ${notoSansKr.variable} ${notoSansDevanagari.variable} antialiased`}
       >
+        {isAnalyticsEnabled ? (
+          <>
+            <Script
+              id="ga-script"
+              strategy="lazyOnload"
+              src={`https://www.googletagmanager.com/gtag/js?id=${GOOGLE_TAG_ID}`}
+            />
+            <Script id="ga-init" strategy="lazyOnload">
+              {GOOGLE_ANALYTICS_INIT_SCRIPT}
+            </Script>
+          </>
+        ) : null}
         <ClientProviders>
           <div className="site-shell">
             <main className="site-main">{children}</main>

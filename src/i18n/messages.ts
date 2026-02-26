@@ -43,6 +43,7 @@ export type AppMessages = {
     docsGroupHome: string;
     docsGroupInstallation: string;
     docsGroupDemo: string;
+    docsGroupExamples: string;
     docsGroupLibraries: string;
     docsInstallApi: string;
     docsInstallWeb: string;

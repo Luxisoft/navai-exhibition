@@ -5,7 +5,7 @@
   <a href="./README.en.md"><img alt="Language English" src="https://img.shields.io/badge/Language-EN-1D9A6C?style=for-the-badge"></a>
 </p>
 
-Backend package for Navai voice applications.
+Backend package for NAVAI voice applications.
 
 This package solves two backend responsibilities:
 

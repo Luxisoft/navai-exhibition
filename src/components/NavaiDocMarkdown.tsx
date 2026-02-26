@@ -1,6 +1,6 @@
 'use client';
 
-import { isValidElement, type ReactNode } from "react";
+import { Children, isValidElement, type ReactNode } from "react";
 import ReactMarkdown from "react-markdown";
 import rehypeRaw from "rehype-raw";
 import remarkGfm from "remark-gfm";
@@ -15,6 +15,7 @@ type NavaiDocSlug =
   | "installation-api"
   | "installation-web"
   | "installation-mobile"
+  | "installation-wordpress"
   | "playground-api"
   | "playground-web"
   | "playground-mobile"
@@ -35,6 +36,18 @@ type NavaiDocMarkdownProps = {
 
 const GITHUB_BLOB_BASE = "https://github.com/Luxisoft/navai/blob/main";
 const GITHUB_RAW_BASE = "https://raw.githubusercontent.com/Luxisoft/navai/main";
+const WORDPRESS_INSTALL_DOC_HREF = "/documentation/installation-wordpress";
+const WORDPRESS_INSTALL_LABEL_BY_LANGUAGE: Record<LanguageCode, string> = {
+  en: "WordPress Plugin",
+  es: "Plugin para wordpress",
+  fr: "Plugin WordPress",
+  pt: "Plugin para WordPress",
+  zh: "WordPress 插件",
+  ja: "WordPress プラグイン",
+  ru: "Плагин WordPress",
+  ko: "워드프레스 플러그인",
+  hi: "WordPress प्लगइन",
+};
 
 const README_PATH_TO_SLUG = new Map<string, NavaiDocSlug>([
   ["README.md", "home"],
@@ -376,11 +389,13 @@ export default function NavaiDocMarkdown({ doc }: NavaiDocMarkdownProps) {
   const localizedMarkdownInline = INLINE_LOCALIZED_MARKDOWN[doc.slug]?.[language as Exclude<LanguageCode, "en">];
   const localizedMarkdown = LOCALIZED_MARKDOWN[doc.slug]?.[language as Exclude<LanguageCode, "en">];
   const markdownContent = localizedMarkdownInline ?? localizedMarkdown ?? doc.markdown;
+  const wordpressInstallLabel = WORDPRESS_INSTALL_LABEL_BY_LANGUAGE[language] ?? WORDPRESS_INSTALL_LABEL_BY_LANGUAGE.en;
 
   const installLinksByHref: Record<string, string> = {
     "/documentation/installation-api": messages.common.docsInstallApi,
     "/documentation/installation-web": messages.common.docsInstallWeb,
     "/documentation/installation-mobile": messages.common.docsInstallMobile,
+    [WORDPRESS_INSTALL_DOC_HREF]: wordpressInstallLabel,
   };
 
   return (
@@ -389,6 +404,35 @@ export default function NavaiDocMarkdown({ doc }: NavaiDocMarkdownProps) {
         remarkPlugins={[remarkGfm]}
         rehypePlugins={[rehypeRaw]}
         components={{
+          div: ({ children, className }) => {
+            const isInstallLinksContainer =
+              doc.slug === "home" &&
+              typeof className === "string" &&
+              className.split(/\s+/).includes("docs-install-links");
+
+            if (!isInstallLinksContainer) {
+              return <div className={className}>{children}</div>;
+            }
+
+            const childNodes = Children.toArray(children);
+            const hasWordPressLink = childNodes.some(
+              (child) =>
+                isValidElement<{ href?: string }>(child) &&
+                typeof child.props.href === "string" &&
+                child.props.href === WORDPRESS_INSTALL_DOC_HREF
+            );
+
+            return (
+              <div className={className}>
+                {children}
+                {!hasWordPressLink ? (
+                  <a className="docs-install-link" href={WORDPRESS_INSTALL_DOC_HREF}>
+                    {wordpressInstallLabel}
+                  </a>
+                ) : null}
+              </div>
+            );
+          },
           h2: ({ children, node }) => {
             const id = buildStableHeadingId({
               title: cleanHeadingText(extractNodeText(children)),

@@ -10,6 +10,7 @@ import LanguageSwitcher from "@/components/LanguageSwitcher";
 import ThemeSwitcher from "@/components/ThemeSwitcher";
 import type { LocalizedPlan, LocalizedSection } from "@/i18n/messages";
 import { useI18n } from "@/i18n/provider";
+import { getLocalizedWordpressPage } from "@/i18n/wordpress-page";
 
 type KnowledgeTemplateProps = {
   badge: string;
@@ -46,17 +47,20 @@ export default function KnowledgeTemplate({
   contactSectionDescription,
   contactForm,
 }: KnowledgeTemplateProps) {
-  const { messages } = useI18n();
+  const { language, messages } = useI18n();
   const pathname = usePathname();
+  const wordpressPage = getLocalizedWordpressPage(language);
 
   const pageLinks = [
-    { href: "/documentation", label: messages.common.documentation },
+    { href: "/documentation/home", label: messages.common.documentation },
     { href: "/request-implementation", label: messages.common.requestImplementation },
+    { href: "/wordpress", label: wordpressPage.navigationLabel },
   ];
+  const isPageLinkActive = (href: string) => (href === "/documentation/home" ? pathname.startsWith("/documentation") : pathname === href);
 
   const tocItems = [
     ...sections.map((section) => ({ id: section.id, label: section.title })),
-    ...(plans && plans.length > 0 ? [{ id: "plans", label: plansTitle ?? "Plans" }] : []),
+    ...(plans && plans.length > 0 ? [{ id: "plans", label: plansTitle ?? messages.common.plansLabel }] : []),
     ...(contactForm && contactSectionId && contactSectionTitle
       ? [{ id: contactSectionId, label: contactSectionTitle }]
       : []),
@@ -66,13 +70,13 @@ export default function KnowledgeTemplate({
     <section className="docs-layout">
       <header className="docs-topbar">
         <div className="docs-topbar-left">
-          <Link href="/" className="docs-brand" aria-label="Navai Home">
-            <Image src="/navai_banner.png" alt="Navai" width={140} height={50} priority />
+          <Link href="/" className="docs-brand" aria-label={messages.common.homeLinkAria}>
+            <Image src="/navai_banner.png" alt={messages.common.bannerAlt} width={140} height={50} priority />
           </Link>
 
           <nav className="docs-top-tabs">
             {pageLinks.map((item) => {
-              const isActive = pathname === item.href;
+              const isActive = isPageLinkActive(item.href);
               return (
                 <Link
                   key={item.href}
@@ -92,8 +96,8 @@ export default function KnowledgeTemplate({
             target="_blank"
             rel="noreferrer noopener"
             className="docs-source-btn"
-            aria-label="GitHub repository"
-            title="GitHub repository"
+            aria-label={messages.common.githubRepository}
+            title={messages.common.githubRepository}
           >
             <Github className="docs-source-icon" aria-hidden="true" />
           </a>
@@ -106,10 +110,10 @@ export default function KnowledgeTemplate({
 
       <div className="docs-shell">
         <aside className="docs-sidebar">
-          <p className="docs-nav-title">Navigation</p>
+          <p className="docs-nav-title">{messages.common.docsNavigation}</p>
           <div className="docs-nav-list">
             {pageLinks.map((item) => {
-              const isActive = pathname === item.href;
+              const isActive = isPageLinkActive(item.href);
               return (
                 <Link
                   key={item.href}
@@ -201,7 +205,7 @@ export default function KnowledgeTemplate({
         </article>
 
         <aside className="docs-rightbar">
-          <p className="docs-sidebar-title">On this page</p>
+          <p className="docs-sidebar-title">{messages.common.docsOnThisPage}</p>
           <nav className="docs-toc">
             {tocItems.map((item) => (
               <a key={`${item.id}-right`} href={`#${item.id}`} className="docs-toc-link">

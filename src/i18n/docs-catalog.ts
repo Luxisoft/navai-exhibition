@@ -5,6 +5,7 @@ export type NavaiDocSlug =
   | "installation-api"
   | "installation-web"
   | "installation-mobile"
+  | "installation-wordpress"
   | "playground-api"
   | "playground-web"
   | "playground-mobile"

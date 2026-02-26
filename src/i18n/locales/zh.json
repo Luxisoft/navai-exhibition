@@ -5,8 +5,8 @@
     "themeDark": "深色",
     "themeLight": "浅色",
     "byLuxisoft": "由 LUXISOFT 开发",
-    "homeLinkAria": "前往 Navai 首页",
-    "bannerAlt": "Navai",
+    "homeLinkAria": "前往 NAVAI 首页",
+    "bannerAlt": "NAVAI",
     "githubRepository": "GitHub 仓库",
     "docsNavigation": "导航",
     "docsOnThisPage": "本页目录",
@@ -30,7 +30,8 @@
     "home": "首页",
     "docsInstallApi": "安装 API",
     "docsInstallWeb": "安装 Web",
-    "docsInstallMobile": "安装 Mobile"
+    "docsInstallMobile": "安装 Mobile",
+    "docsGroupExamples": "\u793a\u4f8b"
   },
   "home": {
     "documentationButton": "文档",
@@ -42,8 +43,8 @@
     "apiKeyPlaceholder": "粘贴你的 OpenAI API 密钥",
     "apiKeyNotice": "你输入的 API 密钥不会被存储，仅用于测试 NAVAI。",
     "apiKeyNoticeRepoLabel": "查看仓库",
-    "ariaStart": "开始 Navai 语音会话",
-    "ariaStop": "停止 Navai 语音会话",
+    "ariaStart": "开始 NAVAI 语音会话",
+    "ariaStop": "停止 NAVAI 语音会话",
     "connecting": "正在连接语音会话...",
     "active": "语音会话已激活",
     "activeDetail": "语音会话已激活。请开始说话或点击停止。",
@@ -55,8 +56,8 @@
   },
   "docsPage": {
     "badge": "📘 产品文档",
-    "title": "📚 Navai Voice Runtime 文档",
-    "description": "🧠 基于官方 Luxisoft/Navai 仓库整理的技术摘要。",
+    "title": "📚 NAVAI Voice Runtime 文档",
+    "description": "🧠 基于官方 Luxisoft/NAVAI 仓库整理的技术摘要。",
     "sidebarTitle": "目录",
     "sections": [
       {
@@ -122,7 +123,7 @@
   },
   "implementationPage": {
     "badge": "💼 专业服务",
-    "title": "🚀 请求 Navai 实施",
+    "title": "🚀 请求 NAVAI 实施",
     "description": "🎙️ 为你的网站/应用提供可上线的语音实现。",
     "sidebarTitle": "🧩 服务范围",
     "sections": [
@@ -131,7 +132,7 @@
         "title": "✅ 包含内容",
         "description": "每个方案都包含以下交付范围：",
         "bullets": [
-          "集成 Navai 后端协议与前端运行时。",
+          "集成 NAVAI 后端协议与前端运行时。",
           "按你的应用结构配置路由映射与同义词。",
           "提供验证、QA 清单与上线支持。"
         ]
@@ -161,7 +162,7 @@
         "timeline": "5-7 个工作日",
         "highlights": [
           "核心页面语音导航",
-          "后端协议接入（3 个 Navai 接口）",
+          "后端协议接入（3 个 NAVAI 接口）",
           "基础意图调优 + QA 交接"
         ]
       },
@@ -200,7 +201,7 @@
       }
     ],
     "whatsappButtonLabel": "💬 通过 WhatsApp 联系",
-    "whatsappPrefill": "你好 Luxisoft，我想获取在我的网站或应用中实施 Navai 语音导航的报价。",
+    "whatsappPrefill": "你好 Luxisoft，我想获取在我的网站或应用中实施 NAVAI 语音导航的报价。",
     "contactSectionTitle": "📨 联系表单",
     "contactSectionDescription": "🧾 请填写项目详情，我们将为你准备报价。表单将发送至 quote@luxisoft.com。",
     "contactNameLabel": "姓名",
@@ -222,6 +223,6 @@
     "contactSubmitLabel": "📤 发送报价请求",
     "contactDisclaimer": "🔒 你的请求将安全发送到 quote@luxisoft.com。",
     "ctaLabel": "🧾 获取报价",
-    "ctaHref": "mailto:quote@luxisoft.com?subject=Navai%20Implementation%20Request"
+    "ctaHref": "mailto:quote@luxisoft.com?subject=NAVAI%20Implementation%20Request"
   }
 }
