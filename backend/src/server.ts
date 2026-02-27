@@ -30,6 +30,14 @@ function stripLeadingSlash(value: string) {
   return value.replace(/^\/+/, "");
 }
 
+function readBooleanEnv(value: string | undefined) {
+  if (!value) return undefined;
+  const normalized = value.trim().toLowerCase();
+  if (["1", "true", "yes", "on"].includes(normalized)) return true;
+  if (["0", "false", "no", "off"].includes(normalized)) return false;
+  return undefined;
+}
+
 function serveRouteHtml(distDir: string, request: Request, response: Response) {
   const cleanPath = request.path.replace(/\/+$/, "");
   const relativePath = cleanPath === "" ? "index" : stripLeadingSlash(cleanPath);
@@ -100,8 +108,10 @@ app.get(/^\/documentacion\/(.*)$/, (request, response) => {
 });
 
 const frontendDist = path.join(projectRoot, "frontend", "dist");
+const frontendDistExists = fs.existsSync(frontendDist);
+const shouldServeFrontend = readBooleanEnv(process.env.NAVAI_SERVE_FRONTEND) ?? frontendDistExists;
 
-if (fs.existsSync(frontendDist)) {
+if (shouldServeFrontend && frontendDistExists) {
   app.use(
     express.static(frontendDist, {
       index: false,
@@ -127,23 +137,25 @@ app.get(/.*/, (request, response) => {
     return response.status(404).json({ ok: false, error: "not_found" });
   }
 
-  if (!fs.existsSync(frontendDist)) {
-    return response.status(500).json({
-      ok: false,
-      error: "frontend_dist_missing",
-      hint: "Run `npm run build:frontend` before starting the server.",
+  if (shouldServeFrontend && frontendDistExists) {
+    if (serveRouteHtml(frontendDist, request, response)) {
+      return;
+    }
+
+    const notFoundHtml = path.join(frontendDist, "404.html");
+    if (fs.existsSync(notFoundHtml)) {
+      response.status(404).setHeader("Cache-Control", "no-cache");
+      response.sendFile(notFoundHtml);
+      return;
+    }
+  }
+
+  if (request.path === "/") {
+    return response.json({
+      ok: true,
+      service: "navai-backend",
+      serveFrontend: shouldServeFrontend && frontendDistExists,
     });
-  }
-
-  if (serveRouteHtml(frontendDist, request, response)) {
-    return;
-  }
-
-  const notFoundHtml = path.join(frontendDist, "404.html");
-  if (fs.existsSync(notFoundHtml)) {
-    response.status(404).setHeader("Cache-Control", "no-cache");
-    response.sendFile(notFoundHtml);
-    return;
   }
 
   response.status(404).json({ ok: false, error: "not_found" });
