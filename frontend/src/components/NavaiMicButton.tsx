@@ -8,6 +8,7 @@ import { Mic } from "lucide-react";
 import { useRouter } from "@/platform/navigation";
 import { type ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useI18n } from "@/i18n/provider";
+import { buildBackendApiUrl, getBackendApiBaseUrl } from "@/lib/backend-api";
 
 type VoiceState = "idle" | "connecting" | "connected" | "error";
 
@@ -113,7 +114,7 @@ export default function NavaiMicButton({
 
   useEffect(() => {
     let mounted = true;
-    fetch("/api/backend-capabilities", { cache: "no-store" })
+    fetch(buildBackendApiUrl("/api/backend-capabilities"), { cache: "no-store" })
       .then(async (response) => {
         if (!response.ok) {
           return;
@@ -244,8 +245,9 @@ export default function NavaiMicButton({
     setAriaMessage(messages.mic.connecting);
     setStatusMessage(messages.mic.connecting);
 
+    const backendApiBaseUrl = getBackendApiBaseUrl();
     const backendClient = createNavaiBackendClient({
-      apiBaseUrl: window.location.origin,
+      apiBaseUrl: backendApiBaseUrl,
     });
 
     try {

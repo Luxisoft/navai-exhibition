@@ -12,6 +12,7 @@ import {
 
 import HCaptchaGate, { type HCaptchaGateRef } from "@/components/security/HCaptchaGate";
 import { useI18n } from "@/i18n/provider";
+import { buildBackendApiUrl } from "@/lib/backend-api";
 import { getLuxisoftWhatsAppLink } from "@/lib/luxisoft-contact";
 
 type ContactFormState = {
@@ -74,7 +75,7 @@ export default function ImplementationContact() {
     }
 
     let mounted = true;
-    fetch("/api/hcaptcha/site-key", { cache: "no-store" })
+    fetch(buildBackendApiUrl("/api/hcaptcha/site-key"), { cache: "no-store" })
       .then(async (response) => {
         if (!response.ok) {
           return;
@@ -205,7 +206,7 @@ export default function ImplementationContact() {
       setStatus("loading");
 
       try {
-        const response = await fetch("/api/quote", {
+        const response = await fetch(buildBackendApiUrl("/api/quote"), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
