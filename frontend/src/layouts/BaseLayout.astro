@@ -92,13 +92,6 @@ const GOOGLE_ANALYTICS_LAZY_INIT_SCRIPT = `
   window.addEventListener("pointerdown", bootAnalytics, { once: true, passive: true });
   window.addEventListener("keydown", bootAnalytics, { once: true });
   window.addEventListener("scroll", bootAnalytics, { once: true, passive: true });
-
-  const w = window;
-  if (typeof w.requestIdleCallback === "function") {
-    w.requestIdleCallback(bootAnalytics, { timeout: 8000 });
-  } else {
-    window.setTimeout(bootAnalytics, 8000);
-  }
 })();
 `;
 ---

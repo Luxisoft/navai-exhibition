@@ -8,6 +8,8 @@ import { type ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } f
 import { useI18n } from "@/i18n/provider";
 import { buildBackendApiUrl, getBackendApiBaseUrl } from "@/lib/backend-api";
 
+const BACKEND_CAPABILITIES_FALLBACK_DELAY_MS = 9000;
+
 type VoiceState = "idle" | "connecting" | "connected" | "error";
 
 type NavaiMicButtonProps = {
@@ -157,15 +159,16 @@ export default function NavaiMicButton({
       return;
     }
 
-    const currentWindow = window as typeof window & {
-      requestIdleCallback?: (callback: () => void, options?: { timeout: number }) => number;
-      cancelIdleCallback?: (id: number) => void;
-    };
-
     let mounted = true;
+    let hasLoadedCapabilities = false;
     const abortController = new AbortController();
 
     const loadBackendCapabilities = () => {
+      if (hasLoadedCapabilities) {
+        return;
+      }
+      hasLoadedCapabilities = true;
+
       fetch(buildBackendApiUrl("/api/backend-capabilities"), {
         cache: "no-store",
         signal: abortController.signal,
@@ -185,24 +188,23 @@ export default function NavaiMicButton({
         });
     };
 
-    let timeoutId: number | null = null;
-    if (typeof currentWindow.requestIdleCallback === "function") {
-      const idleId = currentWindow.requestIdleCallback(loadBackendCapabilities, { timeout: 3400 });
-      return () => {
-        mounted = false;
-        abortController.abort();
-        currentWindow.cancelIdleCallback?.(idleId);
-      };
-    }
+    const handleUserIntent = () => {
+      loadBackendCapabilities();
+    };
 
-    timeoutId = window.setTimeout(loadBackendCapabilities, 2400);
+    window.addEventListener("pointerdown", handleUserIntent, { passive: true, once: true });
+    window.addEventListener("touchstart", handleUserIntent, { passive: true, once: true });
+    window.addEventListener("keydown", handleUserIntent, { once: true });
+
+    const timeoutId = window.setTimeout(loadBackendCapabilities, BACKEND_CAPABILITIES_FALLBACK_DELAY_MS);
 
     return () => {
       mounted = false;
       abortController.abort();
-      if (timeoutId !== null) {
-        window.clearTimeout(timeoutId);
-      }
+      window.removeEventListener("pointerdown", handleUserIntent);
+      window.removeEventListener("touchstart", handleUserIntent);
+      window.removeEventListener("keydown", handleUserIntent);
+      window.clearTimeout(timeoutId);
     };
   }, [hasInputApiKey]);
 

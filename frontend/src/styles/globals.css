@@ -369,6 +369,11 @@ html.lang-hi {
   backdrop-filter: blur(6px);
 }
 
+.home-brand picture {
+  display: block;
+  line-height: 0;
+}
+
 .home-brand img {
   display: block;
   height: auto;

@@ -9,7 +9,22 @@ import { useI18n } from "@/i18n/provider";
 import { getLocalizedWordpressPage } from "@/i18n/wordpress-page";
 import { useTheme } from "@/theme/provider";
 
-const ORB_AUTOPLAY_DELAY_MS = 9000;
+const ORB_AUTOPLAY_DELAY_MS_DEFAULT = 9000;
+const ORB_AUTOPLAY_DELAY_MS_MIN = 0;
+const ORB_AUTOPLAY_DELAY_MS_MAX = 60000;
+
+function resolveOrbAutoplayDelayMs() {
+  const rawValue = import.meta.env.PUBLIC_ORB_AUTOPLAY_DELAY_MS;
+  const parsedValue = Number.parseInt(String(rawValue ?? ""), 10);
+
+  if (!Number.isFinite(parsedValue)) {
+    return ORB_AUTOPLAY_DELAY_MS_DEFAULT;
+  }
+
+  return Math.min(ORB_AUTOPLAY_DELAY_MS_MAX, Math.max(ORB_AUTOPLAY_DELAY_MS_MIN, parsedValue));
+}
+
+const ORB_AUTOPLAY_DELAY_MS = resolveOrbAutoplayDelayMs();
 
 const NavaiMicButton = dynamic(() => import("@/components/NavaiMicButton"), {
   ssr: false,
@@ -154,16 +169,23 @@ export default function HomeHero() {
 
       <div className="home-content">
         <div className="home-brand">
-          <Image
-            src="/navai_banner.webp"
-            srcSet="/navai_banner.webp 250w, /navai_banner@1_5x.webp 375w"
-            alt={messages.common.bannerAlt}
-            width={250}
-            height={89}
-            sizes="250px"
-            fetchPriority="high"
-            priority
-          />
+          <picture>
+            <source
+              type="image/avif"
+              srcSet="/navai_banner.avif 250w, /navai_banner@1_5x.avif 375w"
+              sizes="250px"
+            />
+            <Image
+              src="/navai_banner.webp"
+              srcSet="/navai_banner.webp 250w, /navai_banner@1_5x.webp 375w"
+              alt={messages.common.bannerAlt}
+              width={250}
+              height={89}
+              sizes="250px"
+              fetchPriority="high"
+              priority
+            />
+          </picture>
         </div>
 
         <p>{messages.home.tagline}</p>
