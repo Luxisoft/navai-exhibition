@@ -10,7 +10,8 @@ export default function Orb({
   rotateOnHover = true,
   forceHoverState = false,
   enablePointerHover = true,
-  backgroundColor = '#000000'
+  backgroundColor = '#000000',
+  animate = true
 }) {
   const ctnDom = useRef(null);
   const hueRef = useRef(hue);
@@ -20,6 +21,7 @@ export default function Orb({
   const enablePointerHoverRef = useRef(enablePointerHover);
   const backgroundColorRef = useRef(backgroundColor);
   const backgroundColorVecRef = useRef(hexToVec3(backgroundColor));
+  const animateRef = useRef(animate);
 
   useEffect(() => {
     hueRef.current = hue;
@@ -45,6 +47,10 @@ export default function Orb({
     backgroundColorRef.current = backgroundColor;
     backgroundColorVecRef.current = hexToVec3(backgroundColor);
   }, [backgroundColor]);
+
+  useEffect(() => {
+    animateRef.current = animate;
+  }, [animate]);
 
   const vert = /* glsl */ `
     precision highp float;
@@ -297,15 +303,52 @@ export default function Orb({
     container.addEventListener('mousemove', handleMouseMove);
     container.addEventListener('mouseleave', handleMouseLeave);
 
-    let rafId;
+    let rafId = 0;
+    let idleTimerId = 0;
     let lastRenderTime = 0;
-    const frameIntervalMs = 1000 / 30;
-    const update = t => {
-      rafId = requestAnimationFrame(update);
-      if (document.hidden) {
+    let hasRenderedStaticFrame = false;
+    const frameIntervalMs = 1000 / 24;
+    const idleCheckIntervalMs = 750;
+
+    const renderStaticFrame = () => {
+      program.uniforms.iTime.value = 0;
+      program.uniforms.hue.value = hueRef.current;
+      program.uniforms.hoverIntensity.value = hoverIntensityRef.current;
+      program.uniforms.backgroundColor.value = backgroundColorVecRef.current;
+      program.uniforms.hover.value = 0;
+      program.uniforms.rot.value = currentRot;
+      renderer.render({ scene: mesh });
+    };
+
+    const scheduleNextFrame = () => {
+      if (animateRef.current && !document.hidden) {
+        rafId = requestAnimationFrame(update);
         return;
       }
+
+      idleTimerId = window.setTimeout(() => {
+        rafId = requestAnimationFrame(update);
+      }, idleCheckIntervalMs);
+    };
+
+    const update = t => {
+      if (document.hidden) {
+        scheduleNextFrame();
+        return;
+      }
+
+      if (!animateRef.current) {
+        if (!hasRenderedStaticFrame) {
+          renderStaticFrame();
+          hasRenderedStaticFrame = true;
+        }
+        scheduleNextFrame();
+        return;
+      }
+
+      hasRenderedStaticFrame = false;
       if (t - lastRenderTime < frameIntervalMs) {
+        scheduleNextFrame();
         return;
       }
       lastRenderTime = t;
@@ -326,11 +369,13 @@ export default function Orb({
       program.uniforms.rot.value = currentRot;
 
       renderer.render({ scene: mesh });
+      scheduleNextFrame();
     };
-    rafId = requestAnimationFrame(update);
+    scheduleNextFrame();
 
     return () => {
       cancelAnimationFrame(rafId);
+      window.clearTimeout(idleTimerId);
       window.removeEventListener('resize', resize);
       container.removeEventListener('mousemove', handleMouseMove);
       container.removeEventListener('mouseleave', handleMouseLeave);

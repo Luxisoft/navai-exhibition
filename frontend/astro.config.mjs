@@ -10,6 +10,9 @@ const frontendSrc = path.resolve(frontendRoot, "src");
 
 export default defineConfig({
   integrations: [react()],
+  build: {
+    inlineStylesheets: "always",
+  },
   vite: {
     plugins: [tailwindcss()],
     resolve: {

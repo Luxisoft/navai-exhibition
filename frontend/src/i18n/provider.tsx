@@ -28,16 +28,6 @@ function isLanguageCode(value: string | null): value is LanguageCode {
   return LANGUAGE_OPTIONS.some((option) => option.code === value);
 }
 
-function detectLanguageFromBrowser(): LanguageCode {
-  if (typeof navigator === "undefined") {
-    return DEFAULT_LANGUAGE;
-  }
-
-  const browserLanguage = navigator.language.toLowerCase();
-  const matched = LANGUAGE_OPTIONS.find((option) => browserLanguage.startsWith(option.code));
-  return matched?.code ?? DEFAULT_LANGUAGE;
-}
-
 export function I18nProvider({ children }: { children: ReactNode }) {
   const [language, setLanguageState] = useState<LanguageCode>(DEFAULT_LANGUAGE);
 
@@ -47,14 +37,12 @@ export function I18nProvider({ children }: { children: ReactNode }) {
     }
 
     const storedValue = window.localStorage.getItem(I18N_STORAGE_KEY);
-    const detectedLanguage = isLanguageCode(storedValue)
-      ? storedValue
-      : detectLanguageFromBrowser();
+    if (!isLanguageCode(storedValue)) {
+      return;
+    }
 
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setLanguageState((current) =>
-      current === detectedLanguage ? current : detectedLanguage
-    );
+    setLanguageState((current) => (current === storedValue ? current : storedValue));
   }, []);
 
   useEffect(() => {

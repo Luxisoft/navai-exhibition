@@ -3,4 +3,3 @@ Allow: /
 Disallow: /api/
 Disallow: /navai/
 Sitemap: https://navai.luxisoft.com/sitemap.xml
-Host: https://navai.luxisoft.com

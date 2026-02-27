@@ -8,6 +8,8 @@ type BaseLayoutProps = {
 };
 
 const GOOGLE_TAG_ID = "G-J5MXCLPYHB";
+const GOOGLE_FONTS_STYLESHEET_URL =
+  "https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap";
 const SITE_URL = "https://navai.luxisoft.com";
 
 const {
@@ -64,11 +66,40 @@ const HCAPTCHA_SITEKEY_INIT_SCRIPT = `
 })();
 `;
 
-const GOOGLE_ANALYTICS_INIT_SCRIPT = `
-window.dataLayer = window.dataLayer || [];
-function gtag(){dataLayer.push(arguments);}
-gtag('js', new Date());
-gtag('config', '${GOOGLE_TAG_ID}');
+const GOOGLE_ANALYTICS_LAZY_INIT_SCRIPT = `
+(() => {
+  const tagId = ${JSON.stringify(GOOGLE_TAG_ID)};
+  const scriptSrc = "https://www.googletagmanager.com/gtag/js?id=" + tagId;
+  let booted = false;
+
+  const bootAnalytics = () => {
+    if (booted) return;
+    booted = true;
+
+    window.dataLayer = window.dataLayer || [];
+    window.gtag = function gtag(){ window.dataLayer.push(arguments); };
+    window.gtag("js", new Date());
+
+    const script = document.createElement("script");
+    script.async = true;
+    script.src = scriptSrc;
+    script.onload = () => {
+      window.gtag("config", tagId);
+    };
+    document.head.appendChild(script);
+  };
+
+  window.addEventListener("pointerdown", bootAnalytics, { once: true, passive: true });
+  window.addEventListener("keydown", bootAnalytics, { once: true });
+  window.addEventListener("scroll", bootAnalytics, { once: true, passive: true });
+
+  const w = window;
+  if (typeof w.requestIdleCallback === "function") {
+    w.requestIdleCallback(bootAnalytics, { timeout: 8000 });
+  } else {
+    window.setTimeout(bootAnalytics, 8000);
+  }
+})();
 `;
 ---
 
@@ -96,10 +127,11 @@ gtag('config', '${GOOGLE_TAG_ID}');
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap"
-    />
+    <link rel="preload" as="style" href={GOOGLE_FONTS_STYLESHEET_URL} />
+    <link rel="stylesheet" href={GOOGLE_FONTS_STYLESHEET_URL} media="print" onload="this.media='all'" />
+    <noscript>
+      <link rel="stylesheet" href={GOOGLE_FONTS_STYLESHEET_URL} />
+    </noscript>
 
     <script is:inline set:html={LANGUAGE_INIT_SCRIPT}></script>
     <script is:inline set:html={THEME_INIT_SCRIPT}></script>
@@ -108,8 +140,7 @@ gtag('config', '${GOOGLE_TAG_ID}');
     {
       isAnalyticsEnabled ? (
         <>
-          <script async src={`https://www.googletagmanager.com/gtag/js?id=${GOOGLE_TAG_ID}`}></script>
-          <script is:inline set:html={GOOGLE_ANALYTICS_INIT_SCRIPT}></script>
+          <script is:inline set:html={GOOGLE_ANALYTICS_LAZY_INIT_SCRIPT}></script>
         </>
       ) : null
     }

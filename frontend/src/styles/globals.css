@@ -379,6 +379,20 @@ html.lang-hi {
   justify-items: center;
   gap: 0.95rem;
   width: min(92vw, 640px);
+  min-height: 14.5rem;
+}
+
+.home-voice-slot {
+  width: min(92vw, 640px);
+  min-height: 14.5rem;
+  display: grid;
+  justify-items: center;
+  align-items: start;
+}
+
+.home-voice-placeholder {
+  width: 100%;
+  min-height: 100%;
 }
 
 .navai-api-label {
@@ -732,6 +746,11 @@ html.lang-hi {
   .home-content {
     gap: 0.72rem;
     width: min(92vw, 560px);
+  }
+
+  .home-voice,
+  .home-voice-slot {
+    min-height: 15.2rem;
   }
 
   .home-actions {

@@ -2,8 +2,6 @@
 
 import { NAVAI_FRONTEND_FUNCTION_LOADERS } from "@/ai/frontend-function-loaders";
 import { NAVAI_ROUTE_ITEMS } from "@/ai/routes";
-import { buildNavaiAgent, createNavaiBackendClient } from "@navai/voice-frontend";
-import { RealtimeSession } from "@openai/agents/realtime";
 import { Mic } from "lucide-react";
 import { useRouter } from "@/platform/navigation";
 import { type ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -16,6 +14,48 @@ type NavaiMicButtonProps = {
   hasBackendApiKey?: boolean;
   onAgentSpeakingChange?: (isSpeaking: boolean) => void;
 };
+
+type NavaiBackendClientLike = {
+  createClientSecret: (payload?: { apiKey?: string }) => Promise<{ value: string }>;
+  listFunctions: () => Promise<{ functions: any[]; warnings: string[] }>;
+  executeFunction: (...args: any[]) => Promise<any>;
+};
+
+type RealtimeSessionLike = {
+  on: (event: string, listener: (...args: any[]) => void) => void;
+  connect: (options: { apiKey: string }) => Promise<void>;
+  close: () => void;
+};
+
+type VoiceRuntime = {
+  buildNavaiAgent: (options: {
+    navigate: (path: string) => void;
+    routes: typeof NAVAI_ROUTE_ITEMS;
+    functionModuleLoaders: typeof NAVAI_FRONTEND_FUNCTION_LOADERS;
+    baseInstructions: string;
+    backendFunctions: any[];
+    executeBackendFunction: NavaiBackendClientLike["executeFunction"];
+  }) => Promise<{ agent: any; warnings: string[] }>;
+  createNavaiBackendClient: (options: { apiBaseUrl: string }) => NavaiBackendClientLike;
+  RealtimeSession: new (agent: any) => RealtimeSessionLike;
+};
+
+let voiceRuntimePromise: Promise<VoiceRuntime> | null = null;
+
+async function loadVoiceRuntime(): Promise<VoiceRuntime> {
+  if (!voiceRuntimePromise) {
+    voiceRuntimePromise = Promise.all([
+      import("@navai/voice-frontend"),
+      import("@openai/agents/realtime"),
+    ]).then(([voiceFrontendModule, realtimeModule]) => ({
+      buildNavaiAgent: voiceFrontendModule.buildNavaiAgent,
+      createNavaiBackendClient: voiceFrontendModule.createNavaiBackendClient,
+      RealtimeSession: realtimeModule.RealtimeSession,
+    }));
+  }
+
+  return voiceRuntimePromise;
+}
 
 const PROJECT_REPOSITORY_URL = "https://github.com/Luxisoft/navai-exhibition";
 const NAVAI_AGENT_BASE_INSTRUCTIONS = [
@@ -76,7 +116,7 @@ export default function NavaiMicButton({
 }: NavaiMicButtonProps) {
   const { messages } = useI18n();
   const router = useRouter();
-  const sessionRef = useRef<RealtimeSession | null>(null);
+  const sessionRef = useRef<RealtimeSessionLike | null>(null);
   const speakingStateRef = useRef(false);
   const audioPlayingRef = useRef(false);
   const agentTurnActiveRef = useRef(false);
@@ -113,26 +153,58 @@ export default function NavaiMicButton({
   }, [hasBackendApiKey]);
 
   useEffect(() => {
-    let mounted = true;
-    fetch(buildBackendApiUrl("/api/backend-capabilities"), { cache: "no-store" })
-      .then(async (response) => {
-        if (!response.ok) {
-          return;
-        }
+    if (typeof window === "undefined" || hasInputApiKey) {
+      return;
+    }
 
-        const data = (await response.json()) as { hasBackendApiKey?: boolean };
-        if (mounted && typeof data.hasBackendApiKey === "boolean") {
-          setBackendHasApiKey(data.hasBackendApiKey);
-        }
+    const currentWindow = window as typeof window & {
+      requestIdleCallback?: (callback: () => void, options?: { timeout: number }) => number;
+      cancelIdleCallback?: (id: number) => void;
+    };
+
+    let mounted = true;
+    const abortController = new AbortController();
+
+    const loadBackendCapabilities = () => {
+      fetch(buildBackendApiUrl("/api/backend-capabilities"), {
+        cache: "no-store",
+        signal: abortController.signal,
       })
-      .catch(() => {
-        // ignore fetch errors and keep current fallback state
-      });
+        .then(async (response) => {
+          if (!response.ok) {
+            return;
+          }
+
+          const data = (await response.json()) as { hasBackendApiKey?: boolean };
+          if (mounted && typeof data.hasBackendApiKey === "boolean") {
+            setBackendHasApiKey(data.hasBackendApiKey);
+          }
+        })
+        .catch(() => {
+          // ignore fetch errors and keep current fallback state
+        });
+    };
+
+    let timeoutId: number | null = null;
+    if (typeof currentWindow.requestIdleCallback === "function") {
+      const idleId = currentWindow.requestIdleCallback(loadBackendCapabilities, { timeout: 3400 });
+      return () => {
+        mounted = false;
+        abortController.abort();
+        currentWindow.cancelIdleCallback?.(idleId);
+      };
+    }
+
+    timeoutId = window.setTimeout(loadBackendCapabilities, 2400);
 
     return () => {
       mounted = false;
+      abortController.abort();
+      if (timeoutId !== null) {
+        window.clearTimeout(timeoutId);
+      }
     };
-  }, []);
+  }, [hasInputApiKey]);
 
   useEffect(() => {
     if (isActive) {
@@ -245,8 +317,9 @@ export default function NavaiMicButton({
     setAriaMessage(messages.mic.connecting);
     setStatusMessage(messages.mic.connecting);
 
+    const voiceRuntime = await loadVoiceRuntime();
     const backendApiBaseUrl = getBackendApiBaseUrl();
-    const backendClient = createNavaiBackendClient({
+    const backendClient = voiceRuntime.createNavaiBackendClient({
       apiBaseUrl: backendApiBaseUrl,
     });
 
@@ -266,7 +339,7 @@ export default function NavaiMicButton({
           : {}
       );
       const backendFunctions = await backendClient.listFunctions();
-      const { agent, warnings } = await buildNavaiAgent({
+      const { agent, warnings } = await voiceRuntime.buildNavaiAgent({
         navigate: (path) => {
           router.push(path);
         },
@@ -283,7 +356,7 @@ export default function NavaiMicButton({
         }
       }
 
-      const realtimeSession = new RealtimeSession(agent);
+      const realtimeSession = new voiceRuntime.RealtimeSession(agent);
       realtimeSession.on("agent_start", () => {
         agentTurnActiveRef.current = true;
         audioSeenInTurnRef.current = false;
