@@ -1,6 +1,5 @@
-import "dotenv/config";
-
 import express, { type NextFunction, type Request, type Response } from "express";
+import dotenv from "dotenv";
 import fs from "node:fs";
 import path from "node:path";
 
@@ -50,6 +49,9 @@ function serveRouteHtml(distDir: string, request: Request, response: Response) {
   return false;
 }
 
+const projectRoot = resolveProjectRoot();
+dotenv.config({ path: path.join(projectRoot, "backend", ".env") });
+
 const app = express();
 app.disable("x-powered-by");
 app.set("trust proxy", true);
@@ -59,8 +61,14 @@ app.get("/health", (_request, response) => {
   response.json({ ok: true });
 });
 
+app.get("/api/backend-capabilities", (_request, response) => {
+  response.json({
+    hasBackendApiKey: Boolean(process.env.OPENAI_API_KEY?.trim()),
+  });
+});
+
 app.get("/api/hcaptcha/site-key", (_request, response) => {
-  const siteKey = process.env.NEXT_PUBLIC_HCAPTCHA_SITE_KEY ?? process.env.HCAPTCHA_SITE_KEY ?? "";
+  const siteKey = process.env.PUBLIC_HCAPTCHA_SITE_KEY ?? process.env.HCAPTCHA_SITE_KEY ?? "";
   response.json({ siteKey });
 });
 
@@ -86,7 +94,6 @@ app.get(/^\/documentacion\/(.*)$/, (request, response) => {
   response.redirect(308, `/documentation/${tail ?? ""}`);
 });
 
-const projectRoot = resolveProjectRoot();
 const frontendDist = path.join(projectRoot, "frontend", "dist");
 
 if (fs.existsSync(frontendDist)) {

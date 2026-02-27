@@ -13,10 +13,6 @@
 # testing
 /coverage
 
-# next.js
-/.next/
-/out/
-
 # production
 /build
 /frontend/dist/
@@ -26,6 +22,7 @@
 # misc
 .DS_Store
 *.pem
+.tmp_ecommerce_suite_i18n_cache.json
 
 # debug
 npm-debug.log*
@@ -35,10 +32,10 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!backend/.env.example
 
 # vercel
 .vercel
 
 # typescript
 *.tsbuildinfo
-next-env.d.ts

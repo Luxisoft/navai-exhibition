@@ -3,15 +3,11 @@ import HomeHero from "@/components/HomeHero";
 
 import AppProvidersShell from "./AppProvidersShell";
 
-type HomePageProps = {
-  hasBackendApiKey: boolean;
-};
-
-export default function HomePage({ hasBackendApiKey }: HomePageProps) {
+export default function HomePage() {
   return (
     <AppProvidersShell>
       <section className="home-section">
-        <HomeHero hasBackendApiKey={hasBackendApiKey} />
+        <HomeHero />
         <HomeFooterBar />
       </section>
     </AppProvidersShell>

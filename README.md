@@ -1,7 +1,7 @@
 <h1>NAVAI Exhibition (Astro + Node.js)</h1>
 
 <p align="center">
-  <img src="./public/navai_banner.webp" alt="NAVAI Exhibition banner" />
+  <img src="./frontend/public/navai_banner.webp" alt="NAVAI Exhibition banner" />
 </p>
 
 <p align="center">

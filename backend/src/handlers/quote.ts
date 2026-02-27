@@ -63,7 +63,7 @@ export async function postQuote(request: Request, response: Response) {
     return response.status(400).json({ ok: false, error: "invalid_payload" });
   }
 
-  const siteKey = process.env.HCAPTCHA_SITE_KEY ?? process.env.NEXT_PUBLIC_HCAPTCHA_SITE_KEY ?? "";
+  const siteKey = process.env.HCAPTCHA_SITE_KEY ?? process.env.PUBLIC_HCAPTCHA_SITE_KEY ?? "";
   const siteSecret = process.env.HCAPTCHA_SITE_SECRET_KEY ?? "";
 
   if (!siteSecret) {
