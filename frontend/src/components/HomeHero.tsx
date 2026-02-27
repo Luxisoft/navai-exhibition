@@ -9,6 +9,8 @@ import { useI18n } from "@/i18n/provider";
 import { getLocalizedWordpressPage } from "@/i18n/wordpress-page";
 import { useTheme } from "@/theme/provider";
 
+const ORB_AUTOPLAY_DELAY_MS = 9000;
+
 const NavaiMicButton = dynamic(() => import("@/components/NavaiMicButton"), {
   ssr: false,
 });
@@ -23,7 +25,10 @@ export default function HomeHero() {
   const { theme } = useTheme();
   const [isAgentSpeaking, setIsAgentSpeaking] = useState(false);
   const [isOrbReady, setIsOrbReady] = useState(false);
+  const [isOrbAutoAnimating, setIsOrbAutoAnimating] = useState(false);
   const [isVoicePanelReady, setIsVoicePanelReady] = useState(false);
+  const shouldAnimateOrb = isAgentSpeaking || isOrbAutoAnimating;
+  const orbHoverIntensity = isAgentSpeaking ? 1.05 : 0.08;
 
   const handleAgentSpeakingChange = useCallback((isSpeaking: boolean) => {
     setIsAgentSpeaking(isSpeaking);
@@ -99,16 +104,49 @@ export default function HomeHero() {
     return () => window.clearTimeout(timeoutId);
   }, []);
 
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    let started = false;
+    const startOrbAnimation = () => {
+      if (started) {
+        return;
+      }
+      started = true;
+      setIsOrbAutoAnimating(true);
+    };
+
+    if (navigator.userActivation?.hasBeenActive) {
+      startOrbAnimation();
+    }
+
+    const handleUserIntent = () => startOrbAnimation();
+    window.addEventListener("pointerdown", handleUserIntent, { passive: true, once: true });
+    window.addEventListener("keydown", handleUserIntent, { once: true });
+    window.addEventListener("touchstart", handleUserIntent, { passive: true, once: true });
+
+    const timeoutId = window.setTimeout(startOrbAnimation, ORB_AUTOPLAY_DELAY_MS);
+
+    return () => {
+      window.removeEventListener("pointerdown", handleUserIntent);
+      window.removeEventListener("keydown", handleUserIntent);
+      window.removeEventListener("touchstart", handleUserIntent);
+      window.clearTimeout(timeoutId);
+    };
+  }, []);
+
   return (
     <>
       <div className="home-orb-layer">
         {isOrbReady ? (
           <Orb
-            hoverIntensity={isAgentSpeaking ? 1.05 : 0.08}
+            hoverIntensity={orbHoverIntensity}
             rotateOnHover
             forceHoverState={isAgentSpeaking}
             enablePointerHover={false}
-            animate={isAgentSpeaking}
+            animate={shouldAnimateOrb}
             backgroundColor={theme === "light" ? "#f6f8ff" : "#000000"}
           />
         ) : null}
