@@ -12,7 +12,7 @@ import {
 import { postQuote } from "./handlers/quote";
 import { postRealtimeClientSecret } from "./handlers/realtime-client-secret";
 
-import { resolveProjectRoot } from "@/lib/project-root";
+import { resolveProjectRoot } from "./lib/project-root";
 
 type AsyncHandler = (
   request: Request,
@@ -50,7 +50,12 @@ function serveRouteHtml(distDir: string, request: Request, response: Response) {
 }
 
 const projectRoot = resolveProjectRoot();
-dotenv.config({ path: path.join(projectRoot, "backend", ".env") });
+const envPathCandidates = [
+  path.join(projectRoot, "backend", ".env"),
+  path.join(projectRoot, ".env"),
+];
+const envPath = envPathCandidates.find((candidate) => fs.existsSync(candidate));
+dotenv.config(envPath ? { path: envPath } : undefined);
 
 const app = express();
 app.disable("x-powered-by");

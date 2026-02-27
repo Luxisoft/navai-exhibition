@@ -11,10 +11,9 @@
     "noEmit": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["../frontend/src/*"]
+      "@/*": ["./src/*"]
     },
     "types": ["node"]
   },
-  "include": ["src/**/*.ts", "../frontend/src/**/*.ts"],
-  "exclude": ["../frontend/src/components/**/*", "../frontend/src/theme/**/*"]
+  "include": ["src/**/*.ts"]
 }

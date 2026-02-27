@@ -1,7 +1,7 @@
 import { createRealtimeClientSecret, type CreateClientSecretRequest } from "@navai/voice-backend";
 import type { Request, Response } from "express";
 
-import { getNavaiVoiceOptionsFromEnv } from "@/lib/navai-backend-runtime";
+import { getNavaiVoiceOptionsFromEnv } from "../lib/navai-backend-runtime";
 
 function toClientSecretInput(raw: unknown): CreateClientSecretRequest {
   if (!raw || typeof raw !== "object") {

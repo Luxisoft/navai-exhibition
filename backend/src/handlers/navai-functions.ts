@@ -1,6 +1,6 @@
 import type { Request, Response } from "express";
 
-import { getNavaiFunctionsRuntime } from "@/lib/navai-backend-runtime";
+import { getNavaiFunctionsRuntime } from "../lib/navai-backend-runtime";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value && typeof value === "object" && !Array.isArray(value));

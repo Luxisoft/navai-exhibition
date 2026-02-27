@@ -1,9 +1,8 @@
+import fs from "node:fs/promises";
+import path from "node:path";
 import type { Request, Response } from "express";
 
-import { getLocalizedNavaiDocs } from "@/i18n/docs-catalog";
-import { APP_MESSAGES, DEFAULT_LANGUAGE, type LanguageCode } from "@/i18n/messages";
-import { getLocalizedWordpressPage } from "@/i18n/wordpress-page";
-import { NAVAI_DOCS, getNavaiDocPageBySlug, type NavaiDocPage } from "@/lib/navai-docs";
+import { resolveProjectRoot } from "../lib/project-root";
 
 type SearchScope = "documentation" | "implementation";
 
@@ -19,11 +18,94 @@ type RankedSearchResult = SearchResult & {
   score: number;
 };
 
-let docsCachePromise: Promise<NavaiDocPage[]> | null = null;
+type NavaiDocMeta = {
+  slug: string;
+  title: string;
+  summary: string;
+  fileName: string;
+};
 
-function isLanguageCode(value: string | null): value is LanguageCode {
-  return Boolean(value && Object.prototype.hasOwnProperty.call(APP_MESSAGES, value));
-}
+type NavaiDocSection = {
+  id: string;
+  title: string;
+  depth: 2 | 3;
+};
+
+type NavaiDocPage = NavaiDocMeta & {
+  markdown: string;
+  sections: NavaiDocSection[];
+};
+
+const NAVAI_DOCS: NavaiDocMeta[] = [
+  {
+    slug: "home",
+    title: "Home",
+    summary: "Project overview, framework coverage, supported platforms, and architecture baseline.",
+    fileName: "root.md",
+  },
+  {
+    slug: "installation-api",
+    title: "Installation API",
+    summary: "Backend setup with @navai/voice-backend and Express route registration.",
+    fileName: "installation-api.md",
+  },
+  {
+    slug: "installation-web",
+    title: "Installation Web",
+    summary: "Frontend setup with @navai/voice-frontend and route wiring.",
+    fileName: "installation-web.md",
+  },
+  {
+    slug: "installation-mobile",
+    title: "Installation Mobile",
+    summary: "Mobile setup with @navai/voice-mobile and runtime configuration.",
+    fileName: "installation-mobile.md",
+  },
+  {
+    slug: "installation-wordpress",
+    title: "Installation WordPress",
+    summary: "WordPress plugin setup and NAVAI endpoint requirements.",
+    fileName: "installation-wordpress.md",
+  },
+  {
+    slug: "playground-api",
+    title: "Playground API",
+    summary: "Express demo backend with realtime client secret and function execution.",
+    fileName: "playground-api.md",
+  },
+  {
+    slug: "playground-web",
+    title: "Playground Web",
+    summary: "Reference React frontend for voice navigation and function loading.",
+    fileName: "playground-web.md",
+  },
+  {
+    slug: "playground-mobile",
+    title: "Playground Mobile",
+    summary: "React Native/Expo reference with VoiceNavigator and backend integration.",
+    fileName: "playground-mobile.md",
+  },
+  {
+    slug: "voice-backend",
+    title: "@navai/voice-backend",
+    summary: "Backend contract for realtime routes, function loading and environment rules.",
+    fileName: "voice-backend.md",
+  },
+  {
+    slug: "voice-frontend",
+    title: "@navai/voice-frontend",
+    summary: "Web runtime for voice agents, route navigation and backend bridge.",
+    fileName: "voice-frontend.md",
+  },
+  {
+    slug: "voice-mobile",
+    title: "@navai/voice-mobile",
+    summary: "Mobile runtime for React Native voice agents with WebRTC transport.",
+    fileName: "voice-mobile.md",
+  },
+];
+
+let docsCachePromise: Promise<NavaiDocPage[]> | null = null;
 
 function normalizeText(value: string) {
   return value
@@ -53,31 +135,18 @@ function containsAllTokens(text: string, tokens: string[]) {
 
 function scoreMatch(title: string, body: string, query: string, tokens: string[]) {
   let score = 0;
-
-  if (title.includes(query)) {
-    score += 18;
-  }
-  if (body.includes(query)) {
-    score += 10;
-  }
-
+  if (title.includes(query)) score += 18;
+  if (body.includes(query)) score += 10;
   for (const token of tokens) {
-    if (title.includes(token)) {
-      score += 5;
-    }
-    if (body.includes(token)) {
-      score += 3;
-    }
+    if (title.includes(token)) score += 5;
+    if (body.includes(token)) score += 3;
   }
-
   return score;
 }
 
 function makeSnippet(rawText: string, query: string) {
   const text = rawText.replace(/\s+/g, " ").trim();
-  if (!text) {
-    return "";
-  }
+  if (!text) return "";
 
   const lowerText = text.toLowerCase();
   const lowerQuery = query.toLowerCase();
@@ -94,158 +163,168 @@ function makeSnippet(rawText: string, query: string) {
   return `${prefix}${text.slice(start, end).trim()}${suffix}`;
 }
 
-async function getDocsCache() {
-  if (!docsCachePromise) {
-    docsCachePromise = Promise.all(
-      NAVAI_DOCS.filter((doc) => doc.slug !== "playground-stores").map((doc) =>
-        getNavaiDocPageBySlug(doc.slug)
-      )
-    ).then((pages) => pages.filter((page): page is NavaiDocPage => Boolean(page)));
+function cleanHeadingText(raw: string) {
+  return raw
+    .replace(/[#*_`~]/g, "")
+    .replace(/\[(.*?)\]\((.*?)\)/g, "$1")
+    .trim();
+}
+
+function headingToId(title: string) {
+  return title
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9\s-]/g, "")
+    .trim()
+    .replace(/\s+/g, "-");
+}
+
+function extractSections(markdown: string): NavaiDocSection[] {
+  const lines = markdown.split(/\r?\n/);
+  const sections: NavaiDocSection[] = [];
+
+  for (const line of lines) {
+    const match = line.match(/^(##|###)\s+(.+)$/);
+    if (!match) continue;
+
+    const depth = match[1].length as 2 | 3;
+    const title = cleanHeadingText(match[2]);
+    if (!title) continue;
+    sections.push({
+      id: headingToId(title),
+      title,
+      depth,
+    });
   }
 
+  return sections;
+}
+
+function getDocsPrefix(language: string | null) {
+  const lang = (language ?? "").toLowerCase();
+  if (lang.startsWith("es")) return "Documentacion";
+  if (lang.startsWith("fr")) return "Documentation";
+  if (lang.startsWith("pt")) return "Documentacao";
+  return "Documentation";
+}
+
+function resolveReadmesDir() {
+  const projectRoot = resolveProjectRoot();
+  const candidates = [
+    path.join(projectRoot, "frontend", "src", "content", "navai-readmes"),
+    path.join(projectRoot, "src", "content", "navai-readmes"),
+  ];
+  return candidates;
+}
+
+async function loadDocsPages(): Promise<NavaiDocPage[]> {
+  const readmeDirCandidates = resolveReadmesDir();
+  const pages: NavaiDocPage[] = [];
+
+  for (const meta of NAVAI_DOCS) {
+    let markdown = `# ${meta.title}\n\n${meta.summary}`;
+
+    for (const dir of readmeDirCandidates) {
+      const candidate = path.join(dir, meta.fileName);
+      try {
+        markdown = await fs.readFile(candidate, "utf8");
+        break;
+      } catch {
+        // keep fallback markdown
+      }
+    }
+
+    pages.push({
+      ...meta,
+      markdown,
+      sections: extractSections(markdown),
+    });
+  }
+
+  return pages;
+}
+
+async function getDocsCache() {
+  if (!docsCachePromise) {
+    docsCachePromise = loadDocsPages().catch(() => []);
+  }
   return docsCachePromise;
 }
 
-function buildImplementationSearchEntries(language: LanguageCode, query: string, tokens: string[]) {
-  const messages = APP_MESSAGES[language];
-  const implementation = messages.implementationPage;
+function buildImplementationSearchEntries(query: string, tokens: string[]) {
+  const title = "Request Implementation";
+  const description =
+    "Implementation services, technical scope, plans, contact form and WhatsApp contact.";
+  const sections = [
+    { id: "scope", title: "Technical Scope", description: "Architecture and integration planning." },
+    { id: "plans", title: "Plans", description: "Pricing ranges, delivery timeline and included scope." },
+    { id: "contact", title: "Contact", description: "Quote request form and support channels." },
+  ];
   const entries: RankedSearchResult[] = [];
-
-  const pageBody = normalizeText(
-    [
-      implementation.title,
-      implementation.description,
-      ...implementation.sections.map((section) => section.title),
-      ...implementation.sections.map((section) => section.description),
-      ...implementation.sections.flatMap((section) => section.bullets ?? []),
-      implementation.plansTitle,
-      ...implementation.plans.map((plan) => plan.name),
-      ...implementation.plans.map((plan) => plan.menuRange),
-      ...implementation.plans.map((plan) => plan.timeline),
-      ...implementation.plans.map((plan) => plan.price),
-      ...implementation.plans.flatMap((plan) => plan.highlights),
-      implementation.whatsappButtonLabel,
-      implementation.whatsappPrefill,
-      implementation.contactSectionTitle,
-      implementation.contactSectionDescription,
-      implementation.contactNameLabel,
-      implementation.contactEmailLabel,
-      implementation.contactCompanyLabel,
-      implementation.contactWhatsappLabel,
-      implementation.contactMessageLabel,
-      implementation.contactNameRequiredMessage,
-      implementation.contactEmailRequiredMessage,
-      implementation.contactEmailInvalidMessage,
-      implementation.contactMessageRequiredMessage,
-      implementation.contactCaptchaRequiredMessage,
-      implementation.contactCaptchaNotReadyMessage,
-      implementation.contactCaptchaConfigMessage,
-      implementation.contactSendingLabel,
-      implementation.contactSuccessMessage,
-      implementation.contactErrorMessage,
-      implementation.contactSubmitLabel,
-      implementation.contactDisclaimer,
-    ].join(" ")
-  );
-
-  const pageTitle = normalizeText(implementation.title);
+  const pageBody = normalizeText(`${title} ${description} ${sections.map((s) => s.description).join(" ")}`);
+  const pageTitle = normalizeText(title);
 
   if (containsAllTokens(`${pageTitle} ${pageBody}`, tokens)) {
     entries.push({
       id: "impl-page",
       href: "/request-implementation",
       scope: "implementation",
-      title: implementation.title,
-      snippet: makeSnippet(implementation.description, query),
+      title,
+      snippet: makeSnippet(description, query),
       score: scoreMatch(pageTitle, pageBody, query, tokens),
     });
   }
 
-  for (const section of implementation.sections) {
-    const sectionBodyRaw = [section.description, ...(section.bullets ?? [])].join(" ");
-    const sectionText = normalizeText(`${section.title} ${sectionBodyRaw}`);
-    const sectionTitle = normalizeText(section.title);
-
-    if (!containsAllTokens(sectionText, tokens)) {
-      continue;
-    }
-
+  for (const section of sections) {
+    const sectionText = normalizeText(`${section.title} ${section.description}`);
+    if (!containsAllTokens(sectionText, tokens)) continue;
     entries.push({
-      id: `impl-section-${section.id}`,
+      id: `impl-${section.id}`,
       href: `/request-implementation#${section.id}`,
       scope: "implementation",
       title: section.title,
-      snippet: makeSnippet(sectionBodyRaw, query),
-      score: scoreMatch(sectionTitle, sectionText, query, tokens),
-    });
-  }
-
-  if (containsAllTokens(normalizeText(implementation.plansTitle), tokens)) {
-    entries.push({
-      id: "impl-plans",
-      href: "/request-implementation#plans",
-      scope: "implementation",
-      title: implementation.plansTitle,
-      snippet: makeSnippet(
-        implementation.plans.map((plan) => `${plan.name} ${plan.menuRange} ${plan.price}`).join(" "),
-        query
-      ),
-      score: scoreMatch(
-        normalizeText(implementation.plansTitle),
-        normalizeText(
-          implementation.plans.map((plan) => `${plan.name} ${plan.menuRange} ${plan.price}`).join(" ")
-        ),
-        query,
-        tokens
-      ),
+      snippet: makeSnippet(section.description, query),
+      score: scoreMatch(normalizeText(section.title), sectionText, query, tokens),
     });
   }
 
   return entries;
 }
 
-function buildWordpressSearchEntries(language: LanguageCode, query: string, tokens: string[]) {
-  const wordpress = getLocalizedWordpressPage(language);
+function buildWordpressSearchEntries(query: string, tokens: string[]) {
+  const title = "WordPress Integration";
+  const description =
+    "WordPress plugin integration, shortcode usage and required NAVAI backend endpoints.";
+  const sections = [
+    { id: "installation", title: "Installation", description: "Install, activate and configure plugin settings." },
+    { id: "shortcode", title: "Shortcode", description: "Use shortcode parameters for model, language and behavior." },
+    { id: "backend", title: "Backend Endpoints", description: "Configure /navai routes and connectivity checks." },
+  ];
   const entries: RankedSearchResult[] = [];
+  const pageBody = normalizeText(`${title} ${description} ${sections.map((s) => s.description).join(" ")}`);
 
-  const pageBodyRaw = [
-    wordpress.title,
-    wordpress.description,
-    ...wordpress.sections.map((section) => section.title),
-    ...wordpress.sections.map((section) => section.description),
-    ...wordpress.sections.flatMap((section) => section.bullets ?? []),
-  ].join(" ");
-
-  const pageTitle = normalizeText(wordpress.title);
-  const pageBody = normalizeText(pageBodyRaw);
-
-  if (containsAllTokens(`${pageTitle} ${pageBody}`, tokens)) {
+  if (containsAllTokens(pageBody, tokens)) {
     entries.push({
       id: "wordpress-page",
       href: "/wordpress",
       scope: "documentation",
-      title: wordpress.title,
-      snippet: makeSnippet(wordpress.description, query),
-      score: scoreMatch(pageTitle, pageBody, normalizeText(query), tokens),
+      title,
+      snippet: makeSnippet(description, query),
+      score: scoreMatch(normalizeText(title), pageBody, query, tokens),
     });
   }
 
-  for (const section of wordpress.sections) {
-    const sectionBodyRaw = [section.description, ...(section.bullets ?? [])].join(" ");
-    const sectionText = normalizeText(`${section.title} ${sectionBodyRaw}`);
-    const sectionTitle = normalizeText(section.title);
-
-    if (!containsAllTokens(sectionText, tokens)) {
-      continue;
-    }
-
+  for (const section of sections) {
+    const sectionText = normalizeText(`${section.title} ${section.description}`);
+    if (!containsAllTokens(sectionText, tokens)) continue;
     entries.push({
-      id: `wordpress-section-${section.id}`,
+      id: `wordpress-${section.id}`,
       href: `/wordpress#${section.id}`,
       scope: "documentation",
       title: section.title,
-      snippet: makeSnippet(sectionBodyRaw, query),
-      score: scoreMatch(sectionTitle, sectionText, normalizeText(query), tokens),
+      snippet: makeSnippet(section.description, query),
+      score: scoreMatch(normalizeText(section.title), sectionText, query, tokens),
     });
   }
 
@@ -254,7 +333,6 @@ function buildWordpressSearchEntries(language: LanguageCode, query: string, toke
 
 function dedupeResults(results: RankedSearchResult[]) {
   const byKey = new Map<string, RankedSearchResult>();
-
   for (const item of results) {
     const key = `${item.href}::${item.title}`;
     const previous = byKey.get(key);
@@ -262,14 +340,12 @@ function dedupeResults(results: RankedSearchResult[]) {
       byKey.set(key, item);
     }
   }
-
   return [...byKey.values()];
 }
 
 export async function getDocsSearch(request: Request, response: Response) {
   const queryRaw = String(request.query.q ?? "").trim();
   const languageRaw = typeof request.query.lang === "string" ? request.query.lang : null;
-  const language = isLanguageCode(languageRaw) ? languageRaw : DEFAULT_LANGUAGE;
 
   if (queryRaw.length < 2) {
     return response.json({ results: [] as SearchResult[] });
@@ -278,18 +354,13 @@ export async function getDocsSearch(request: Request, response: Response) {
   const query = normalizeText(queryRaw);
   const tokens = query.split(/\s+/).filter(Boolean);
   const ranked: RankedSearchResult[] = [];
-
+  const docsPrefix = getDocsPrefix(languageRaw);
   const docs = await getDocsCache();
-  const docsPrefix = APP_MESSAGES[language].common.documentation;
-  const localizedDocs = getLocalizedNavaiDocs(language);
 
   for (const doc of docs) {
-    const localizedMeta = localizedDocs.entries[doc.slug];
-    const localizedDocTitle = localizedMeta?.title ?? doc.title;
-    const localizedDocSummary = localizedMeta?.summary ?? doc.summary;
-    const localizedTitle = `${docsPrefix}: ${localizedDocTitle}`;
+    const localizedTitle = `${docsPrefix}: ${doc.title}`;
     const plainText = stripMarkdown(doc.markdown);
-    const pageBodyRaw = `${localizedDocSummary} ${plainText}`;
+    const pageBodyRaw = `${doc.summary} ${plainText}`;
     const pageText = normalizeText(`${localizedTitle} ${pageBodyRaw}`);
     const pageTitle = normalizeText(localizedTitle);
 
@@ -305,24 +376,22 @@ export async function getDocsSearch(request: Request, response: Response) {
     }
 
     for (const section of doc.sections) {
-      const sectionBody = normalizeText(`${section.title} ${localizedDocTitle} ${localizedDocSummary}`);
-      if (!containsAllTokens(sectionBody, tokens)) {
-        continue;
-      }
+      const sectionBody = normalizeText(`${section.title} ${doc.title} ${doc.summary}`);
+      if (!containsAllTokens(sectionBody, tokens)) continue;
 
       ranked.push({
         id: `doc-section-${doc.slug}-${section.id}`,
         href: `/documentation/${doc.slug}#${section.id}`,
         scope: "documentation",
-        title: `${localizedDocTitle} / ${section.title}`,
-        snippet: localizedDocSummary,
+        title: `${doc.title} / ${section.title}`,
+        snippet: doc.summary,
         score: scoreMatch(normalizeText(section.title), sectionBody, query, tokens),
       });
     }
   }
 
-  ranked.push(...buildImplementationSearchEntries(language, queryRaw, tokens));
-  ranked.push(...buildWordpressSearchEntries(language, queryRaw, tokens));
+  ranked.push(...buildImplementationSearchEntries(queryRaw, tokens));
+  ranked.push(...buildWordpressSearchEntries(queryRaw, tokens));
 
   const results = dedupeResults(ranked)
     .sort((a, b) => b.score - a.score)
@@ -337,3 +406,4 @@ export async function getDocsSearch(request: Request, response: Response) {
 
   return response.json({ results });
 }
+

@@ -2,7 +2,7 @@ import nodemailer from "nodemailer";
 import type { Request, Response } from "express";
 import { z } from "zod";
 
-import { LUXISOFT_QUOTE_EMAIL } from "@/lib/luxisoft-contact";
+import { LUXISOFT_QUOTE_EMAIL } from "../lib/luxisoft-contact";
 
 const quoteSchema = z.object({
   name: z.string().trim().min(1),
