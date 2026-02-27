@@ -1,12 +1,4 @@
-import en from "@/i18n/locales/en.json";
 import es from "@/i18n/locales/es.json";
-import fr from "@/i18n/locales/fr.json";
-import hi from "@/i18n/locales/hi.json";
-import ja from "@/i18n/locales/ja.json";
-import ko from "@/i18n/locales/ko.json";
-import pt from "@/i18n/locales/pt.json";
-import ru from "@/i18n/locales/ru.json";
-import zh from "@/i18n/locales/zh.json";
 
 export type LanguageCode = "en" | "fr" | "es" | "pt" | "zh" | "ja" | "ru" | "ko" | "hi";
 
@@ -138,14 +130,39 @@ export const LANGUAGE_OPTIONS: Array<{ code: LanguageCode; label: string }> = [
   { code: "hi", label: "हिन्दी" },
 ];
 
-export const APP_MESSAGES: Record<LanguageCode, AppMessages> = {
-  en: en as AppMessages,
-  es: es as AppMessages,
-  fr: fr as AppMessages,
-  pt: pt as AppMessages,
-  zh: zh as AppMessages,
-  ja: ja as AppMessages,
-  ru: ru as AppMessages,
-  ko: ko as AppMessages,
-  hi: hi as AppMessages,
+const DEFAULT_MESSAGES = es as AppMessages;
+
+const APP_MESSAGES_CACHE: Partial<Record<LanguageCode, AppMessages>> = {
+  es: DEFAULT_MESSAGES,
 };
+
+const APP_MESSAGES_LOADERS: Record<Exclude<LanguageCode, "es">, () => Promise<AppMessages>> = {
+  en: async () => (await import("@/i18n/locales/en.json")).default as AppMessages,
+  fr: async () => (await import("@/i18n/locales/fr.json")).default as AppMessages,
+  pt: async () => (await import("@/i18n/locales/pt.json")).default as AppMessages,
+  zh: async () => (await import("@/i18n/locales/zh.json")).default as AppMessages,
+  ja: async () => (await import("@/i18n/locales/ja.json")).default as AppMessages,
+  ru: async () => (await import("@/i18n/locales/ru.json")).default as AppMessages,
+  ko: async () => (await import("@/i18n/locales/ko.json")).default as AppMessages,
+  hi: async () => (await import("@/i18n/locales/hi.json")).default as AppMessages,
+};
+
+export function getCachedMessagesForLanguage(language: LanguageCode): AppMessages {
+  return APP_MESSAGES_CACHE[language] ?? DEFAULT_MESSAGES;
+}
+
+export async function loadMessagesForLanguage(language: LanguageCode): Promise<AppMessages> {
+  const cached = APP_MESSAGES_CACHE[language];
+  if (cached) {
+    return cached;
+  }
+
+  if (language === "es") {
+    return DEFAULT_MESSAGES;
+  }
+
+  const loader = APP_MESSAGES_LOADERS[language];
+  const messages = await loader();
+  APP_MESSAGES_CACHE[language] = messages;
+  return messages;
+}

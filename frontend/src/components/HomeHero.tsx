@@ -6,25 +6,40 @@ import dynamic from "@/platform/dynamic";
 import { useCallback, useEffect, useState } from "react";
 
 import { useI18n } from "@/i18n/provider";
-import { getLocalizedWordpressPage } from "@/i18n/wordpress-page";
 import { useTheme } from "@/theme/provider";
+import bannerAvif1x from "@/assets/navai_banner.avif";
+import bannerAvif15x from "@/assets/navai_banner@1_5x.avif";
+import bannerWebp1x from "@/assets/navai_banner.webp";
+import bannerWebp15x from "@/assets/navai_banner@1_5x.webp";
 
 const ORB_AUTOPLAY_DELAY_MS_DEFAULT = 9000;
 const ORB_AUTOPLAY_DELAY_MS_MIN = 0;
 const ORB_AUTOPLAY_DELAY_MS_MAX = 60000;
+const ORB_REVEAL_DELAY_MS_DEFAULT = 5200;
+const VOICE_PANEL_REVEAL_DELAY_MS_DEFAULT = 6500;
 
-function resolveOrbAutoplayDelayMs() {
-  const rawValue = import.meta.env.PUBLIC_ORB_AUTOPLAY_DELAY_MS;
-  const parsedValue = Number.parseInt(String(rawValue ?? ""), 10);
-
+function parsePublicDelayMs(value: unknown, fallback: number) {
+  const parsedValue = Number.parseInt(String(value ?? ""), 10);
   if (!Number.isFinite(parsedValue)) {
-    return ORB_AUTOPLAY_DELAY_MS_DEFAULT;
+    return fallback;
   }
-
   return Math.min(ORB_AUTOPLAY_DELAY_MS_MAX, Math.max(ORB_AUTOPLAY_DELAY_MS_MIN, parsedValue));
 }
 
+function resolveOrbAutoplayDelayMs() {
+  return parsePublicDelayMs(import.meta.env.PUBLIC_ORB_AUTOPLAY_DELAY_MS, ORB_AUTOPLAY_DELAY_MS_DEFAULT);
+}
+
 const ORB_AUTOPLAY_DELAY_MS = resolveOrbAutoplayDelayMs();
+const ORB_REVEAL_DELAY_MS = parsePublicDelayMs(import.meta.env.PUBLIC_ORB_REVEAL_DELAY_MS, ORB_REVEAL_DELAY_MS_DEFAULT);
+const VOICE_PANEL_REVEAL_DELAY_MS = parsePublicDelayMs(
+  import.meta.env.PUBLIC_VOICE_PANEL_REVEAL_DELAY_MS,
+  VOICE_PANEL_REVEAL_DELAY_MS_DEFAULT
+);
+const bannerAvif1xSrc = resolveAssetSrc(bannerAvif1x);
+const bannerAvif15xSrc = resolveAssetSrc(bannerAvif15x);
+const bannerWebp1xSrc = resolveAssetSrc(bannerWebp1x);
+const bannerWebp15xSrc = resolveAssetSrc(bannerWebp15x);
 
 const NavaiMicButton = dynamic(() => import("@/components/NavaiMicButton"), {
   ssr: false,
@@ -35,8 +50,7 @@ const Orb = dynamic(() => import("@/components/Orb"), {
 });
 
 export default function HomeHero() {
-  const { language, messages } = useI18n();
-  const wordpressPage = getLocalizedWordpressPage(language);
+  const { messages } = useI18n();
   const { theme } = useTheme();
   const [isAgentSpeaking, setIsAgentSpeaking] = useState(false);
   const [isOrbReady, setIsOrbReady] = useState(false);
@@ -53,11 +67,6 @@ export default function HomeHero() {
     if (typeof window === "undefined") {
       return;
     }
-
-    const currentWindow = window as typeof window & {
-      requestIdleCallback?: (callback: () => void, options?: { timeout: number }) => number;
-      cancelIdleCallback?: (id: number) => void;
-    };
 
     let revealed = false;
     const revealVoicePanel = () => {
@@ -76,25 +85,12 @@ export default function HomeHero() {
     window.addEventListener("touchstart", onUserIntent, { passive: true, once: true });
     window.addEventListener("keydown", onUserIntent, { once: true });
 
-    let timeoutId: number | null = null;
-    if (typeof currentWindow.requestIdleCallback === "function") {
-      const idleId = currentWindow.requestIdleCallback(revealVoicePanel, { timeout: 4200 });
-      return () => {
-        window.removeEventListener("pointerdown", onUserIntent);
-        window.removeEventListener("touchstart", onUserIntent);
-        window.removeEventListener("keydown", onUserIntent);
-        currentWindow.cancelIdleCallback?.(idleId);
-      };
-    }
-
-    timeoutId = window.setTimeout(revealVoicePanel, 3200);
+    const timeoutId = window.setTimeout(revealVoicePanel, VOICE_PANEL_REVEAL_DELAY_MS);
     return () => {
       window.removeEventListener("pointerdown", onUserIntent);
       window.removeEventListener("touchstart", onUserIntent);
       window.removeEventListener("keydown", onUserIntent);
-      if (timeoutId !== null) {
-        window.clearTimeout(timeoutId);
-      }
+      window.clearTimeout(timeoutId);
     };
   }, []);
 
@@ -103,20 +99,18 @@ export default function HomeHero() {
       return;
     }
 
-    const currentWindow = window as typeof window & {
-      requestIdleCallback?: (callback: () => void, options?: { timeout: number }) => number;
-      cancelIdleCallback?: (id: number) => void;
-    };
-
     const revealOrb = () => setIsOrbReady(true);
+    window.addEventListener("pointerdown", revealOrb, { passive: true, once: true });
+    window.addEventListener("touchstart", revealOrb, { passive: true, once: true });
+    window.addEventListener("keydown", revealOrb, { once: true });
 
-    if (typeof currentWindow.requestIdleCallback === "function") {
-      const idleId = currentWindow.requestIdleCallback(revealOrb, { timeout: 2200 });
-      return () => currentWindow.cancelIdleCallback?.(idleId);
-    }
-
-    const timeoutId = window.setTimeout(revealOrb, 1400);
-    return () => window.clearTimeout(timeoutId);
+    const timeoutId = window.setTimeout(revealOrb, ORB_REVEAL_DELAY_MS);
+    return () => {
+      window.removeEventListener("pointerdown", revealOrb);
+      window.removeEventListener("touchstart", revealOrb);
+      window.removeEventListener("keydown", revealOrb);
+      window.clearTimeout(timeoutId);
+    };
   }, []);
 
   useEffect(() => {
@@ -172,12 +166,12 @@ export default function HomeHero() {
           <picture>
             <source
               type="image/avif"
-              srcSet="/navai_banner.avif 250w, /navai_banner@1_5x.avif 375w"
+              srcSet={`${bannerAvif1xSrc} 250w, ${bannerAvif15xSrc} 375w`}
               sizes="250px"
             />
             <Image
-              src="/navai_banner.webp"
-              srcSet="/navai_banner.webp 250w, /navai_banner@1_5x.webp 375w"
+              src={bannerWebp1xSrc}
+              srcSet={`${bannerWebp1xSrc} 250w, ${bannerWebp15xSrc} 375w`}
               alt={messages.common.bannerAlt}
               width={250}
               height={89}
@@ -206,11 +200,26 @@ export default function HomeHero() {
             {messages.home.implementationButton}
           </Link>
           <Link href="/wordpress" className="home-btn home-btn-ghost">
-            {wordpressPage.navigationLabel}
+            {"Wordpress"}
           </Link>
         </div>
       </div>
     </>
   );
+}
+
+function resolveAssetSrc(asset: unknown) {
+  if (typeof asset === "string") {
+    return asset;
+  }
+
+  if (asset && typeof asset === "object" && "src" in asset) {
+    const withSrc = asset as { src?: unknown };
+    if (typeof withSrc.src === "string") {
+      return withSrc.src;
+    }
+  }
+
+  return "";
 }
 

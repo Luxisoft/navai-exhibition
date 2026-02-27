@@ -3,11 +3,12 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 
 import {
-  APP_MESSAGES,
   DEFAULT_LANGUAGE,
   LANGUAGE_OPTIONS,
   type AppMessages,
   type LanguageCode,
+  getCachedMessagesForLanguage,
+  loadMessagesForLanguage,
 } from "@/i18n/messages";
 
 type I18nContextValue = {
@@ -30,6 +31,7 @@ function isLanguageCode(value: string | null): value is LanguageCode {
 
 export function I18nProvider({ children }: { children: ReactNode }) {
   const [language, setLanguageState] = useState<LanguageCode>(DEFAULT_LANGUAGE);
+  const [messages, setMessages] = useState<AppMessages>(() => getCachedMessagesForLanguage(DEFAULT_LANGUAGE));
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -61,6 +63,25 @@ export function I18nProvider({ children }: { children: ReactNode }) {
     }
   }, [language]);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    loadMessagesForLanguage(language)
+      .then((nextMessages) => {
+        if (cancelled) {
+          return;
+        }
+        setMessages((current) => (current === nextMessages ? current : nextMessages));
+      })
+      .catch(() => {
+        // keep current language payload on load errors
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [language]);
+
   const setLanguage = useCallback((nextLanguage: LanguageCode) => {
     setLanguageState(nextLanguage);
   }, []);
@@ -69,10 +90,10 @@ export function I18nProvider({ children }: { children: ReactNode }) {
     return {
       language,
       setLanguage,
-      messages: APP_MESSAGES[language],
+      messages,
       options: LANGUAGE_OPTIONS,
     };
-  }, [language, setLanguage]);
+  }, [language, messages, setLanguage]);
 
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;
 }
