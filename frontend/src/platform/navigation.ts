@@ -1,10 +1,24 @@
 import { useEffect, useMemo, useState } from "react";
 
+export function normalizePathname(pathname: string) {
+  const trimmed = pathname.trim();
+  if (!trimmed) {
+    return "/";
+  }
+
+  const withoutQueryOrHash = trimmed.split(/[?#]/, 1)[0] || "/";
+  if (withoutQueryOrHash === "/") {
+    return "/";
+  }
+
+  return withoutQueryOrHash.endsWith("/") ? withoutQueryOrHash.slice(0, -1) : withoutQueryOrHash;
+}
+
 function readPathname() {
   if (typeof window === "undefined") {
     return "/";
   }
-  return window.location.pathname;
+  return normalizePathname(window.location.pathname);
 }
 
 export function usePathname() {

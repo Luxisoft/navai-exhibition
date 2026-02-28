@@ -36,6 +36,9 @@ const VOICE_PANEL_REVEAL_DELAY_MS = parsePublicDelayMs(
   import.meta.env.PUBLIC_VOICE_PANEL_REVEAL_DELAY_MS,
   VOICE_PANEL_REVEAL_DELAY_MS_DEFAULT
 );
+const ORB_READY_IMMEDIATELY = ORB_REVEAL_DELAY_MS === 0;
+const ORB_AUTOPLAY_IMMEDIATELY = ORB_AUTOPLAY_DELAY_MS === 0;
+const VOICE_PANEL_READY_IMMEDIATELY = VOICE_PANEL_REVEAL_DELAY_MS === 0;
 const bannerAvif1xSrc = resolveAssetSrc(bannerAvif1x);
 const bannerAvif15xSrc = resolveAssetSrc(bannerAvif15x);
 const bannerWebp1xSrc = resolveAssetSrc(bannerWebp1x);
@@ -53,9 +56,9 @@ export default function HomeHero() {
   const { messages } = useI18n();
   const { theme } = useTheme();
   const [isAgentSpeaking, setIsAgentSpeaking] = useState(false);
-  const [isOrbReady, setIsOrbReady] = useState(false);
-  const [isOrbAutoAnimating, setIsOrbAutoAnimating] = useState(false);
-  const [isVoicePanelReady, setIsVoicePanelReady] = useState(false);
+  const [isOrbReady, setIsOrbReady] = useState(ORB_READY_IMMEDIATELY);
+  const [isOrbAutoAnimating, setIsOrbAutoAnimating] = useState(ORB_AUTOPLAY_IMMEDIATELY);
+  const [isVoicePanelReady, setIsVoicePanelReady] = useState(VOICE_PANEL_READY_IMMEDIATELY);
   const shouldAnimateOrb = isAgentSpeaking || isOrbAutoAnimating;
   const orbHoverIntensity = isAgentSpeaking ? 1.05 : 0.08;
 
@@ -65,6 +68,9 @@ export default function HomeHero() {
 
   useEffect(() => {
     if (typeof window === "undefined") {
+      return;
+    }
+    if (VOICE_PANEL_READY_IMMEDIATELY) {
       return;
     }
 
@@ -98,6 +104,9 @@ export default function HomeHero() {
     if (typeof window === "undefined") {
       return;
     }
+    if (ORB_READY_IMMEDIATELY) {
+      return;
+    }
 
     const revealOrb = () => setIsOrbReady(true);
     window.addEventListener("pointerdown", revealOrb, { passive: true, once: true });
@@ -115,6 +124,9 @@ export default function HomeHero() {
 
   useEffect(() => {
     if (typeof window === "undefined") {
+      return;
+    }
+    if (ORB_AUTOPLAY_IMMEDIATELY) {
       return;
     }
 

@@ -2,7 +2,7 @@
 
 import Link from "@/platform/link";
 import Image from "@/platform/image";
-import { usePathname } from "@/platform/navigation";
+import { normalizePathname, usePathname } from "@/platform/navigation";
 import { Github } from "lucide-react";
 import type { ReactNode } from "react";
 
@@ -49,6 +49,7 @@ export default function KnowledgeTemplate({
 }: KnowledgeTemplateProps) {
   const { language, messages } = useI18n();
   const pathname = usePathname();
+  const normalizedPathname = normalizePathname(pathname);
   const wordpressPage = getLocalizedWordpressPage(language);
 
   const pageLinks = [
@@ -56,7 +57,13 @@ export default function KnowledgeTemplate({
     { href: "/request-implementation", label: messages.common.requestImplementation },
     { href: "/wordpress", label: wordpressPage.navigationLabel },
   ];
-  const isPageLinkActive = (href: string) => (href === "/documentation/home" ? pathname.startsWith("/documentation") : pathname === href);
+  const isPageLinkActive = (href: string) => {
+    const normalizedHref = normalizePathname(href);
+    if (normalizedHref === "/documentation/home") {
+      return normalizedPathname.startsWith("/documentation");
+    }
+    return normalizedPathname === normalizedHref;
+  };
 
   const tocItems = [
     ...sections.map((section) => ({ id: section.id, label: section.title })),

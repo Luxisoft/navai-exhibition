@@ -2,7 +2,7 @@
 
 import Image from "@/platform/image";
 import Link from "@/platform/link";
-import { usePathname } from "@/platform/navigation";
+import { normalizePathname, usePathname } from "@/platform/navigation";
 import { Github, Menu, X } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 
@@ -82,6 +82,7 @@ export default function NavaiDocsShell({
 }: NavaiDocsShellProps) {
   const { language, messages } = useI18n();
   const pathname = usePathname();
+  const normalizedPathname = normalizePathname(pathname);
   const localizedDocs = useMemo(() => getLocalizedNavaiDocs(language), [language]);
   const wordpressPage = useMemo(() => getLocalizedWordpressPage(language), [language]);
   const [resolvedRightItems, setResolvedRightItems] = useState<RightItem[]>(rightItems);
@@ -97,8 +98,6 @@ export default function NavaiDocsShell({
     localizedDocs.entries[slug as NavaiDocSlug]?.title ?? fallbackTitle;
   const getLocalizedGroupLabel = (groupKey: string, fallbackLabel?: string) =>
     localizedDocs.groupLabels[groupKey as NavaiDocGroupKey] ?? fallbackLabel ?? groupKey;
-  const itemContainsActive = (item: DocsNavGroup["items"][number]) =>
-    item.slug === activeSlug || Boolean(item.children?.some((child) => child.slug === activeSlug));
   const localizeNavItem = (item: DocsNavGroup["items"][number]) => ({
     slug: item.slug,
     title: getLocalizedDocTitle(item.slug, item.title),
@@ -107,7 +106,6 @@ export default function NavaiDocsShell({
       title: getLocalizedDocTitle(child.slug, child.title),
     })),
   });
-  const activeGroupKeyResolved = groups.find((group) => group.items.some((item) => itemContainsActive(item)))?.groupKey;
 
   const displayTitle = activeSlug ? (localizedDocEntry?.title ?? title) : title;
   const displayDescription = activeSlug ? (localizedDocEntry?.summary ?? description) : description;
@@ -116,8 +114,9 @@ export default function NavaiDocsShell({
   const resolvedSourceLabel = sourceLabel ?? messages.common.docsOpenReadmeGithub;
   const resolvedRightTitle = rightTitle ?? messages.common.docsOnThisPage;
   const resolvedSidebarNavTitle = sidebarNavTitle ?? messages.common.docsSidebarTitle;
-  const isDocumentationTabActive = activeGroupKeyResolved !== "examples";
-  const isWordpressTabActive = pathname === "/wordpress";
+  const isDocumentationTabActive = normalizedPathname.startsWith("/documentation");
+  const isRequestImplementationTabActive = normalizedPathname === "/request-implementation";
+  const isWordpressTabActive = normalizedPathname === "/wordpress";
 
   useEffect(() => {
     setResolvedRightItems(rightItems);
@@ -174,7 +173,7 @@ export default function NavaiDocsShell({
             <Link href="/documentation/home" className={`docs-top-tab${isDocumentationTabActive ? " is-active" : ""}`}>
               {messages.common.documentation}
             </Link>
-            <Link href="/request-implementation" className="docs-top-tab">
+            <Link href="/request-implementation" className={`docs-top-tab${isRequestImplementationTabActive ? " is-active" : ""}`}>
               {messages.common.requestImplementation}
             </Link>
             <Link href="/wordpress" className={`docs-top-tab${isWordpressTabActive ? " is-active" : ""}`}>
@@ -227,7 +226,7 @@ export default function NavaiDocsShell({
           </Link>
           <Link
             href="/request-implementation"
-            className="docs-top-tab"
+            className={`docs-top-tab${isRequestImplementationTabActive ? " is-active" : ""}`}
             onClick={() => setIsMobileMenuOpen(false)}
           >
             {messages.common.requestImplementation}

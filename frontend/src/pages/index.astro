@@ -1,8 +1,28 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
 import HomePage from "../react/HomePage";
+
+function parseDelayMs(value: unknown, fallback: number) {
+  const parsedValue = Number.parseInt(String(value ?? ""), 10);
+  if (!Number.isFinite(parsedValue)) {
+    return fallback;
+  }
+  return Math.min(60000, Math.max(0, parsedValue));
+}
+
+const orbRevealDelayMs = parseDelayMs(import.meta.env.PUBLIC_ORB_REVEAL_DELAY_MS, 5200);
+const voicePanelRevealDelayMs = parseDelayMs(import.meta.env.PUBLIC_VOICE_PANEL_REVEAL_DELAY_MS, 6500);
+const hasImmediateReveal = orbRevealDelayMs === 0 || voicePanelRevealDelayMs === 0;
+const requestedHydrationMode = String(import.meta.env.PUBLIC_HOME_HYDRATION_MODE ?? "").trim().toLowerCase();
+const homeHydrationMode = requestedHydrationMode === "load" || requestedHydrationMode === "idle"
+  ? requestedHydrationMode
+  : hasImmediateReveal
+    ? "load"
+    : "idle";
 ---
 
 <BaseLayout path="/">
-  <HomePage client:idle />
+  {
+    homeHydrationMode === "load" ? <HomePage client:load /> : <HomePage client:idle />
+  }
 </BaseLayout>
