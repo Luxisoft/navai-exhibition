@@ -38,6 +38,50 @@ function readBooleanEnv(value: string | undefined) {
   return undefined;
 }
 
+function readCsvEnv(value: string | undefined) {
+  if (!value) {
+    return [];
+  }
+  return value
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.length > 0);
+}
+
+function isCorsApiPath(pathname: string) {
+  return pathname.startsWith("/api/") || pathname.startsWith("/navai/");
+}
+
+function setCorsHeaders(request: Request, response: Response) {
+  const requestOrigin = request.headers.origin;
+  if (!requestOrigin || requestOrigin.trim().length === 0) {
+    return;
+  }
+
+  const isAllowedOrigin = corsAllowAnyOrigin || corsAllowedOrigins.includes(requestOrigin);
+  if (!isAllowedOrigin) {
+    return;
+  }
+
+  if (corsAllowAnyOrigin && !corsAllowCredentials) {
+    response.setHeader("Access-Control-Allow-Origin", "*");
+  } else {
+    response.setHeader("Access-Control-Allow-Origin", requestOrigin);
+    response.setHeader("Vary", "Origin");
+  }
+
+  if (corsAllowCredentials) {
+    response.setHeader("Access-Control-Allow-Credentials", "true");
+  }
+
+  response.setHeader("Access-Control-Allow-Methods", corsAllowedMethods);
+  response.setHeader("Access-Control-Allow-Headers", corsAllowedHeaders);
+
+  if (corsExposeHeaders.length > 0) {
+    response.setHeader("Access-Control-Expose-Headers", corsExposeHeaders);
+  }
+}
+
 function serveRouteHtml(distDir: string, request: Request, response: Response) {
   const cleanPath = request.path.replace(/\/+$/, "");
   const relativePath = cleanPath === "" ? "index" : stripLeadingSlash(cleanPath);
@@ -64,11 +108,36 @@ const envPathCandidates = [
 ];
 const envPath = envPathCandidates.find((candidate) => fs.existsSync(candidate));
 dotenv.config(envPath ? { path: envPath } : undefined);
+const corsAllowedOrigins = readCsvEnv(
+  process.env.CORS_ALLOWED_ORIGINS ?? "https://navai.luxisoft.com"
+);
+const corsAllowAnyOrigin = corsAllowedOrigins.includes("*");
+const corsAllowCredentials = readBooleanEnv(process.env.CORS_ALLOW_CREDENTIALS) ?? false;
+const corsAllowedMethods =
+  process.env.CORS_ALLOWED_METHODS ?? "GET,POST,PUT,PATCH,DELETE,OPTIONS";
+const corsAllowedHeaders =
+  process.env.CORS_ALLOWED_HEADERS ?? "Content-Type, Authorization, X-Requested-With";
+const corsExposeHeaders = process.env.CORS_EXPOSE_HEADERS?.trim() ?? "";
 
 const app = express();
 app.disable("x-powered-by");
 app.set("trust proxy", true);
 app.use(express.json({ limit: "2mb" }));
+app.use((request, response, next) => {
+  if (!isCorsApiPath(request.path)) {
+    next();
+    return;
+  }
+
+  setCorsHeaders(request, response);
+
+  if (request.method === "OPTIONS") {
+    response.status(204).end();
+    return;
+  }
+
+  next();
+});
 
 app.get("/health", (_request, response) => {
   response.json({ ok: true });
