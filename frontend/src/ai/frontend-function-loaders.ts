@@ -3,5 +3,6 @@ import type { NavaiFunctionModuleLoaders } from "@navai/voice-frontend";
 
 export const NAVAI_FRONTEND_FUNCTION_LOADERS: NavaiFunctionModuleLoaders = {
   "src/ai/functions-modules/frontend/ecommerce/local-ecommerce.ts": async () => await import("./functions-modules/frontend/ecommerce/local-ecommerce"),
+  "src/ai/functions-modules/frontend/navigation/project-navigation.js": async () => await import("./functions-modules/frontend/navigation/project-navigation"),
   "src/ai/functions-modules/frontend/ui/scroll-page.ts": async () => await import("./functions-modules/frontend/ui/scroll-page")
 };

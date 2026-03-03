@@ -5,6 +5,10 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
 import WordpressPage from "../../react/WordpressPage";
 ---
 
-<BaseLayout path="/wordpress">
+<BaseLayout
+  path="/wordpress"
+  title="NAVAI | Integración para Wordpress"
+  description="Guía de integración de NAVAI para Wordpress: instalación del plugin, shortcode y conexión con backend en tiempo real."
+>
   <WordpressPage client:load />
 </BaseLayout>

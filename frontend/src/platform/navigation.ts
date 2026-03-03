@@ -21,14 +21,52 @@ function readPathname() {
   return normalizePathname(window.location.pathname);
 }
 
+async function tryAstroNavigate(href: string, history: "push" | "replace") {
+  try {
+    const transitionsClient = await import("astro:transitions/client");
+    await transitionsClient.navigate(href, { history });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function navigatePath(href: string, options?: { replace?: boolean }) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  const normalizedHref = String(href ?? "").trim();
+  if (!normalizedHref) {
+    return;
+  }
+
+  const replace = options?.replace === true;
+  const handledByAstro = await tryAstroNavigate(normalizedHref, replace ? "replace" : "push");
+  if (handledByAstro) {
+    return;
+  }
+
+  if (replace) {
+    window.location.replace(normalizedHref);
+    return;
+  }
+  window.location.assign(normalizedHref);
+}
+
 export function usePathname() {
-  const [pathname, setPathname] = useState(readPathname);
+  const [pathname, setPathname] = useState("/");
 
   useEffect(() => {
     const sync = () => setPathname(readPathname());
+    sync();
     window.addEventListener("popstate", sync);
+    window.addEventListener("astro:after-swap", sync);
+    window.addEventListener("astro:page-load", sync);
     return () => {
       window.removeEventListener("popstate", sync);
+      window.removeEventListener("astro:after-swap", sync);
+      window.removeEventListener("astro:page-load", sync);
     };
   }, []);
 
@@ -39,16 +77,10 @@ export function useRouter() {
   return useMemo(
     () => ({
       push: (href: string) => {
-        if (typeof window === "undefined") {
-          return;
-        }
-        window.location.assign(href);
+        void navigatePath(href, { replace: false });
       },
       replace: (href: string) => {
-        if (typeof window === "undefined") {
-          return;
-        }
-        window.location.replace(href);
+        void navigatePath(href, { replace: true });
       },
       back: () => {
         if (typeof window === "undefined") {

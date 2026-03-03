@@ -212,7 +212,7 @@ function getDocsPrefix(language: string | null) {
 function resolveReadmesDir() {
   const projectRoot = resolveProjectRoot();
   const candidates = [
-    path.join(projectRoot, "frontend", "src", "content", "navai-readmes"),
+    path.join(projectRoot, "backend", "src", "content", "navai-readmes"),
     path.join(projectRoot, "src", "content", "navai-readmes"),
   ];
   return candidates;
@@ -406,4 +406,3 @@ export async function getDocsSearch(request: Request, response: Response) {
 
   return response.json({ results });
 }
-

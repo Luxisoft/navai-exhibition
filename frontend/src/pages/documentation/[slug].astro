@@ -22,13 +22,21 @@ const { slug } = Astro.params;
 const doc = slug ? await getNavaiDocPageBySlug(slug) : null;
 const groupedDocs = getNavaiDocsGrouped();
 const sourceHref = doc ? getNavaiDocSourceUrl(doc.sourcePath) : "";
+const pageTitle = doc ? `NAVAI | Documentación: ${doc.title}` : "NAVAI | Página no encontrada";
+const pageDescription = doc
+  ? doc.summary
+  : "La página solicitada no existe dentro de la documentación de NAVAI.";
 
 if (!doc) {
   Astro.response.status = 404;
 }
 ---
 
-<BaseLayout path={slug ? `/documentation/${slug}` : "/documentation"}>
+<BaseLayout
+  path={slug ? `/documentation/${slug}` : "/documentation"}
+  title={pageTitle}
+  description={pageDescription}
+>
   {
     doc ? (
       <DocumentationPage client:load doc={doc} groupedDocs={groupedDocs} sourceHref={sourceHref} />

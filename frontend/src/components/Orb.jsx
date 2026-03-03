@@ -6,6 +6,10 @@ import './Orb.css';
 
 export default function Orb({
   hue = 0,
+  autoHueShift = true,
+  hueShiftMin = 0,
+  hueShiftMax = 360,
+  hueShiftHalfCycleSeconds = 30,
   hoverIntensity = 0.2,
   rotateOnHover = true,
   forceHoverState = false,
@@ -15,6 +19,10 @@ export default function Orb({
 }) {
   const ctnDom = useRef(null);
   const hueRef = useRef(hue);
+  const autoHueShiftRef = useRef(autoHueShift);
+  const hueShiftMinRef = useRef(hueShiftMin);
+  const hueShiftMaxRef = useRef(hueShiftMax);
+  const hueShiftHalfCycleSecondsRef = useRef(hueShiftHalfCycleSeconds);
   const hoverIntensityRef = useRef(hoverIntensity);
   const rotateOnHoverRef = useRef(rotateOnHover);
   const forceHoverStateRef = useRef(forceHoverState);
@@ -26,6 +34,22 @@ export default function Orb({
   useEffect(() => {
     hueRef.current = hue;
   }, [hue]);
+
+  useEffect(() => {
+    autoHueShiftRef.current = autoHueShift;
+  }, [autoHueShift]);
+
+  useEffect(() => {
+    hueShiftMinRef.current = hueShiftMin;
+  }, [hueShiftMin]);
+
+  useEffect(() => {
+    hueShiftMaxRef.current = hueShiftMax;
+  }, [hueShiftMax]);
+
+  useEffect(() => {
+    hueShiftHalfCycleSecondsRef.current = hueShiftHalfCycleSeconds;
+  }, [hueShiftHalfCycleSeconds]);
 
   useEffect(() => {
     hoverIntensityRef.current = hoverIntensity;
@@ -310,9 +334,30 @@ export default function Orb({
     const frameIntervalMs = 1000 / 24;
     const idleCheckIntervalMs = 750;
 
-    const renderStaticFrame = () => {
+    const getAnimatedHueValue = (timeMs = 0) => {
+      if (!autoHueShiftRef.current) {
+        return hueRef.current;
+      }
+
+      const minHue = hueShiftMinRef.current;
+      const maxHue = hueShiftMaxRef.current;
+      const halfCycleSeconds = hueShiftHalfCycleSecondsRef.current;
+      const hueRange = maxHue - minHue;
+      if (halfCycleSeconds <= 0 || hueRange <= 0) {
+        return minHue;
+      }
+
+      const fullCycleSeconds = halfCycleSeconds * 2;
+      const elapsedSeconds = (timeMs || 0) * 0.001;
+      const cycleSeconds = ((elapsedSeconds % fullCycleSeconds) + fullCycleSeconds) % fullCycleSeconds;
+      const halfCycleProgress = cycleSeconds / halfCycleSeconds;
+      const wave = halfCycleProgress <= 1 ? halfCycleProgress : 2 - halfCycleProgress;
+      return minHue + wave * hueRange;
+    };
+
+    const renderStaticFrame = (timeMs = 0) => {
       program.uniforms.iTime.value = 0;
-      program.uniforms.hue.value = hueRef.current;
+      program.uniforms.hue.value = getAnimatedHueValue(timeMs);
       program.uniforms.hoverIntensity.value = hoverIntensityRef.current;
       program.uniforms.backgroundColor.value = backgroundColorVecRef.current;
       program.uniforms.hover.value = 0;
@@ -339,7 +384,7 @@ export default function Orb({
 
       if (!animateRef.current) {
         if (!hasRenderedStaticFrame) {
-          renderStaticFrame();
+          renderStaticFrame(t);
           hasRenderedStaticFrame = true;
         }
         scheduleNextFrame();
@@ -356,7 +401,7 @@ export default function Orb({
       const dt = (t - lastTime) * 0.001;
       lastTime = t;
       program.uniforms.iTime.value = t * 0.001;
-      program.uniforms.hue.value = hueRef.current;
+      program.uniforms.hue.value = getAnimatedHueValue(t);
       program.uniforms.hoverIntensity.value = hoverIntensityRef.current;
       program.uniforms.backgroundColor.value = backgroundColorVecRef.current;
 

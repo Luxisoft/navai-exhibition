@@ -72,17 +72,16 @@ async function loadEcommerceSuiteDeps(): Promise<EcommerceSuiteDeps | null> {
   const projectRoot = resolveProjectRoot();
 
   const sqliteModule = await importFirstAvailable<SqliteModule>([
-    path.join(projectRoot, "frontend", "src", "lib", "ecommerce-suite-sqlite.ts"),
+    path.join(projectRoot, "backend", "src", "lib", "ecommerce-suite-sqlite.ts"),
     path.join(projectRoot, "src", "lib", "ecommerce-suite-sqlite.ts"),
   ]);
   const demoReportsModule = await importFirstAvailable<DemoReportsModule>([
     path.join(
       projectRoot,
-      "frontend",
+      "backend",
       "src",
       "ai",
       "functions-modules",
-      "backend",
       "ecommerce",
       "ecommerce-demo.js"
     ),
@@ -91,7 +90,6 @@ async function loadEcommerceSuiteDeps(): Promise<EcommerceSuiteDeps | null> {
       "src",
       "ai",
       "functions-modules",
-      "backend",
       "ecommerce",
       "ecommerce-demo.js"
     ),

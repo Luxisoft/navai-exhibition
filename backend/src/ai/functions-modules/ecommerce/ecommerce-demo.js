@@ -4,7 +4,7 @@ import {
   getEcommerceSuiteSqliteMeta,
   getEcommerceSuiteSqliteOverview,
   listEcommerceSuiteSqliteTables,
-} from "../../../../lib/ecommerce-suite-sqlite";
+} from "../../../lib/ecommerce-suite-sqlite.ts";
 
 function isRecord(value) {
   return Boolean(value && typeof value === "object" && !Array.isArray(value));

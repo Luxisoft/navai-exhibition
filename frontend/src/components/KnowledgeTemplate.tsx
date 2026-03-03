@@ -115,6 +115,21 @@ export default function KnowledgeTemplate({
         </div>
       </header>
 
+      <nav className="docs-top-tabs docs-mobile-top-tabs docs-knowledge-mobile-tabs" aria-label={messages.common.docsNavigation}>
+        {pageLinks.map((item) => {
+          const isActive = isPageLinkActive(item.href);
+          return (
+            <Link
+              key={`mobile-${item.href}`}
+              href={item.href}
+              className={`docs-top-tab${isActive ? " is-active" : ""}`}
+            >
+              {item.label}
+            </Link>
+          );
+        })}
+      </nav>
+
       <div className="docs-shell">
         <aside className="docs-sidebar">
           <p className="docs-nav-title">{messages.common.docsNavigation}</p>
@@ -144,6 +159,14 @@ export default function KnowledgeTemplate({
         </aside>
 
         <article className="docs-main">
+          <nav className="docs-mobile-toc" aria-label={messages.common.docsOnThisPage}>
+            {tocItems.map((item) => (
+              <a key={`mobile-toc-${item.id}`} href={`#${item.id}`} className="docs-mobile-toc-link">
+                {item.label}
+              </a>
+            ))}
+          </nav>
+
           <header className="docs-header">
             <p className="docs-badge">{badge}</p>
             <h1>{title}</h1>

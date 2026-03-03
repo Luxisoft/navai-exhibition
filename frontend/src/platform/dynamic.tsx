@@ -1,4 +1,4 @@
-import { lazy, Suspense, type ComponentType, type ReactNode } from "react";
+import { lazy, Suspense, useEffect, useState, type ComponentType, type ReactNode } from "react";
 
 type DynamicLoader<P> = () => Promise<{ default: ComponentType<P> } | ComponentType<P>>;
 
@@ -22,7 +22,16 @@ export default function dynamic<P extends object>(
   });
 
   function DynamicComponent(props: P) {
-    if (!ssr && typeof window === "undefined") {
+    const [isClientReadyForNoSSR, setIsClientReadyForNoSSR] = useState(ssr);
+
+    useEffect(() => {
+      if (!ssr) {
+        setIsClientReadyForNoSSR(true);
+      }
+    }, [ssr]);
+
+    // Keep first render as null for no-SSR components so server/client HTML matches during hydration.
+    if (!isClientReadyForNoSSR) {
       return null;
     }
 

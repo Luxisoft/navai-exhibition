@@ -1,12 +1,7 @@
-import { readFile } from "node:fs/promises";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
+import navigationCatalog from "@/ai/navigation-catalog.json";
+import { getBackendApiBaseUrl } from "@/lib/backend-api";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const NAVIGATION_CATALOG_PATH = path.resolve(__dirname, "../../../navigation-catalog.json");
-
-let catalogPromise = null;
+let catalogPromise = Promise.resolve(navigationCatalog);
 
 function normalizeText(value) {
   return String(value ?? "")
@@ -26,15 +21,6 @@ function toPayloadObject(payload) {
 }
 
 async function loadNavigationCatalog() {
-  if (!catalogPromise) {
-    catalogPromise = readFile(NAVIGATION_CATALOG_PATH, "utf8")
-      .then((raw) => JSON.parse(raw))
-      .catch((error) => {
-        catalogPromise = null;
-        throw error;
-      });
-  }
-
   return catalogPromise;
 }
 
@@ -354,9 +340,17 @@ function scoreRouteMatch(route, query) {
 }
 
 function getRequestBaseUrl(context) {
+  const backendBaseUrl = getBackendApiBaseUrl();
+  if (backendBaseUrl) {
+    return backendBaseUrl;
+  }
+
   const request = isRecord(context) ? context.request : null;
   const requestUrl = request && typeof request.url === "string" ? request.url : null;
   if (!requestUrl) {
+    if (typeof window !== "undefined" && window.location?.origin) {
+      return window.location.origin;
+    }
     return null;
   }
 

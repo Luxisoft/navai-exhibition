@@ -60,7 +60,7 @@ export default function HomeHero() {
   const [isOrbAutoAnimating, setIsOrbAutoAnimating] = useState(ORB_AUTOPLAY_IMMEDIATELY);
   const [isVoicePanelReady, setIsVoicePanelReady] = useState(VOICE_PANEL_READY_IMMEDIATELY);
   const shouldAnimateOrb = isAgentSpeaking || isOrbAutoAnimating;
-  const orbHoverIntensity = isAgentSpeaking ? 1.05 : 0.08;
+  const orbHoverIntensity = isAgentSpeaking ? 0.66 : 0.08;
 
   const handleAgentSpeakingChange = useCallback((isSpeaking: boolean) => {
     setIsAgentSpeaking(isSpeaking);
@@ -168,7 +168,7 @@ export default function HomeHero() {
             forceHoverState={isAgentSpeaking}
             enablePointerHover={false}
             animate={shouldAnimateOrb}
-            backgroundColor={theme === "light" ? "#f6f8ff" : "#000000"}
+            backgroundColor={theme === "light" ? "#ffffff" : "#000000"}
           />
         ) : null}
       </div>

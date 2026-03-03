@@ -26,10 +26,6 @@ function withAsync(handler: AsyncHandler) {
   };
 }
 
-function stripLeadingSlash(value: string) {
-  return value.replace(/^\/+/, "");
-}
-
 function readBooleanEnv(value: string | undefined) {
   if (!value) return undefined;
   const normalized = value.trim().toLowerCase();
@@ -80,25 +76,6 @@ function setCorsHeaders(request: Request, response: Response) {
   if (corsExposeHeaders.length > 0) {
     response.setHeader("Access-Control-Expose-Headers", corsExposeHeaders);
   }
-}
-
-function serveRouteHtml(distDir: string, request: Request, response: Response) {
-  const cleanPath = request.path.replace(/\/+$/, "");
-  const relativePath = cleanPath === "" ? "index" : stripLeadingSlash(cleanPath);
-  const candidates = [
-    path.join(distDir, `${relativePath}.html`),
-    path.join(distDir, relativePath, "index.html"),
-  ];
-
-  for (const candidate of candidates) {
-    if (fs.existsSync(candidate)) {
-      response.setHeader("Cache-Control", "no-cache");
-      response.sendFile(candidate);
-      return true;
-    }
-  }
-
-  return false;
 }
 
 const projectRoot = resolveProjectRoot();
@@ -176,54 +153,16 @@ app.get(/^\/documentacion\/(.*)$/, (request, response) => {
   response.redirect(308, `/documentation/${tail ?? ""}`);
 });
 
-const frontendDist = path.join(projectRoot, "frontend", "dist");
-const frontendDistExists = fs.existsSync(frontendDist);
-const shouldServeFrontend = readBooleanEnv(process.env.NAVAI_SERVE_FRONTEND) ?? frontendDistExists;
-
-if (shouldServeFrontend && frontendDistExists) {
-  app.use(
-    express.static(frontendDist, {
-      index: false,
-      setHeaders: (response, filePath) => {
-        if (filePath.endsWith(".html")) {
-          response.setHeader("Cache-Control", "no-cache");
-          return;
-        }
-
-        if (filePath.endsWith(".xml") || filePath.endsWith(".txt")) {
-          response.setHeader("Cache-Control", "public, max-age=3600");
-          return;
-        }
-
-        response.setHeader("Cache-Control", "public, max-age=31536000, immutable");
-      },
-    })
-  );
-}
-
 app.get(/.*/, (request, response) => {
   if (request.path.startsWith("/api/") || request.path.startsWith("/navai/")) {
     return response.status(404).json({ ok: false, error: "not_found" });
-  }
-
-  if (shouldServeFrontend && frontendDistExists) {
-    if (serveRouteHtml(frontendDist, request, response)) {
-      return;
-    }
-
-    const notFoundHtml = path.join(frontendDist, "404.html");
-    if (fs.existsSync(notFoundHtml)) {
-      response.status(404).setHeader("Cache-Control", "no-cache");
-      response.sendFile(notFoundHtml);
-      return;
-    }
   }
 
   if (request.path === "/") {
     return response.json({
       ok: true,
       service: "navai-backend",
-      serveFrontend: shouldServeFrontend && frontendDistExists,
+      mode: "api-only",
     });
   }
 

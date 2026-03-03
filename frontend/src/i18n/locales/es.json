@@ -41,7 +41,7 @@
   "mic": {
     "apiKeyLabel": "API KEY de OpenAI",
     "apiKeyPlaceholder": "Pega tu API KEY de OpenAI",
-    "apiKeyNotice": "La API KEY que ingreses no se almacena. Solo se usa para probar el funcionamiento de NAVAI.",
+    "apiKeyNotice": "La API KEY se usa solo para validar e iniciar NAVAI con OpenAI. No se guarda en base de datos ni en archivos de esta app. Puedes verificarlo en el codigo fuente publico.",
     "apiKeyNoticeRepoLabel": "Ver repositorio",
     "ariaStart": "Iniciar sesión de voz con NAVAI",
     "ariaStop": "Detener sesión de voz de NAVAI",
@@ -51,7 +51,7 @@
     "stopped": "Sesión de voz detenida.",
     "missingKey": "Configura OPENAI_API_KEY en backend o ingresa una API key de OpenAI.",
     "frontendKeyDisabled": "El backend no permite API keys desde frontend. Activa NAVAI_ALLOW_FRONTEND_API_KEY=true.",
-    "clientSecretRejected": "OpenAI rechazó el client_secret. Verifica API key y modelo realtime.",
+    "clientSecretRejected": "API key de OpenAI invalida.",
     "genericError": "No se pudo iniciar la sesión de voz."
   },
   "docsPage": {

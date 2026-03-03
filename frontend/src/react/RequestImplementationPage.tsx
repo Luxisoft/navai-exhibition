@@ -28,7 +28,7 @@ function RequestImplementationContent() {
 
 export default function RequestImplementationPage() {
   return (
-    <AppProvidersShell>
+    <AppProvidersShell showMiniDock={true}>
       <RequestImplementationContent />
     </AppProvidersShell>
   );

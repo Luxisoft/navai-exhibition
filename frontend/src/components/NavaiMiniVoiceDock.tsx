@@ -1,47 +1,35 @@
 'use client';
 
-import { Mic } from "lucide-react";
-import { type ChangeEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { Mic, X } from "lucide-react";
+import { type ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import dynamic from "@/platform/dynamic";
 import { useI18n } from "@/i18n/provider";
 import { buildBackendApiUrl } from "@/lib/backend-api";
 import {
   getNavaiVoiceSnapshot,
   resetNavaiVoiceStatusMessages,
-  subscribeNavaiAgentSpeaking,
+  stopNavaiVoiceSession,
   subscribeNavaiVoiceSnapshot,
   syncNavaiVoiceSessionLanguage,
   toggleNavaiVoiceSession,
   updateNavaiVoiceSnapshot,
 } from "@/lib/navai-voice-controller";
 import { useRouter } from "@/platform/navigation";
+import { useTheme } from "@/theme/provider";
+
+const Orb = dynamic(() => import("@/components/Orb"), {
+  ssr: false,
+});
 
 const CONNECTION_CHECK_DEBOUNCE_MS = 320;
 const CONNECTION_CHECK_TIMEOUT_MS = 4500;
 const API_KEY_VALIDATION_DEBOUNCE_MS = 460;
 const API_KEY_VALIDATION_TIMEOUT_MS = 6500;
 const PROJECT_REPOSITORY_URL = "https://github.com/Luxisoft/navai-exhibition";
-const TELEPROMPTER_ROTATION_MS = 3800;
 
-const TELEPROMPTER_LINES = {
-  es: [
-    "Di: 'Llevame a Documentacion' para abrir guias de instalacion y librerias.",
-    "Di: 'Ir a Request Implementation' para ver planes y formulario de contacto.",
-    "Pregunta: 'Que hace esta pagina?' para recibir contexto de la vista actual.",
-    "Usa scroll por voz: 'Baja al final' o 'Sube al inicio'.",
-    "Pide acciones concretas: 'Busca voice-frontend en la documentacion'.",
-  ],
-  en: [
-    "Say: 'Take me to Documentation' to open setup guides and libraries.",
-    "Say: 'Go to Request Implementation' to review plans and contact form.",
-    "Ask: 'What does this page do?' to get context for the current screen.",
-    "Use voice scrolling: 'Scroll to the bottom' or 'Back to top'.",
-    "Run targeted help: 'Search voice-frontend in the docs'.",
-  ],
-} as const;
-
-type NavaiMicButtonProps = {
-  onAgentSpeakingChange?: (isSpeaking: boolean) => void;
+type NavaiMiniVoiceDockProps = {
+  className?: string;
 };
 
 function formatVoiceError(
@@ -72,13 +60,15 @@ function formatVoiceError(
   return message || messages.genericError;
 }
 
-export default function NavaiMicButton({
-  onAgentSpeakingChange,
-}: NavaiMicButtonProps) {
+export default function NavaiMiniVoiceDock({ className = "" }: NavaiMiniVoiceDockProps) {
   const { language, messages } = useI18n();
+  const { theme } = useTheme();
   const router = useRouter();
+  const [isMounted, setIsMounted] = useState(false);
+  const [isApiModalOpen, setIsApiModalOpen] = useState(false);
+  const [shouldAutoStartAfterValidation, setShouldAutoStartAfterValidation] = useState(false);
   const [voiceSnapshot, setVoiceSnapshot] = useState(getNavaiVoiceSnapshot);
-  const [teleprompterIndex, setTeleprompterIndex] = useState(0);
+  const apiInputRef = useRef<HTMLInputElement | null>(null);
 
   const {
     apiKey,
@@ -88,34 +78,17 @@ export default function NavaiMicButton({
     state,
     ariaMessage,
     statusMessage,
+    isAgentSpeaking,
   } = voiceSnapshot;
 
   const hasInputApiKey = apiKey.trim().length > 0;
   const isConnected = state === "connected";
   const isActive = state === "connecting" || state === "connected";
-  const isError = state === "error";
+  const shouldAnimateOrb = true;
+  const shouldHighlightOrb = isAgentSpeaking || isActive;
+  const orbHoverIntensity = isAgentSpeaking ? 0.66 : 0.08;
   const canStartVoice = isApiKeyValidated && backendConnectionState === "ready";
-  const showVoiceButton = canStartVoice || isConnected || state === "connecting";
-  const isDisabled = state === "connecting" || (!isConnected && !canStartVoice);
-  const showApiKeyPanel = !isApiKeyValidated;
-
-  const voiceClassName = useMemo(() => {
-    return ["home-voice", showVoiceButton ? "has-mic" : "is-compact"]
-      .filter(Boolean)
-      .join(" ");
-  }, [showVoiceButton]);
-
-  const buttonClassName = useMemo(() => {
-    return [
-      "navai-mic-button",
-      showVoiceButton ? "is-ready" : "is-empty",
-      isActive ? "is-active" : "",
-      isError ? "is-error" : "",
-    ]
-      .filter(Boolean)
-      .join(" ");
-  }, [showVoiceButton, isActive, isError]);
-
+  const isDisabled = false;
   const connectionStatusMessage = useMemo(() => {
     if (!hasInputApiKey || isApiKeyValidated) {
       return "";
@@ -139,11 +112,10 @@ export default function NavaiMicButton({
 
     return "";
   }, [apiKeyValidationState, backendConnectionState, hasInputApiKey, isApiKeyValidated]);
-
   const effectiveStatusMessage = statusMessage || connectionStatusMessage;
-  const statusClassName = useMemo(() => {
+  const modalStatusClassName = useMemo(() => {
     return [
-      "home-voice-status",
+      "navai-api-modal-status",
       backendConnectionState === "offline" || backendConnectionState === "unreachable"
         ? "is-warning"
         : "",
@@ -153,39 +125,64 @@ export default function NavaiMicButton({
       .join(" ");
   }, [apiKeyValidationState, backendConnectionState]);
 
-  const teleprompterLines = useMemo(() => {
-    return language === "es" ? TELEPROMPTER_LINES.es : TELEPROMPTER_LINES.en;
-  }, [language]);
+  const dockClassName = useMemo(() => {
+    return ["navai-mini-dock", className].filter(Boolean).join(" ");
+  }, [className]);
 
-  const teleprompterText = teleprompterLines[teleprompterIndex] ?? "";
+  const miniShellClassName = useMemo(() => {
+    return [
+      "navai-mini-mic-shell",
+      canStartVoice ? "is-ready" : "",
+      isActive ? "is-active" : "",
+    ]
+      .filter(Boolean)
+      .join(" ");
+  }, [canStartVoice, isActive]);
+
+  const miniButtonClassName = useMemo(() => {
+    return [
+      "navai-mini-mic-button",
+      isActive ? "is-active" : "",
+    ]
+      .filter(Boolean)
+      .join(" ");
+  }, [isActive]);
 
   useEffect(() => {
-    return subscribeNavaiVoiceSnapshot((snapshot) => {
-      setVoiceSnapshot(snapshot);
-    });
+    setIsMounted(true);
   }, []);
 
   useEffect(() => {
-    if (typeof onAgentSpeakingChange !== "function") {
+    if (!isApiModalOpen) {
+      return;
+    }
+    apiInputRef.current?.focus();
+  }, [isApiModalOpen]);
+
+  useEffect(() => {
+    if (!isMounted) {
+      return;
+    }
+    return subscribeNavaiVoiceSnapshot((snapshot) => {
+      setVoiceSnapshot(snapshot);
+    });
+  }, [isMounted]);
+
+  useEffect(() => {
+    if (!isMounted) {
       return;
     }
 
-    return subscribeNavaiAgentSpeaking((isSpeaking) => {
-      onAgentSpeakingChange(isSpeaking);
-    });
-  }, [onAgentSpeakingChange]);
-
-  useEffect(() => {
     void syncNavaiVoiceSessionLanguage({
       languageCode: language,
       onNavigate: (path) => {
         router.push(path);
       },
     });
-  }, [language, router]);
+  }, [isMounted, language, router]);
 
   useEffect(() => {
-    if (typeof window === "undefined") {
+    if (!isMounted || typeof window === "undefined") {
       return;
     }
 
@@ -194,12 +191,12 @@ export default function NavaiMicButton({
       return;
     }
 
-    let isMounted = true;
+    let isEffectMounted = true;
     let activeController: AbortController | null = null;
 
     const runConnectionCheck = async () => {
       if (!navigator.onLine) {
-        if (isMounted) {
+        if (isEffectMounted) {
           updateNavaiVoiceSnapshot({ backendConnectionState: "offline" });
         }
         return;
@@ -229,11 +226,11 @@ export default function NavaiMicButton({
           throw new Error(`functions_${functionsResponse.status}`);
         }
 
-        if (isMounted) {
+        if (isEffectMounted) {
           updateNavaiVoiceSnapshot({ backendConnectionState: "ready" });
         }
       } catch {
-        if (isMounted) {
+        if (isEffectMounted) {
           updateNavaiVoiceSnapshot({
             backendConnectionState: navigator.onLine ? "unreachable" : "offline",
           });
@@ -261,16 +258,16 @@ export default function NavaiMicButton({
     window.addEventListener("offline", handleOffline);
 
     return () => {
-      isMounted = false;
+      isEffectMounted = false;
       activeController?.abort();
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
       window.clearTimeout(debounceId);
     };
-  }, [apiKey, hasInputApiKey]);
+  }, [hasInputApiKey, isMounted, apiKey]);
 
   useEffect(() => {
-    if (typeof window === "undefined") {
+    if (!isMounted || typeof window === "undefined") {
       return;
     }
 
@@ -282,7 +279,7 @@ export default function NavaiMicButton({
       return;
     }
 
-    let isMounted = true;
+    let isEffectMounted = true;
     const controller = new AbortController();
     let timeoutId: number | null = null;
     const trimmedKey = apiKey.trim();
@@ -314,7 +311,7 @@ export default function NavaiMicButton({
               backendError = payload.error;
             }
           } catch {
-            // keep fallback error string
+            // Keep fallback error string.
           }
           throw new Error(backendError);
         }
@@ -324,7 +321,7 @@ export default function NavaiMicButton({
           throw new Error("OpenAI client_secrets failed: invalid backend response");
         }
 
-        if (isMounted) {
+        if (isEffectMounted) {
           updateNavaiVoiceSnapshot({
             isApiKeyValidated: true,
             apiKeyValidationState: "valid",
@@ -333,7 +330,7 @@ export default function NavaiMicButton({
           });
         }
       } catch (error) {
-        if (!isMounted || controller.signal.aborted) {
+        if (!isEffectMounted || controller.signal.aborted) {
           return;
         }
         const message = formatVoiceError(error, messages.mic);
@@ -355,56 +352,28 @@ export default function NavaiMicButton({
     }, API_KEY_VALIDATION_DEBOUNCE_MS);
 
     return () => {
-      isMounted = false;
+      isEffectMounted = false;
       controller.abort();
       if (timeoutId !== null) {
         window.clearTimeout(timeoutId);
       }
       window.clearTimeout(debounceId);
     };
-  }, [apiKey, backendConnectionState, hasInputApiKey, isApiKeyValidated, messages.mic]);
+  }, [apiKey, backendConnectionState, hasInputApiKey, isApiKeyValidated, isMounted, messages.mic]);
 
   useEffect(() => {
-    if (isActive) {
-      document.body.classList.add("home-realtime-active");
-    } else {
-      document.body.classList.remove("home-realtime-active");
-    }
-
-    return () => {
-      document.body.classList.remove("home-realtime-active");
-    };
-  }, [isActive]);
-
-  useEffect(() => {
-    if (isApiKeyValidated) {
-      document.body.classList.add("home-key-ready");
-    } else {
-      document.body.classList.remove("home-key-ready");
-    }
-
-    return () => {
-      document.body.classList.remove("home-key-ready");
-    };
-  }, [isApiKeyValidated]);
-
-  useEffect(() => {
-    if (!isActive || teleprompterLines.length < 2) {
-      setTeleprompterIndex(0);
+    if (!isMounted || !isApiModalOpen || !isApiKeyValidated || !canStartVoice) {
       return;
     }
 
-    const intervalId = window.setInterval(() => {
-      setTeleprompterIndex((current) => (current + 1) % teleprompterLines.length);
-    }, TELEPROMPTER_ROTATION_MS);
+    setIsApiModalOpen(false);
 
-    return () => {
-      window.clearInterval(intervalId);
-    };
-  }, [isActive, teleprompterLines]);
+    if (!shouldAutoStartAfterValidation) {
+      return;
+    }
 
-  const handleVoice = useCallback(async () => {
-    await toggleNavaiVoiceSession({
+    setShouldAutoStartAfterValidation(false);
+    void toggleNavaiVoiceSession({
       apiKey: apiKey.trim(),
       micMessages: messages.mic,
       languageCode: language,
@@ -412,7 +381,22 @@ export default function NavaiMicButton({
         router.push(path);
       },
     });
-  }, [apiKey, language, messages.mic, router]);
+  }, [
+    apiKey,
+    canStartVoice,
+    isApiKeyValidated,
+    isApiModalOpen,
+    isMounted,
+    language,
+    messages.mic,
+    router,
+    shouldAutoStartAfterValidation,
+  ]);
+
+  const closeApiModal = useCallback(() => {
+    setIsApiModalOpen(false);
+    setShouldAutoStartAfterValidation(false);
+  }, []);
 
   const handleApiKeyChange = useCallback(
     (event: ChangeEvent<HTMLInputElement>) => {
@@ -428,77 +412,123 @@ export default function NavaiMicButton({
     [state]
   );
 
+  const handleVoice = useCallback(async () => {
+    if (state === "connecting") {
+      stopNavaiVoiceSession(messages.mic.stopped);
+      return;
+    }
+
+    if (!isConnected && !hasInputApiKey) {
+      setIsApiModalOpen(true);
+      setShouldAutoStartAfterValidation(true);
+      return;
+    }
+
+    setShouldAutoStartAfterValidation(false);
+
+    await toggleNavaiVoiceSession({
+      apiKey: apiKey.trim(),
+      micMessages: messages.mic,
+      languageCode: language,
+      onNavigate: (path) => {
+        router.push(path);
+      },
+    });
+  }, [apiKey, hasInputApiKey, isConnected, language, messages.mic, router, state]);
+
+  if (!isMounted) {
+    return null;
+  }
+
   return (
-    <div className={voiceClassName}>
-      {showApiKeyPanel ? (
-        <>
-          <input
-            id="navai-api-input"
-            type="text"
-            value={apiKey}
-            onChange={handleApiKeyChange}
-            className="navai-api-input"
-            aria-label={messages.mic.apiKeyLabel}
-            placeholder={messages.mic.apiKeyPlaceholder}
-            autoComplete="off"
-            spellCheck={false}
+    <aside className={dockClassName}>
+      <div className="navai-mini-orb-wrap">
+        <div className={["navai-mini-orb", shouldHighlightOrb ? "is-active" : ""].filter(Boolean).join(" ")}>
+          <Orb
+            hoverIntensity={orbHoverIntensity}
+            rotateOnHover
+            forceHoverState={isAgentSpeaking}
+            enablePointerHover={false}
+            animate={shouldAnimateOrb}
+            backgroundColor={theme === "light" ? "#f4f6fb" : "#060914"}
           />
-          <small className="navai-api-help">
-            {messages.mic.apiKeyNotice}{" "}
-            <a
-              className="navai-api-help-link"
-              href={PROJECT_REPOSITORY_URL}
-              target="_blank"
-              rel="noreferrer noopener"
-            >
-              {messages.mic.apiKeyNoticeRepoLabel}
-            </a>
-          </small>
-          <div className="home-voice-divider" aria-hidden />
-        </>
-      ) : null}
-
-      {showVoiceButton ? (
-        <div className="navai-mic-stack">
-          {isActive && teleprompterText ? (
-            <div className="navai-teleprompter">
-              <p key={`teleprompter-${teleprompterIndex}`} className="navai-teleprompter-line">
-                {teleprompterText}
-              </p>
-            </div>
-          ) : null}
-
-          <div
-            className={[
-              "navai-mic-shell",
-              canStartVoice ? "is-ready" : "",
-              isActive ? "is-active" : "",
-            ]
-              .filter(Boolean)
-              .join(" ")}
-          >
-            <button
-              type="button"
-              className={buttonClassName}
-              onClick={handleVoice}
-              disabled={isDisabled}
-              aria-label={isConnected ? messages.mic.ariaStop : messages.mic.ariaStart}
-            >
-              <Mic size={30} className={isActive ? "pulse" : undefined} />
-            </button>
-          </div>
         </div>
-      ) : null}
 
-      {effectiveStatusMessage ? (
-        <p className={statusClassName}>
-          {effectiveStatusMessage}
-        </p>
-      ) : null}
+        <div className={miniShellClassName}>
+          <button
+            type="button"
+            className={miniButtonClassName}
+            onClick={handleVoice}
+            disabled={isDisabled}
+            aria-label={isConnected || state === "connecting" ? messages.mic.ariaStop : messages.mic.ariaStart}
+          >
+            <Mic size={20} className={isActive ? "pulse" : undefined} />
+          </button>
+        </div>
+      </div>
 
       <span className="sr-only" aria-live="polite">
         {ariaMessage}
       </span>
-    </div>
+
+      {isApiModalOpen ? (
+        <div className="navai-api-modal-backdrop" onClick={closeApiModal}>
+          <section
+            className="navai-api-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="navai-mini-api-modal-title"
+            onClick={(event) => {
+              event.stopPropagation();
+            }}
+          >
+            <header className="navai-api-modal-header">
+              <h2 id="navai-mini-api-modal-title" className="navai-api-modal-title">
+                {messages.mic.apiKeyLabel}
+              </h2>
+              <button
+                type="button"
+                className="navai-api-modal-close"
+                onClick={closeApiModal}
+                aria-label="Close API key modal"
+              >
+                <X size={16} />
+              </button>
+            </header>
+
+            <input
+              ref={apiInputRef}
+              id="navai-mini-api-input"
+              type="text"
+              value={apiKey}
+              onChange={handleApiKeyChange}
+              className="navai-api-modal-input"
+              aria-label={messages.mic.apiKeyLabel}
+              placeholder={messages.mic.apiKeyPlaceholder}
+              autoComplete="off"
+              spellCheck={false}
+            />
+
+            <p className="navai-api-modal-help">
+              {messages.mic.apiKeyNotice}{" "}
+              <a
+                className="navai-api-modal-help-link"
+                href={PROJECT_REPOSITORY_URL}
+                target="_blank"
+                rel="noreferrer noopener"
+              >
+                {messages.mic.apiKeyNoticeRepoLabel}
+              </a>
+            </p>
+
+            {effectiveStatusMessage ? (
+              <p className={modalStatusClassName}>
+                {effectiveStatusMessage}
+              </p>
+            ) : null}
+          </section>
+        </div>
+      ) : null}
+    </aside>
   );
 }

@@ -26,7 +26,7 @@ function WordpressContent() {
 
 export default function WordpressPage() {
   return (
-    <AppProvidersShell>
+    <AppProvidersShell showMiniDock={true}>
       <WordpressContent />
     </AppProvidersShell>
   );

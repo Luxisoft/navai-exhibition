@@ -3,6 +3,8 @@
 import { Loader2, MessageCircle } from "lucide-react";
 import {
   type FormEvent,
+  lazy,
+  Suspense,
   useCallback,
   useEffect,
   useMemo,
@@ -10,10 +12,12 @@ import {
   useState,
 } from "react";
 
-import HCaptchaGate, { type HCaptchaGateRef } from "@/components/security/HCaptchaGate";
+import type { HCaptchaGateRef } from "@/components/security/HCaptchaGate";
 import { useI18n } from "@/i18n/provider";
 import { buildBackendApiUrl } from "@/lib/backend-api";
 import { getLuxisoftWhatsAppLink } from "@/lib/luxisoft-contact";
+
+const LazyHCaptchaGate = lazy(() => import("@/components/security/HCaptchaGate"));
 
 type ContactFormState = {
   name: string;
@@ -61,6 +65,7 @@ export default function ImplementationContact() {
   const [captchaReady, setCaptchaReady] = useState(false);
   const [captchaError, setCaptchaError] = useState<string | null>(null);
   const [captchaTheme, setCaptchaTheme] = useState<"light" | "dark">("dark");
+  const [captchaSize, setCaptchaSize] = useState<"normal" | "compact">("normal");
   const [siteKey, setSiteKey] = useState(readInitialCaptchaSiteKey);
   const captchaRef = useRef<HCaptchaGateRef | null>(null);
   const nameInputRef = useRef<HTMLInputElement | null>(null);
@@ -109,6 +114,23 @@ export default function ImplementationContact() {
     });
 
     return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(max-width: 420px)");
+    const syncCaptchaSize = () => {
+      setCaptchaSize(mediaQuery.matches ? "compact" : "normal");
+    };
+
+    syncCaptchaSize();
+
+    if (typeof mediaQuery.addEventListener === "function") {
+      mediaQuery.addEventListener("change", syncCaptchaSize);
+      return () => mediaQuery.removeEventListener("change", syncCaptchaSize);
+    }
+
+    mediaQuery.addListener(syncCaptchaSize);
+    return () => mediaQuery.removeListener(syncCaptchaSize);
   }, []);
 
   useEffect(() => {
@@ -333,33 +355,35 @@ export default function ImplementationContact() {
           </label>
 
           <div className="impl-captcha-wrap">
-            <HCaptchaGate
-              sitekey={siteKey}
-              size="normal"
-              theme={captchaTheme}
-              fallbackErrorMessage={messages.implementationPage.contactCaptchaGenericErrorMessage}
-              onTokenChange={(tokenValue, ekeyValue) => {
-                setCaptchaToken(tokenValue);
-                setCaptchaEkey(ekeyValue || null);
-                if (tokenValue) {
-                  setCaptchaError(null);
-                  setErrors((current) => {
-                    if (!current.captcha) {
-                      return current;
-                    }
-                    const next = { ...current };
-                    delete next.captcha;
-                    return next;
-                  });
-                }
-              }}
-              onReadyChange={(ready) => setCaptchaReady(ready)}
-              onError={(message) => {
-                setCaptchaError(message);
-                setErrors((current) => ({ ...current, captcha: message }));
-              }}
-              ref={captchaRef}
-            />
+            <Suspense fallback={null}>
+              <LazyHCaptchaGate
+                sitekey={siteKey}
+                size={captchaSize}
+                theme={captchaTheme}
+                fallbackErrorMessage={messages.implementationPage.contactCaptchaGenericErrorMessage}
+                onTokenChange={(tokenValue, ekeyValue) => {
+                  setCaptchaToken(tokenValue);
+                  setCaptchaEkey(ekeyValue || null);
+                  if (tokenValue) {
+                    setCaptchaError(null);
+                    setErrors((current) => {
+                      if (!current.captcha) {
+                        return current;
+                      }
+                      const next = { ...current };
+                      delete next.captcha;
+                      return next;
+                    });
+                  }
+                }}
+                onReadyChange={(ready) => setCaptchaReady(ready)}
+                onError={(message) => {
+                  setCaptchaError(message);
+                  setErrors((current) => ({ ...current, captcha: message }));
+                }}
+                ref={captchaRef}
+              />
+            </Suspense>
             {errors.captcha || captchaError ? (
               <small className="impl-field-error">{errors.captcha || captchaError}</small>
             ) : null}

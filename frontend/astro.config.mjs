@@ -15,6 +15,9 @@ dotenv.config({ path: path.resolve(frontendRoot, ".env"), override: true });
 
 export default defineConfig({
   integrations: [react()],
+  devToolbar: {
+    enabled: false,
+  },
   build: {
     inlineStylesheets: "always",
   },

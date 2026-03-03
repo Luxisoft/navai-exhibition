@@ -41,7 +41,7 @@ export default function DocumentationPage({
   );
 
   return (
-    <AppProvidersShell>
+    <AppProvidersShell showMiniDock={true}>
       <NavaiDocsShell
         activeSlug={doc.slug}
         badge={doc.groupKey}

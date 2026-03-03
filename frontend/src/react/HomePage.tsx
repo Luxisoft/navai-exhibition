@@ -5,7 +5,7 @@ import AppProvidersShell from "./AppProvidersShell";
 
 export default function HomePage() {
   return (
-    <AppProvidersShell>
+    <AppProvidersShell showMiniDock={false}>
       <section className="home-section">
         <HomeHero />
         <HomeFooterBar />

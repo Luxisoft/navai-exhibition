@@ -148,10 +148,14 @@
   display: none;
 }
 
+.docs-knowledge-mobile-tabs {
+  display: none;
+}
+
 .docs-shell {
   width: min(1440px, calc(100% - 2rem));
   margin: 0 auto;
-  padding: 1.05rem 0 1.4rem;
+  padding: 1.05rem 0 clamp(5.6rem, 10vw, 6.8rem);
   display: grid;
   grid-template-columns: minmax(220px, 270px) minmax(0, 1fr) minmax(180px, 240px);
   gap: 1rem;
@@ -344,6 +348,28 @@
 .docs-toc {
   display: grid;
   gap: 0.34rem;
+}
+
+.docs-mobile-toc {
+  display: none;
+}
+
+.docs-mobile-toc-link {
+  color: #475569;
+  font-size: 0.8rem;
+  line-height: 1.25;
+  text-decoration: none;
+  border-radius: 999px;
+  border: 1px solid rgba(30, 64, 175, 0.18);
+  background: rgba(37, 99, 235, 0.06);
+  padding: 0.34rem 0.62rem;
+  white-space: nowrap;
+  transition: border-color 170ms ease, background-color 170ms ease, color 170ms ease;
+}
+
+.docs-mobile-toc-link:hover {
+  border-color: rgba(37, 99, 235, 0.32);
+  color: #0f172a;
 }
 
 .docs-rightbar-extra-slot {
@@ -595,6 +621,7 @@
   margin: 0;
   color: #334155;
   line-height: 1.62;
+  overflow-wrap: anywhere;
 }
 
 .docs-markdown-body p[align="center"] {
@@ -640,6 +667,10 @@
   display: grid;
   gap: 0.35rem;
   color: #334155;
+}
+
+.docs-markdown-body li {
+  overflow-wrap: anywhere;
 }
 
 .docs-markdown-body li > p {
@@ -1025,6 +1056,17 @@
   background: rgba(10, 15, 33, 0.9);
 }
 
+.dark .docs-mobile-toc-link {
+  border-color: rgba(148, 197, 255, 0.32);
+  background: rgba(30, 64, 175, 0.22);
+  color: #cbd5e1;
+}
+
+.dark .docs-mobile-toc-link:hover {
+  border-color: rgba(148, 197, 255, 0.5);
+  color: #f1f5f9;
+}
+
 .dark .impl-whatsapp-icon-btn {
   border-color: rgba(110, 231, 183, 0.35);
   background: rgba(5, 46, 22, 0.7);
@@ -1175,11 +1217,75 @@
     display: none;
   }
 
+  .docs-knowledge-mobile-tabs {
+    display: flex;
+    width: calc(100% - 1rem);
+    margin: 0.45rem auto 0;
+  }
+
+  .docs-mobile-toc {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-bottom: 0.72rem;
+    overflow-x: auto;
+    scrollbar-width: thin;
+    padding-bottom: 0.1rem;
+  }
+
+  .docs-main {
+    padding: 0.84rem;
+  }
+
   .plans-grid {
     grid-template-columns: minmax(0, 1fr);
   }
 
+  .docs-markdown-body table {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .docs-markdown-body th,
+  .docs-markdown-body td {
+    min-width: 8rem;
+  }
+
   .impl-contact-top-actions {
     flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 480px) {
+  .docs-topbar-left,
+  .docs-topbar-actions {
+    width: 100%;
+  }
+
+  .docs-topbar-actions {
+    justify-content: flex-end;
+  }
+
+  .docs-topbar-controls .lang-switcher.is-compact .lang-switcher-select {
+    min-width: 5.4rem;
+    max-width: 38vw;
+    font-size: 0.74rem;
+  }
+
+  .docs-source-btn {
+    display: none;
+  }
+
+  .docs-mobile-top-tabs .docs-top-tab {
+    flex: 1 1 100%;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .docs-mobile-toc-link {
+    font-size: 0.76rem;
+    padding: 0.32rem 0.56rem;
   }
 }

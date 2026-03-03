@@ -18,11 +18,7 @@ type NavaiFunctionsRuntime = {
   warnings: string[];
 };
 
-const DEFAULT_FUNCTIONS_FOLDER_CANDIDATES = [
-  "backend/src/ai/functions-modules",
-  "frontend/src/ai/functions-modules",
-  "src/ai/functions-modules",
-];
+const DEFAULT_FUNCTIONS_FOLDER_CANDIDATES = ["src/ai/functions-modules"];
 
 let runtimePromise: Promise<NavaiFunctionsRuntime> | null = null;
 
@@ -41,15 +37,42 @@ function resolveDefaultFunctionsFolders(baseDir: string) {
   return DEFAULT_FUNCTIONS_FOLDER_CANDIDATES[0];
 }
 
+function resolveFunctionsBaseDir(projectRoot: string) {
+  const monorepoBackendDir = path.join(projectRoot, "backend");
+  if (fs.existsSync(path.join(monorepoBackendDir, "src", "server.ts"))) {
+    return monorepoBackendDir;
+  }
+  return projectRoot;
+}
+
+function normalizeFunctionsFoldersForRuntime(value: string) {
+  const tokens = value
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .map((item) => item.replace(/\\/g, "/").replace(/^(\.\/)+/, ""));
+
+  const normalized = tokens.map((item) => {
+    if (item.startsWith("backend/src/")) {
+      return item.slice("backend/".length);
+    }
+    return item;
+  });
+
+  return normalized.join(",");
+}
+
 export function getNavaiVoiceOptionsFromEnv(): NavaiVoiceBackendOptions {
   return getNavaiVoiceBackendOptionsFromEnv(process.env as NavaiEnv);
 }
 
 async function buildFunctionsRuntime(): Promise<NavaiFunctionsRuntime> {
   const env = process.env as NavaiEnv;
-  const baseDir = resolveProjectRoot();
-  const configuredFolders =
+  const projectRoot = resolveProjectRoot();
+  const baseDir = resolveFunctionsBaseDir(projectRoot);
+  const rawConfiguredFolders =
     readOptional(env.NAVAI_FUNCTIONS_FOLDERS) ?? resolveDefaultFunctionsFolders(baseDir);
+  const configuredFolders = normalizeFunctionsFoldersForRuntime(rawConfiguredFolders);
 
   const runtimeConfig = await resolveNavaiBackendRuntimeConfig({
     env,
@@ -75,4 +98,3 @@ export async function getNavaiFunctionsRuntime(): Promise<NavaiFunctionsRuntime>
   }
   return runtimePromise;
 }
-

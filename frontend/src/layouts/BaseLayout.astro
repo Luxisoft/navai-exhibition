@@ -1,25 +1,50 @@
 ---
 import "@/styles/globals.css";
+import { ClientRouter } from "astro:transitions";
+import { getLocalizedNavaiDocs } from "@/i18n/docs-catalog";
+import {
+  LANGUAGE_OPTIONS,
+  loadMessagesForLanguage,
+  type LanguageCode,
+} from "@/i18n/messages";
+import { getLocalizedWordpressPage } from "@/i18n/wordpress-page";
 
 type BaseLayoutProps = {
   title?: string;
   description?: string;
   path?: string;
+  structuredData?: Record<string, unknown> | Array<Record<string, unknown>>;
 };
 
 const GOOGLE_TAG_ID = "G-J5MXCLPYHB";
 const GOOGLE_FONTS_STYLESHEET_URL =
   "https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap";
 const SITE_URL = "https://navai.luxisoft.com";
+const SUPPORTED_LANGUAGES = LANGUAGE_OPTIONS.map((option) => option.code);
+
+type SeoLanguageCopy = {
+  docsLabel: string;
+  implementationLabel: string;
+  homeTagline: string;
+  implementationTitle: string;
+  implementationDescription: string;
+  docsDescription: string;
+  wordpressNavigationLabel: string;
+  wordpressTitle: string;
+  wordpressDescription: string;
+  docsEntries: Record<string, { title: string; summary: string }>;
+};
 
 const {
   title = "NAVAI - Realtime Voice AI for UI Navigation & Function Execution",
   description = "NAVAI enables voice-first navigation and safe function execution across web and mobile apps.",
   path = "/",
+  structuredData,
 } = Astro.props as BaseLayoutProps;
 
 const canonicalUrl = new URL(path, SITE_URL).toString();
 const bannerUrl = new URL("/navai_banner.webp", SITE_URL).toString();
+const logoUrl = new URL("/navai_logo.webp", SITE_URL).toString();
 const isAnalyticsEnabled = import.meta.env.PROD;
 const initialCaptchaSiteKey =
   (import.meta.env.PUBLIC_HCAPTCHA_SITE_KEY as string | undefined) ??
@@ -94,6 +119,262 @@ const GOOGLE_ANALYTICS_LAZY_INIT_SCRIPT = `
   window.addEventListener("scroll", bootAnalytics, { once: true, passive: true });
 })();
 `;
+
+const seoCopyByLanguage = {} as Record<LanguageCode, SeoLanguageCopy>;
+
+for (const language of SUPPORTED_LANGUAGES) {
+  const messages = await loadMessagesForLanguage(language);
+  const localizedDocs = getLocalizedNavaiDocs(language);
+  const wordpressPage = getLocalizedWordpressPage(language);
+  const docsEntries: Record<string, { title: string; summary: string }> = {};
+
+  for (const [slug, entry] of Object.entries(localizedDocs.entries)) {
+    if (!entry) {
+      continue;
+    }
+    docsEntries[slug] = {
+      title: entry.title,
+      summary: entry.summary,
+    };
+  }
+
+  seoCopyByLanguage[language] = {
+    docsLabel: messages.common.documentation,
+    implementationLabel: messages.common.requestImplementation,
+    homeTagline: messages.home.tagline,
+    implementationTitle: messages.implementationPage.title,
+    implementationDescription: messages.implementationPage.description,
+    docsDescription: messages.docsPage.description,
+    wordpressNavigationLabel: wordpressPage.navigationLabel,
+    wordpressTitle: wordpressPage.title,
+    wordpressDescription: wordpressPage.description,
+    docsEntries,
+  };
+}
+
+const SEO_LANGUAGE_INIT_SCRIPT = `
+(() => {
+  try {
+    const storageKey = "navai-language";
+    const allowed = ${JSON.stringify(SUPPORTED_LANGUAGES)};
+    const selectedLanguage = window.localStorage.getItem(storageKey);
+    if (!selectedLanguage || !allowed.includes(selectedLanguage)) {
+      return;
+    }
+
+    const seoByLanguage = ${JSON.stringify(seoCopyByLanguage)};
+    const seo = seoByLanguage[selectedLanguage];
+    if (!seo) {
+      return;
+    }
+
+    const siteUrl = ${JSON.stringify(SITE_URL)};
+    const normalizePathname = (value) => {
+      const trimmed = String(value || "").trim();
+      if (!trimmed) return "/";
+      const basePath = trimmed.split(/[?#]/, 1)[0] || "/";
+      if (basePath === "/") return "/";
+      return basePath.endsWith("/") ? basePath.slice(0, -1) : basePath;
+    };
+
+    const pathname = normalizePathname(window.location.pathname);
+    let title = "";
+    let description = "";
+    let canonicalUrl = new URL(pathname, siteUrl).toString();
+
+    if (pathname === "/") {
+      title = "NAVAI | " + seo.homeTagline;
+      description =
+        seo.homeTagline +
+        ". " +
+        seo.docsLabel +
+        " | " +
+        seo.implementationLabel +
+        " | " +
+        seo.wordpressNavigationLabel +
+        ".";
+      canonicalUrl = new URL("/", siteUrl).toString();
+    } else if (pathname === "/request-implementation") {
+      title = "NAVAI | " + seo.implementationTitle;
+      description = seo.implementationDescription;
+      canonicalUrl = new URL("/request-implementation", siteUrl).toString();
+    } else if (pathname === "/wordpress") {
+      title = "NAVAI | " + seo.wordpressTitle;
+      description = seo.wordpressDescription;
+      canonicalUrl = new URL("/wordpress", siteUrl).toString();
+    } else if (pathname === "/documentation" || pathname.startsWith("/documentation/")) {
+      const rawSlug =
+        pathname === "/documentation" ? "home" : pathname.slice("/documentation/".length).trim() || "home";
+      const docEntry = seo.docsEntries[rawSlug];
+      title = docEntry ? "NAVAI | " + seo.docsLabel + ": " + docEntry.title : "NAVAI | " + seo.docsLabel;
+      description = (docEntry && docEntry.summary) || seo.docsDescription;
+      canonicalUrl = new URL(pathname, siteUrl).toString();
+    } else {
+      return;
+    }
+
+    document.title = title;
+
+    const setMetaContent = (selector, content) => {
+      const meta = document.querySelector(selector);
+      if (!meta) return;
+      if (meta.getAttribute("content") !== content) {
+        meta.setAttribute("content", content);
+      }
+    };
+
+    const setCanonicalHref = (href) => {
+      const link = document.querySelector('link[rel="canonical"]');
+      if (!link) return;
+      if (link.getAttribute("href") !== href) {
+        link.setAttribute("href", href);
+      }
+    };
+
+    const bannerUrl = new URL("/navai_banner.webp", siteUrl).toString();
+    const logoUrl = new URL("/navai_logo.webp", siteUrl).toString();
+
+    setMetaContent('meta[name="description"]', description);
+    setMetaContent('meta[property="og:url"]', canonicalUrl);
+    setMetaContent('meta[property="og:title"]', title);
+    setMetaContent('meta[property="og:description"]', description);
+    setMetaContent('meta[property="og:image"]', bannerUrl);
+    setMetaContent('meta[name="twitter:title"]', title);
+    setMetaContent('meta[name="twitter:description"]', description);
+    setMetaContent('meta[name="twitter:image"]', bannerUrl);
+    setCanonicalHref(canonicalUrl);
+
+    const navItems = [
+      { name: seo.docsLabel, url: new URL("/documentation/home", siteUrl).toString() },
+      { name: seo.implementationLabel, url: new URL("/request-implementation", siteUrl).toString() },
+      { name: seo.wordpressNavigationLabel, url: new URL("/wordpress", siteUrl).toString() },
+    ];
+
+    const structuredDataEntries = [
+      {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        name: "NAVAI",
+        url: siteUrl,
+        logo: logoUrl,
+      },
+      {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        name: "NAVAI",
+        url: siteUrl,
+        inLanguage: selectedLanguage,
+        description,
+        publisher: {
+          "@type": "Organization",
+          name: "NAVAI",
+          url: siteUrl,
+          logo: logoUrl,
+        },
+        potentialAction: {
+          "@type": "SearchAction",
+          target: siteUrl + "/documentation/home?q={search_term_string}",
+          "query-input": "required name=search_term_string",
+        },
+      },
+      {
+        "@context": "https://schema.org",
+        "@type": "ItemList",
+        name: "NAVAI main sections",
+        itemListElement: navItems.map((item, index) => ({
+          "@type": "SiteNavigationElement",
+          position: index + 1,
+          name: item.name,
+          url: item.url,
+        })),
+      },
+      {
+        "@context": "https://schema.org",
+        "@type": "WebPage",
+        name: title,
+        description,
+        url: canonicalUrl,
+        isPartOf: {
+          "@type": "WebSite",
+          name: "NAVAI",
+          url: siteUrl,
+        },
+      },
+    ];
+
+    const structuredDataScript = document.querySelector("#navai-structured-data[data-navai-structured-data]");
+    if (structuredDataScript) {
+      structuredDataScript.textContent = JSON.stringify(structuredDataEntries);
+    }
+  } catch {}
+})();
+`;
+
+const PRIMARY_NAV_ITEMS = [
+  { name: "Documentación", url: new URL("/documentation/home", SITE_URL).toString() },
+  { name: "Pedir implementación", url: new URL("/request-implementation", SITE_URL).toString() },
+  { name: "Wordpress", url: new URL("/wordpress", SITE_URL).toString() },
+];
+
+const defaultStructuredData: Array<Record<string, unknown>> = [
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: "NAVAI",
+    url: SITE_URL,
+    logo: logoUrl,
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: "NAVAI",
+    url: SITE_URL,
+    inLanguage: "es",
+    description,
+    publisher: {
+      "@type": "Organization",
+      name: "NAVAI",
+      url: SITE_URL,
+      logo: logoUrl,
+    },
+    potentialAction: {
+      "@type": "SearchAction",
+      target: `${SITE_URL}/documentation/home?q={search_term_string}`,
+      "query-input": "required name=search_term_string",
+    },
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    name: "NAVAI main sections",
+    itemListElement: PRIMARY_NAV_ITEMS.map((item, index) => ({
+      "@type": "SiteNavigationElement",
+      position: index + 1,
+      name: item.name,
+      url: item.url,
+    })),
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    name: title,
+    description,
+    url: canonicalUrl,
+    isPartOf: {
+      "@type": "WebSite",
+      name: "NAVAI",
+      url: SITE_URL,
+    },
+  },
+];
+
+const customStructuredData = Array.isArray(structuredData)
+  ? structuredData
+  : structuredData
+    ? [structuredData]
+    : [];
+const structuredDataEntries = [...defaultStructuredData, ...customStructuredData];
+const structuredDataJson = JSON.stringify(structuredDataEntries);
 ---
 
 <html lang="es" class="light">
@@ -108,6 +389,7 @@ const GOOGLE_ANALYTICS_LAZY_INIT_SCRIPT = `
     <link rel="apple-touch-icon" href="/navai_logo.webp" />
 
     <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="NAVAI" />
     <meta property="og:url" content={canonicalUrl} />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
@@ -117,6 +399,13 @@ const GOOGLE_ANALYTICS_LAZY_INIT_SCRIPT = `
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
     <meta name="twitter:image" content={bannerUrl} />
+    <script
+      id="navai-structured-data"
+      data-navai-structured-data
+      type="application/ld+json"
+      is:inline
+      set:html={structuredDataJson}
+    ></script>
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -126,8 +415,10 @@ const GOOGLE_ANALYTICS_LAZY_INIT_SCRIPT = `
     </noscript>
 
     <script is:inline set:html={LANGUAGE_INIT_SCRIPT}></script>
+    <script is:inline set:html={SEO_LANGUAGE_INIT_SCRIPT}></script>
     <script is:inline set:html={THEME_INIT_SCRIPT}></script>
     <script is:inline set:html={HCAPTCHA_SITEKEY_INIT_SCRIPT}></script>
+    <ClientRouter />
 
     {
       isAnalyticsEnabled ? (
