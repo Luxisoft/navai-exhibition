@@ -22,3 +22,5 @@ This repository uses Astro for the frontend and Node.js/Express for the backend 
 
 - `README.es.md`: Spanish documentation
 - `README.en.md`: English documentation
+- `frontend/README.md`: Frontend setup, env vars and commands
+- `backend/README.md`: Backend setup, env vars, endpoints and commands

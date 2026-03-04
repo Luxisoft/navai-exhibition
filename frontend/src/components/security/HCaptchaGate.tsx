@@ -1,7 +1,7 @@
 'use client';
 
 import HCaptcha from "@hcaptcha/react-hcaptcha";
-import { forwardRef, useImperativeHandle, useRef } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
 
 export type HCaptchaGateRef = {
   reset: () => void;
@@ -29,10 +29,14 @@ const HCaptchaGate = forwardRef<HCaptchaGateRef, HCaptchaGateProps>(function HCa
     },
   }));
 
-  if (!sitekey) {
-    onReadyChange?.(false);
-    return null;
-  }
+  useEffect(() => {
+    if (!sitekey) {
+      onReadyChange?.(false);
+      onTokenChange(null, null);
+    }
+  }, [onReadyChange, onTokenChange, sitekey]);
+
+  if (!sitekey) return null;
 
   return (
     <HCaptcha

@@ -23,6 +23,17 @@ export default defineConfig({
   },
   vite: {
     plugins: [tailwindcss()],
+    optimizeDeps: {
+      // Keep a stable dep cache across dev restarts to prevent "Outdated Optimize Dep" 504s.
+      include: [
+        "@hcaptcha/react-hcaptcha",
+        "@navai/voice-frontend",
+        "@openai/agents/realtime",
+        "react-markdown",
+        "rehype-raw",
+        "remark-gfm",
+      ],
+    },
     resolve: {
       alias: {
         "@": frontendSrc,

@@ -1,13 +1,12 @@
 'use client';
 
 import { Mic } from "lucide-react";
-import { type ChangeEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { useI18n } from "@/i18n/provider";
 import { buildBackendApiUrl } from "@/lib/backend-api";
 import {
   getNavaiVoiceSnapshot,
-  resetNavaiVoiceStatusMessages,
   subscribeNavaiAgentSpeaking,
   subscribeNavaiVoiceSnapshot,
   syncNavaiVoiceSessionLanguage,
@@ -18,9 +17,6 @@ import { useRouter } from "@/platform/navigation";
 
 const CONNECTION_CHECK_DEBOUNCE_MS = 320;
 const CONNECTION_CHECK_TIMEOUT_MS = 4500;
-const API_KEY_VALIDATION_DEBOUNCE_MS = 460;
-const API_KEY_VALIDATION_TIMEOUT_MS = 6500;
-const PROJECT_REPOSITORY_URL = "https://github.com/Luxisoft/navai-exhibition";
 const TELEPROMPTER_ROTATION_MS = 3800;
 
 const TELEPROMPTER_LINES = {
@@ -44,34 +40,6 @@ type NavaiMicButtonProps = {
   onAgentSpeakingChange?: (isSpeaking: boolean) => void;
 };
 
-function formatVoiceError(
-  error: unknown,
-  messages: {
-    missingKey: string;
-    frontendKeyDisabled: string;
-    clientSecretRejected: string;
-    genericError: string;
-  }
-) {
-  const message = error instanceof Error ? error.message : String(error);
-
-  if (message.includes("Missing openaiApiKey") || message.includes("Missing API key")) {
-    return messages.missingKey;
-  }
-  if (message.includes("Passing apiKey from request is disabled")) {
-    return messages.frontendKeyDisabled;
-  }
-  if (
-    message.includes("OpenAI client_secrets failed") ||
-    message.includes("invalid_api_key") ||
-    message.includes("Incorrect API key provided")
-  ) {
-    return messages.clientSecretRejected;
-  }
-
-  return message || messages.genericError;
-}
-
 export default function NavaiMicButton({
   onAgentSpeakingChange,
 }: NavaiMicButtonProps) {
@@ -81,23 +49,19 @@ export default function NavaiMicButton({
   const [teleprompterIndex, setTeleprompterIndex] = useState(0);
 
   const {
-    apiKey,
-    isApiKeyValidated,
-    apiKeyValidationState,
     backendConnectionState,
     state,
     ariaMessage,
     statusMessage,
   } = voiceSnapshot;
 
-  const hasInputApiKey = apiKey.trim().length > 0;
   const isConnected = state === "connected";
   const isActive = state === "connecting" || state === "connected";
   const isError = state === "error";
-  const canStartVoice = isApiKeyValidated && backendConnectionState === "ready";
-  const showVoiceButton = canStartVoice || isConnected || state === "connecting";
+  const canStartVoice = backendConnectionState === "ready";
+  const showVoiceButton = true;
+  const isVoiceReadyVisual = canStartVoice || isConnected || state === "connecting";
   const isDisabled = state === "connecting" || (!isConnected && !canStartVoice);
-  const showApiKeyPanel = !isApiKeyValidated;
 
   const voiceClassName = useMemo(() => {
     return ["home-voice", showVoiceButton ? "has-mic" : "is-compact"]
@@ -108,19 +72,15 @@ export default function NavaiMicButton({
   const buttonClassName = useMemo(() => {
     return [
       "navai-mic-button",
-      showVoiceButton ? "is-ready" : "is-empty",
+      isVoiceReadyVisual ? "is-ready" : "is-empty",
       isActive ? "is-active" : "",
       isError ? "is-error" : "",
     ]
       .filter(Boolean)
       .join(" ");
-  }, [showVoiceButton, isActive, isError]);
+  }, [isActive, isError, isVoiceReadyVisual]);
 
   const connectionStatusMessage = useMemo(() => {
-    if (!hasInputApiKey || isApiKeyValidated) {
-      return "";
-    }
-
     if (backendConnectionState === "checking") {
       return "Verificando conexion con backend...";
     }
@@ -132,13 +92,8 @@ export default function NavaiMicButton({
     if (backendConnectionState === "unreachable") {
       return "No se pudo conectar con el backend NAVAI.";
     }
-
-    if (backendConnectionState === "ready" && apiKeyValidationState === "checking") {
-      return "Validando API key de OpenAI...";
-    }
-
     return "";
-  }, [apiKeyValidationState, backendConnectionState, hasInputApiKey, isApiKeyValidated]);
+  }, [backendConnectionState]);
 
   const effectiveStatusMessage = statusMessage || connectionStatusMessage;
   const statusClassName = useMemo(() => {
@@ -147,11 +102,10 @@ export default function NavaiMicButton({
       backendConnectionState === "offline" || backendConnectionState === "unreachable"
         ? "is-warning"
         : "",
-      apiKeyValidationState === "invalid" ? "is-error" : "",
     ]
       .filter(Boolean)
       .join(" ");
-  }, [apiKeyValidationState, backendConnectionState]);
+  }, [backendConnectionState]);
 
   const teleprompterLines = useMemo(() => {
     return language === "es" ? TELEPROMPTER_LINES.es : TELEPROMPTER_LINES.en;
@@ -186,11 +140,6 @@ export default function NavaiMicButton({
 
   useEffect(() => {
     if (typeof window === "undefined") {
-      return;
-    }
-
-    if (!hasInputApiKey) {
-      updateNavaiVoiceSnapshot({ backendConnectionState: navigator.onLine ? "idle" : "offline" });
       return;
     }
 
@@ -267,102 +216,7 @@ export default function NavaiMicButton({
       window.removeEventListener("offline", handleOffline);
       window.clearTimeout(debounceId);
     };
-  }, [apiKey, hasInputApiKey]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-
-    if (!hasInputApiKey) {
-      updateNavaiVoiceSnapshot({ apiKeyValidationState: "idle" });
-      return;
-    }
-    if (backendConnectionState !== "ready" || isApiKeyValidated) {
-      return;
-    }
-
-    let isMounted = true;
-    const controller = new AbortController();
-    let timeoutId: number | null = null;
-    const trimmedKey = apiKey.trim();
-
-    const runApiKeyValidation = async () => {
-      updateNavaiVoiceSnapshot({ apiKeyValidationState: "checking" });
-      resetNavaiVoiceStatusMessages();
-      updateNavaiVoiceSnapshot({ ariaMessage: "Validando API key de OpenAI..." });
-      timeoutId = window.setTimeout(() => controller.abort(), API_KEY_VALIDATION_TIMEOUT_MS);
-
-      try {
-        const response = await fetch(buildBackendApiUrl("/navai/realtime/client-secret"), {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            apiKey: trimmedKey,
-          }),
-          cache: "no-store",
-          signal: controller.signal,
-        });
-
-        if (!response.ok) {
-          let backendError = `client_secret_${response.status}`;
-          try {
-            const payload = (await response.json()) as { error?: string };
-            if (typeof payload.error === "string" && payload.error.trim().length > 0) {
-              backendError = payload.error;
-            }
-          } catch {
-            // keep fallback error string
-          }
-          throw new Error(backendError);
-        }
-
-        const payload = (await response.json()) as { value?: string };
-        if (typeof payload.value !== "string" || payload.value.trim().length === 0) {
-          throw new Error("OpenAI client_secrets failed: invalid backend response");
-        }
-
-        if (isMounted) {
-          updateNavaiVoiceSnapshot({
-            isApiKeyValidated: true,
-            apiKeyValidationState: "valid",
-            statusMessage: "",
-            ariaMessage: "API key validada correctamente.",
-          });
-        }
-      } catch (error) {
-        if (!isMounted || controller.signal.aborted) {
-          return;
-        }
-        const message = formatVoiceError(error, messages.mic);
-        updateNavaiVoiceSnapshot({
-          isApiKeyValidated: false,
-          apiKeyValidationState: "invalid",
-          statusMessage: message,
-          ariaMessage: message,
-        });
-      } finally {
-        if (timeoutId !== null) {
-          window.clearTimeout(timeoutId);
-        }
-      }
-    };
-
-    const debounceId = window.setTimeout(() => {
-      void runApiKeyValidation();
-    }, API_KEY_VALIDATION_DEBOUNCE_MS);
-
-    return () => {
-      isMounted = false;
-      controller.abort();
-      if (timeoutId !== null) {
-        window.clearTimeout(timeoutId);
-      }
-      window.clearTimeout(debounceId);
-    };
-  }, [apiKey, backendConnectionState, hasInputApiKey, isApiKeyValidated, messages.mic]);
+  }, []);
 
   useEffect(() => {
     if (isActive) {
@@ -375,18 +229,6 @@ export default function NavaiMicButton({
       document.body.classList.remove("home-realtime-active");
     };
   }, [isActive]);
-
-  useEffect(() => {
-    if (isApiKeyValidated) {
-      document.body.classList.add("home-key-ready");
-    } else {
-      document.body.classList.remove("home-key-ready");
-    }
-
-    return () => {
-      document.body.classList.remove("home-key-ready");
-    };
-  }, [isApiKeyValidated]);
 
   useEffect(() => {
     if (!isActive || teleprompterLines.length < 2) {
@@ -405,59 +247,17 @@ export default function NavaiMicButton({
 
   const handleVoice = useCallback(async () => {
     await toggleNavaiVoiceSession({
-      apiKey: apiKey.trim(),
+      apiKey: "",
       micMessages: messages.mic,
       languageCode: language,
       onNavigate: (path) => {
         router.push(path);
       },
     });
-  }, [apiKey, language, messages.mic, router]);
-
-  const handleApiKeyChange = useCallback(
-    (event: ChangeEvent<HTMLInputElement>) => {
-      updateNavaiVoiceSnapshot({
-        apiKey: event.target.value,
-        isApiKeyValidated: false,
-        apiKeyValidationState: "idle",
-        statusMessage: "",
-        ariaMessage: "",
-        ...(state === "error" ? { state: "idle" } : {}),
-      });
-    },
-    [state]
-  );
+  }, [language, messages.mic, router]);
 
   return (
     <div className={voiceClassName}>
-      {showApiKeyPanel ? (
-        <>
-          <input
-            id="navai-api-input"
-            type="text"
-            value={apiKey}
-            onChange={handleApiKeyChange}
-            className="navai-api-input"
-            aria-label={messages.mic.apiKeyLabel}
-            placeholder={messages.mic.apiKeyPlaceholder}
-            autoComplete="off"
-            spellCheck={false}
-          />
-          <small className="navai-api-help">
-            {messages.mic.apiKeyNotice}{" "}
-            <a
-              className="navai-api-help-link"
-              href={PROJECT_REPOSITORY_URL}
-              target="_blank"
-              rel="noreferrer noopener"
-            >
-              {messages.mic.apiKeyNoticeRepoLabel}
-            </a>
-          </small>
-          <div className="home-voice-divider" aria-hidden />
-        </>
-      ) : null}
-
       {showVoiceButton ? (
         <div className="navai-mic-stack">
           {isActive && teleprompterText ? (

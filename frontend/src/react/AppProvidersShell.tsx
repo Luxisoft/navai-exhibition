@@ -1,6 +1,6 @@
 'use client';
 
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import ClientProviders from "@/components/ClientProviders";
 import { usePathname } from "@/platform/navigation";
@@ -14,6 +14,7 @@ type AppProvidersShellProps = {
 
 export default function AppProvidersShell({ children, showMiniDock }: AppProvidersShellProps) {
   const pathname = usePathname();
+  const [isMobileViewport, setIsMobileViewport] = useState(false);
   const shouldShowMiniDock = typeof showMiniDock === "boolean"
     ? showMiniDock
     : pathname === "/documentation" ||
@@ -22,13 +23,34 @@ export default function AppProvidersShell({ children, showMiniDock }: AppProvide
       pathname.startsWith("/request-implementation/") ||
       pathname === "/wordpress" ||
       pathname.startsWith("/wordpress/");
+  const shouldShowFloatingMiniDock = shouldShowMiniDock && !isMobileViewport;
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(max-width: 640px)");
+    const updateViewport = (matches: boolean) => {
+      setIsMobileViewport(matches);
+    };
+    const handleViewportChange = (event: MediaQueryListEvent) => {
+      updateViewport(event.matches);
+    };
+
+    updateViewport(mediaQuery.matches);
+
+    if (typeof mediaQuery.addEventListener === "function") {
+      mediaQuery.addEventListener("change", handleViewportChange);
+      return () => mediaQuery.removeEventListener("change", handleViewportChange);
+    }
+
+    mediaQuery.addListener(handleViewportChange);
+    return () => mediaQuery.removeListener(handleViewportChange);
+  }, []);
 
   return (
     <ClientProviders>
       <PageMetadataSync />
       <div className="site-shell">
         <main className="site-main">{children}</main>
-        {shouldShowMiniDock ? <NavaiMiniVoiceDock /> : null}
+        {shouldShowFloatingMiniDock ? <NavaiMiniVoiceDock /> : null}
       </div>
     </ClientProviders>
   );

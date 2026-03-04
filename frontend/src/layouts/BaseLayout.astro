@@ -53,14 +53,65 @@ const initialCaptchaSiteKey =
 
 const THEME_INIT_SCRIPT = `
 (() => {
-  try {
-    const key = "navai-theme";
-    const stored = window.localStorage.getItem(key);
-    const theme = stored === "light" || stored === "dark" ? stored : "light";
-    const root = document.documentElement;
+  const KEY = "navai-theme";
+
+  const isTheme = (value) => value === "light" || value === "dark";
+
+  const readStoredTheme = () => {
+    try {
+      const stored = window.localStorage.getItem(KEY);
+      return isTheme(stored) ? stored : null;
+    } catch {
+      return null;
+    }
+  };
+
+  const readThemeFromRoot = (root) => {
+    const dataTheme = root?.dataset?.theme;
+    if (isTheme(dataTheme)) {
+      return dataTheme;
+    }
+    if (root?.classList?.contains("dark")) {
+      return "dark";
+    }
+    if (root?.classList?.contains("light")) {
+      return "light";
+    }
+    return null;
+  };
+
+  const resolveTheme = (root) => {
+    return readThemeFromRoot(root) || readStoredTheme() || "light";
+  };
+
+  const applyThemeToRoot = (root, theme) => {
+    if (!root || !isTheme(theme)) return;
     root.classList.remove("dark", "light");
     root.classList.add(theme);
     root.dataset.theme = theme;
+  };
+
+  const syncCurrentDocument = () => {
+    applyThemeToRoot(document.documentElement, resolveTheme(document.documentElement));
+  };
+
+  syncCurrentDocument();
+
+  document.addEventListener("astro:before-swap", (event) => {
+    const maybeNewDocument = event?.newDocument ?? event?.detail?.newDocument;
+    if (!maybeNewDocument || !maybeNewDocument.documentElement) {
+      return;
+    }
+
+    const currentTheme = resolveTheme(document.documentElement);
+    applyThemeToRoot(maybeNewDocument.documentElement, currentTheme);
+  });
+
+  document.addEventListener("astro:page-load", syncCurrentDocument);
+
+  try {
+    const theme = resolveTheme(document.documentElement);
+    window.localStorage.setItem(KEY, theme);
   } catch {}
 })();
 `;
@@ -377,10 +428,11 @@ const structuredDataEntries = [...defaultStructuredData, ...customStructuredData
 const structuredDataJson = JSON.stringify(structuredDataEntries);
 ---
 
-<html lang="es" class="light">
+<html lang="es">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script is:inline set:html={THEME_INIT_SCRIPT}></script>
     <title>{title}</title>
     <meta name="description" content={description} />
     <meta name="robots" content="index,follow" />
@@ -416,7 +468,6 @@ const structuredDataJson = JSON.stringify(structuredDataEntries);
 
     <script is:inline set:html={LANGUAGE_INIT_SCRIPT}></script>
     <script is:inline set:html={SEO_LANGUAGE_INIT_SCRIPT}></script>
-    <script is:inline set:html={THEME_INIT_SCRIPT}></script>
     <script is:inline set:html={HCAPTCHA_SITEKEY_INIT_SCRIPT}></script>
     <ClientRouter />
 

@@ -393,10 +393,20 @@ html.lang-hi {
 }
 
 .home-voice-slot {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
   width: min(92vw, 640px);
   display: grid;
   justify-items: center;
-  align-items: start;
+  align-items: center;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.home-voice-slot .home-voice {
+  pointer-events: auto;
 }
 
 .home-voice-placeholder {
@@ -461,6 +471,18 @@ html.lang-hi {
   justify-items: center;
   gap: 0;
   pointer-events: none;
+}
+
+.navai-mini-dock--in-topbar-mobile {
+  position: static;
+  right: auto;
+  bottom: auto;
+  z-index: auto;
+  pointer-events: auto;
+}
+
+.navai-mini-dock--in-topbar-mobile .navai-mini-orb-wrap {
+  pointer-events: auto;
 }
 
 .navai-mini-orb-wrap {
@@ -1188,7 +1210,7 @@ html.lang-hi {
 }
 
 
-@media (max-width: 900px) {
+@media (max-width: 640px) {
   .home-section {
     min-height: 100svh;
     padding-top: clamp(1rem, 3vw, 1.8rem);
@@ -1200,10 +1222,67 @@ html.lang-hi {
   }
 }
 
+@media (min-width: 641px) {
+  .home-content {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    max-width: none;
+    display: block;
+    z-index: 2;
+  }
+
+  .home-brand {
+    position: absolute;
+    left: 50%;
+    top: calc(50% - 14.6rem);
+    transform: translateX(-50%);
+  }
+
+  .home-content > p {
+    position: absolute;
+    left: 50%;
+    top: calc(50% - 8.3rem);
+    transform: translateX(-50%);
+    width: min(92vw, 760px);
+    text-align: center;
+  }
+
+  .home-actions {
+    position: absolute;
+    left: 50%;
+    top: calc(50% + 12.8rem);
+    transform: translateX(-50%);
+    width: min(92vw, 760px);
+    margin-top: 0;
+    display: flex;
+    flex-wrap: nowrap;
+    justify-content: center;
+    gap: 0.8rem;
+  }
+
+  .home-btn {
+    min-width: 11.6rem;
+  }
+}
+
 @media (max-width: 640px) {
+  .home-section {
+    align-items: flex-start;
+    padding-top: calc(env(safe-area-inset-top) + 1.2rem);
+  }
+
+  .home-brand {
+    transform: translateY(0.78rem);
+  }
+
+  .home-content > p {
+    transform: translateY(1rem);
+  }
+
   .home-content {
     gap: 0.72rem;
-    width: min(94vw, 560px);
+    width: min(90vw, 480px);
   }
 
   .home-voice.has-mic,
@@ -1214,6 +1293,7 @@ html.lang-hi {
   .home-actions {
     width: 100%;
     gap: 0.55rem;
+    margin-top: clamp(18rem, 53vh, 23.8rem);
   }
 
   .home-btn {
@@ -1224,18 +1304,26 @@ html.lang-hi {
   }
 
   .home-footer-bar {
-    left: 0.75rem;
-    right: 0.75rem;
+    width: min(90vw, 480px);
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
     bottom: 0.75rem;
     align-items: center;
     justify-content: space-between;
-    flex-wrap: wrap;
-    row-gap: 0.3rem;
+    flex-wrap: nowrap;
+    row-gap: 0;
   }
 
   .home-footer-controls {
     gap: 0.32rem;
     margin-left: auto;
+  }
+
+  .home-byline {
+    width: auto;
+    white-space: nowrap;
+    align-self: center;
   }
 
   .home-footer-controls .lang-switcher.is-compact {
@@ -1260,11 +1348,37 @@ html.lang-hi {
     width: clamp(1.95rem, 9.6vw, 2.3rem);
     height: clamp(1.95rem, 9.6vw, 2.3rem);
   }
+
+  .navai-mini-dock--in-topbar-mobile .navai-mini-orb-wrap {
+    width: clamp(3.2rem, 15vw, 3.8rem);
+  }
+
+  .navai-mini-dock--in-topbar-mobile .navai-mini-mic-shell {
+    width: clamp(2.05rem, 10.4vw, 2.4rem);
+    height: clamp(2.05rem, 10.4vw, 2.4rem);
+  }
+
+  .navai-mini-dock--in-topbar-mobile .navai-mini-mic-button {
+    width: clamp(1.6rem, 7.8vw, 1.9rem);
+    height: clamp(1.6rem, 7.8vw, 1.9rem);
+  }
 }
 
 @media (max-width: 480px) {
+  .home-section {
+    padding-top: calc(env(safe-area-inset-top) + 0.96rem);
+  }
+
+  .home-brand {
+    transform: translateY(0.95rem);
+  }
+
+  .home-content > p {
+    transform: translateY(1.2rem);
+  }
+
   .home-content {
-    width: min(95vw, 520px);
+    width: min(88vw, 430px);
     gap: 0.64rem;
   }
 
@@ -1281,6 +1395,7 @@ html.lang-hi {
   .home-actions {
     width: 100%;
     gap: 0.48rem;
+    margin-top: clamp(21.2rem, 63vh, 26.4rem);
   }
 
   .home-btn {
@@ -1289,13 +1404,21 @@ html.lang-hi {
   }
 
   .home-footer-bar {
+    width: min(88vw, 430px);
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
     bottom: calc(0.64rem + env(safe-area-inset-bottom));
-    row-gap: 0.18rem;
+    row-gap: 0;
+    align-items: center;
+    flex-wrap: nowrap;
   }
 
   .home-byline {
-    width: 100%;
+    width: auto;
     font-size: 0.68rem;
+    white-space: nowrap;
+    align-self: center;
   }
 
   .home-footer-controls .lang-switcher.is-compact .lang-switcher-select {
@@ -1320,6 +1443,20 @@ html.lang-hi {
   .navai-mini-mic-button {
     width: clamp(1.84rem, 10vw, 2.16rem);
     height: clamp(1.84rem, 10vw, 2.16rem);
+  }
+
+  .navai-mini-dock--in-topbar-mobile .navai-mini-orb-wrap {
+    width: clamp(3rem, 16vw, 3.5rem);
+  }
+
+  .navai-mini-dock--in-topbar-mobile .navai-mini-mic-shell {
+    width: clamp(1.98rem, 10.8vw, 2.28rem);
+    height: clamp(1.98rem, 10.8vw, 2.28rem);
+  }
+
+  .navai-mini-dock--in-topbar-mobile .navai-mini-mic-button {
+    width: clamp(1.55rem, 8vw, 1.82rem);
+    height: clamp(1.55rem, 8vw, 1.82rem);
   }
 
   .navai-api-modal-backdrop {

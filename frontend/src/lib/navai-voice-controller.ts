@@ -133,7 +133,7 @@ const snapshotListeners = new Set<(snapshot: NavaiVoiceSnapshot) => void>();
 const speakingListeners = new Set<(isSpeaking: boolean) => void>();
 
 function getCanStartVoice() {
-  return currentSnapshot.isApiKeyValidated && currentSnapshot.backendConnectionState === "ready";
+  return currentSnapshot.backendConnectionState === "ready";
 }
 
 function getIsConnected() {
@@ -328,7 +328,6 @@ async function startSession(options: ToggleOptions) {
   navigateHandlerRef = options.onNavigate ?? ((path) => void navigatePath(path));
   activeLanguageCode = options.languageCode ?? activeLanguageCode;
 
-  let hasValidatedApiKeyInAttempt = false;
   try {
     audioPlaying = false;
     agentTurnActive = false;
@@ -337,15 +336,13 @@ async function startSession(options: ToggleOptions) {
     clearSpeakingOffTimeout();
 
     const trimmedKey = options.apiKey.trim();
-    if (!trimmedKey) {
-      throw new Error(options.micMessages.missingKey);
-    }
-
-    const secret = await backendClient.createClientSecret({
-      apiKey: trimmedKey,
+    const secret = await backendClient.createClientSecret(
+      trimmedKey.length > 0 ? { apiKey: trimmedKey } : undefined
+    );
+    patchSnapshot({
+      isApiKeyValidated: true,
+      apiKeyValidationState: "valid",
     });
-    hasValidatedApiKeyInAttempt = true;
-    patchSnapshot({ isApiKeyValidated: true });
 
     const backendFunctions = await backendClient.listFunctions();
     backendFunctionsRef = backendFunctions.functions;
@@ -429,9 +426,7 @@ async function startSession(options: ToggleOptions) {
       statusMessage: options.micMessages.activeDetail,
     });
   } catch (error) {
-    if (!hasValidatedApiKeyInAttempt) {
-      patchSnapshot({ isApiKeyValidated: false });
-    }
+    patchSnapshot({ isApiKeyValidated: false });
     const message = formatVoiceError(error, options.micMessages);
     stopSession();
     patchSnapshot({

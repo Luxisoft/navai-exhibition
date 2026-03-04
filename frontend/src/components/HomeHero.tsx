@@ -173,6 +173,14 @@ export default function HomeHero() {
         ) : null}
       </div>
 
+      <div className="home-voice-slot">
+        {isVoicePanelReady ? (
+          <NavaiMicButton onAgentSpeakingChange={handleAgentSpeakingChange} />
+        ) : (
+          <div className="home-voice-placeholder" aria-hidden="true" />
+        )}
+      </div>
+
       <div className="home-content">
         <div className="home-brand">
           <picture>
@@ -195,14 +203,6 @@ export default function HomeHero() {
         </div>
 
         <p>{messages.home.tagline}</p>
-
-        <div className="home-voice-slot">
-          {isVoicePanelReady ? (
-            <NavaiMicButton onAgentSpeakingChange={handleAgentSpeakingChange} />
-          ) : (
-            <div className="home-voice-placeholder" aria-hidden="true" />
-          )}
-        </div>
 
         <div className="home-actions">
           <Link href="/documentation/home" className="home-btn home-btn-primary">
@@ -234,4 +234,3 @@ function resolveAssetSrc(asset: unknown) {
 
   return "";
 }
-

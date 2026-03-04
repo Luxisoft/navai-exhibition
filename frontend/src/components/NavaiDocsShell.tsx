@@ -2,12 +2,13 @@
 
 import Image from "@/platform/image";
 import Link from "@/platform/link";
-import { normalizePathname, usePathname } from "@/platform/navigation";
+import { normalizePathname } from "@/platform/navigation";
 import { Github, Menu, X } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 
 import DocsSidebarAccordion from "@/components/DocsSidebarAccordion";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
+import NavaiMiniVoiceDock from "@/components/NavaiMiniVoiceDock";
 import ThemeSwitcher from "@/components/ThemeSwitcher";
 import { getLocalizedNavaiDocs } from "@/i18n/docs-catalog";
 import { useI18n } from "@/i18n/provider";
@@ -81,12 +82,11 @@ export default function NavaiDocsShell({
   children,
 }: NavaiDocsShellProps) {
   const { language, messages } = useI18n();
-  const pathname = usePathname();
-  const normalizedPathname = normalizePathname(pathname);
   const localizedDocs = useMemo(() => getLocalizedNavaiDocs(language), [language]);
   const wordpressPage = useMemo(() => getLocalizedWordpressPage(language), [language]);
   const [resolvedRightItems, setResolvedRightItems] = useState<RightItem[]>(rightItems);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isMobileViewport, setIsMobileViewport] = useState(false);
   const rightItemsSignature = useMemo(
     () => rightItems.map((item) => `${item.href}|${item.depth ?? 2}|${item.label}`).join("||"),
     [rightItems]
@@ -114,9 +114,10 @@ export default function NavaiDocsShell({
   const resolvedSourceLabel = sourceLabel ?? messages.common.docsOpenReadmeGithub;
   const resolvedRightTitle = rightTitle ?? messages.common.docsOnThisPage;
   const resolvedSidebarNavTitle = sidebarNavTitle ?? messages.common.docsSidebarTitle;
-  const isDocumentationTabActive = normalizedPathname.startsWith("/documentation");
-  const isRequestImplementationTabActive = normalizedPathname === "/request-implementation";
-  const isWordpressTabActive = normalizedPathname === "/wordpress";
+  const normalizedSidebarBasePath = normalizePathname(sidebarBasePath);
+  const isDocumentationTabActive = normalizedSidebarBasePath.startsWith("/documentation");
+  const isRequestImplementationTabActive = normalizedSidebarBasePath.startsWith("/request-implementation");
+  const isWordpressTabActive = normalizedSidebarBasePath.startsWith("/wordpress");
 
   useEffect(() => {
     setResolvedRightItems(rightItems);
@@ -161,8 +162,49 @@ export default function NavaiDocsShell({
     return () => window.cancelAnimationFrame(raf);
   }, [activeSlug, language, rightItemsSignature]);
 
+  useEffect(() => {
+    if (!isMobileMenuOpen) {
+      return;
+    }
+
+    const originalOverflow = document.body.style.overflow;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsMobileMenuOpen(false);
+      }
+    };
+
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isMobileMenuOpen]);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(max-width: 640px)");
+    setIsMobileViewport(mediaQuery.matches);
+
+    const handleViewportChange = (event: MediaQueryListEvent) => {
+      setIsMobileViewport(event.matches);
+      if (!event.matches) {
+        setIsMobileMenuOpen(false);
+      }
+    };
+
+    if (typeof mediaQuery.addEventListener === "function") {
+      mediaQuery.addEventListener("change", handleViewportChange);
+      return () => mediaQuery.removeEventListener("change", handleViewportChange);
+    }
+
+    mediaQuery.addListener(handleViewportChange);
+    return () => mediaQuery.removeListener(handleViewportChange);
+  }, []);
+
   return (
-    <section className="docs-layout">
+    <section className="docs-layout docs-layout--drawer-nav">
       <header className="docs-topbar">
         <div className="docs-topbar-left">
           <Link href="/" className="docs-brand" aria-label={messages.common.homeLinkAria}>
@@ -188,6 +230,7 @@ export default function NavaiDocsShell({
             className="docs-mobile-menu-toggle"
             onClick={() => setIsMobileMenuOpen((current) => !current)}
             aria-expanded={isMobileMenuOpen}
+            aria-controls="docs-mobile-menu"
             aria-label={messages.common.docsNavigation}
             title={messages.common.docsNavigation}
           >
@@ -197,6 +240,12 @@ export default function NavaiDocsShell({
               <Menu className="docs-source-icon" aria-hidden="true" />
             )}
           </button>
+
+          {isMobileViewport ? (
+            <div className="docs-topbar-mini-orb">
+              <NavaiMiniVoiceDock className="navai-mini-dock--in-topbar-mobile" />
+            </div>
+          ) : null}
 
           <a
             href="https://github.com/Luxisoft/navai"
@@ -215,51 +264,95 @@ export default function NavaiDocsShell({
         </div>
       </header>
 
-      <div className={`docs-mobile-menu${isMobileMenuOpen ? " is-open" : ""}`}>
-        <nav className="docs-top-tabs docs-mobile-top-tabs">
-          <Link
-            href="/documentation/home"
-            className={`docs-top-tab${isDocumentationTabActive ? " is-active" : ""}`}
-            onClick={() => setIsMobileMenuOpen(false)}
-          >
-            {messages.common.documentation}
-          </Link>
-          <Link
-            href="/request-implementation"
-            className={`docs-top-tab${isRequestImplementationTabActive ? " is-active" : ""}`}
-            onClick={() => setIsMobileMenuOpen(false)}
-          >
-            {messages.common.requestImplementation}
-          </Link>
-          <Link
-            href="/wordpress"
-            className={`docs-top-tab${isWordpressTabActive ? " is-active" : ""}`}
-            onClick={() => setIsMobileMenuOpen(false)}
-          >
-            {wordpressPage.navigationLabel}
-          </Link>
-        </nav>
-
-        <DocsSidebarAccordion
-          navTitle={resolvedSidebarNavTitle}
-          activeSlug={activeSlug}
-          onNavigate={() => setIsMobileMenuOpen(false)}
-          defaultExpandedGroupKey={defaultExpandedGroupKey}
-          basePath={sidebarBasePath}
-          homeItem={
-            homeItem
-              ? {
-                  slug: homeItem.slug,
-                  title: getLocalizedDocTitle(homeItem.slug, homeItem.title),
-                }
-              : undefined
-          }
-          groups={secondaryGroups.map((group) => ({
-            groupKey: group.groupKey,
-            label: getLocalizedGroupLabel(group.groupKey, group.label),
-            items: group.items.map(localizeNavItem),
-          }))}
+      <div id="docs-mobile-menu" className={`docs-mobile-menu${isMobileMenuOpen ? " is-open" : ""}`}>
+        <button
+          type="button"
+          className="docs-mobile-menu-backdrop"
+          aria-label={messages.common.docsNavigation}
+          onClick={() => setIsMobileMenuOpen(false)}
+          tabIndex={isMobileMenuOpen ? 0 : -1}
         />
+
+        <div className="docs-mobile-menu-panel" role="dialog" aria-modal="true" aria-label={messages.common.docsNavigation}>
+          <Link
+            href="/"
+            className="docs-brand docs-mobile-menu-brand"
+            aria-label={messages.common.homeLinkAria}
+            onClick={() => setIsMobileMenuOpen(false)}
+          >
+            <Image src="/navai_banner.webp" alt={messages.common.bannerAlt} width={140} height={50} />
+          </Link>
+
+          <div className="docs-mobile-menu-stack">
+            <nav className="docs-top-tabs docs-mobile-top-tabs docs-mobile-menu-main-links">
+              <Link
+                href="/documentation/home"
+                className={`docs-top-tab${isDocumentationTabActive ? " is-active" : ""}`}
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                {messages.common.documentation}
+              </Link>
+              <Link
+                href="/request-implementation"
+                className={`docs-top-tab${isRequestImplementationTabActive ? " is-active" : ""}`}
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                {messages.common.requestImplementation}
+              </Link>
+              <Link
+                href="/wordpress"
+                className={`docs-top-tab${isWordpressTabActive ? " is-active" : ""}`}
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                {wordpressPage.navigationLabel}
+              </Link>
+            </nav>
+
+            <div className="docs-mobile-menu-separator" aria-hidden="true" />
+
+            <div className="docs-mobile-menu-submenus">
+              <DocsSidebarAccordion
+                navTitle={resolvedSidebarNavTitle}
+                activeSlug={activeSlug}
+                onNavigate={() => setIsMobileMenuOpen(false)}
+                defaultExpandedGroupKey={defaultExpandedGroupKey}
+                basePath={sidebarBasePath}
+                homeItem={
+                  homeItem
+                    ? {
+                        slug: homeItem.slug,
+                        title: getLocalizedDocTitle(homeItem.slug, homeItem.title),
+                      }
+                    : undefined
+                }
+                groups={secondaryGroups.map((group) => ({
+                  groupKey: group.groupKey,
+                  label: getLocalizedGroupLabel(group.groupKey, group.label),
+                  items: group.items.map(localizeNavItem),
+                }))}
+              />
+            </div>
+          </div>
+
+          <div className="docs-mobile-menu-separator docs-mobile-menu-separator--footer" aria-hidden="true" />
+
+          <div className="docs-mobile-menu-footer">
+            <button
+              type="button"
+              className="docs-mobile-menu-close"
+              onClick={() => setIsMobileMenuOpen(false)}
+              aria-label={messages.common.docsNavigation}
+              title={messages.common.docsNavigation}
+            >
+              <X className="docs-source-icon" aria-hidden="true" />
+            </button>
+
+            <div className="docs-mobile-menu-controls">
+              <LanguageSwitcher compact selectId="docs-lang-select-mobile" />
+              <ThemeSwitcher />
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className="docs-shell">
@@ -284,6 +377,14 @@ export default function NavaiDocsShell({
         />
 
         <article className="docs-main">
+          <nav className="docs-mobile-toc" aria-label={resolvedRightTitle}>
+            {resolvedRightItems.map((item) => (
+              <a key={`mobile-toc-${item.href}-${item.label}`} href={item.href} className="docs-mobile-toc-link">
+                {item.label}
+              </a>
+            ))}
+          </nav>
+
           {!hideMainHeader ? (
             <header className="docs-header">
               <p className="docs-badge">{displayBadge}</p>
@@ -316,6 +417,7 @@ export default function NavaiDocsShell({
           <div id="docs-rightbar-extra-slot" className="docs-rightbar-extra-slot" />
         </aside>
       </div>
+
     </section>
   );
 }

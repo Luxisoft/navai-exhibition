@@ -3,8 +3,6 @@
 import { Loader2, MessageCircle } from "lucide-react";
 import {
   type FormEvent,
-  lazy,
-  Suspense,
   useCallback,
   useEffect,
   useMemo,
@@ -12,12 +10,10 @@ import {
   useState,
 } from "react";
 
-import type { HCaptchaGateRef } from "@/components/security/HCaptchaGate";
+import HCaptchaGate, { type HCaptchaGateRef } from "@/components/security/HCaptchaGate";
 import { useI18n } from "@/i18n/provider";
 import { buildBackendApiUrl } from "@/lib/backend-api";
 import { getLuxisoftWhatsAppLink } from "@/lib/luxisoft-contact";
-
-const LazyHCaptchaGate = lazy(() => import("@/components/security/HCaptchaGate"));
 
 type ContactFormState = {
   name: string;
@@ -27,6 +23,13 @@ type ContactFormState = {
   message: string;
 };
 
+type ImplementationContactCommandDetail = {
+  action?: "open" | "prefill";
+  values?: Partial<ContactFormState>;
+  scroll?: boolean;
+  focusName?: boolean;
+};
+
 const INITIAL_FORM_STATE: ContactFormState = {
   name: "",
   email: "",
@@ -34,6 +37,9 @@ const INITIAL_FORM_STATE: ContactFormState = {
   whatsapp: "",
   message: "",
 };
+const CONTACT_SECTION_ID = "contacto";
+const CONTACT_FORM_ID = "implementation-contact-form";
+const CONTACT_COMMAND_EVENT = "navai:implementation-contact-command";
 
 function readInitialCaptchaSiteKey() {
   if (typeof import.meta !== "undefined" && typeof import.meta.env.PUBLIC_HCAPTCHA_SITE_KEY === "string") {
@@ -151,10 +157,87 @@ export default function ImplementationContact() {
     setErrors({});
     setCaptchaError(null);
 
-    const contactSection = document.getElementById("contacto");
+    const contactSection = document.getElementById(CONTACT_SECTION_ID);
     if (contactSection) {
       contactSection.scrollIntoView({ behavior: "smooth", block: "start" });
     }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const applyPartialValues = (values: Partial<ContactFormState> | undefined) => {
+      if (!values || typeof values !== "object") {
+        return;
+      }
+      setForm((current) => ({
+        ...current,
+        ...(typeof values.name === "string" ? { name: values.name } : {}),
+        ...(typeof values.email === "string" ? { email: values.email } : {}),
+        ...(typeof values.company === "string" ? { company: values.company } : {}),
+        ...(typeof values.whatsapp === "string" ? { whatsapp: values.whatsapp } : {}),
+        ...(typeof values.message === "string" ? { message: values.message } : {}),
+      }));
+    };
+
+    const handleCommand = (event: Event) => {
+      const detail = (event as CustomEvent<ImplementationContactCommandDetail>).detail;
+      if (!detail || typeof detail !== "object") {
+        return;
+      }
+
+      if (detail.action !== "open" && detail.action !== "prefill") {
+        return;
+      }
+
+      setIsFormOpen(true);
+      setStatus((current) => (current === "success" ? "idle" : current));
+      setErrors({});
+      setCaptchaError(null);
+
+      if (detail.action === "prefill") {
+        applyPartialValues(detail.values);
+      }
+
+      if (detail.scroll !== false) {
+        const contactSection = document.getElementById(CONTACT_SECTION_ID);
+        if (contactSection) {
+          contactSection.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      }
+
+      if (detail.focusName !== false) {
+        window.requestAnimationFrame(() => {
+          nameInputRef.current?.focus();
+        });
+      }
+    };
+
+    window.addEventListener(CONTACT_COMMAND_EVENT, handleCommand as EventListener);
+    return () => window.removeEventListener(CONTACT_COMMAND_EVENT, handleCommand as EventListener);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const maybeOpenFromHash = () => {
+      const hashId = decodeURIComponent(window.location.hash.replace(/^#/, "").trim()).toLowerCase();
+      if (hashId !== CONTACT_SECTION_ID) {
+        return;
+      }
+
+      setIsFormOpen(true);
+      setStatus((current) => (current === "success" ? "idle" : current));
+      setCaptchaError(null);
+    };
+
+    maybeOpenFromHash();
+    window.addEventListener("hashchange", maybeOpenFromHash);
+    return () => window.removeEventListener("hashchange", maybeOpenFromHash);
   }, []);
 
   const validate = useCallback(() => {
@@ -281,7 +364,12 @@ export default function ImplementationContact() {
   return (
     <div className="impl-contact-wrap">
       <div className="impl-contact-top-actions">
-        <button type="button" className="docs-cta-btn" onClick={openForm}>
+        <button
+          type="button"
+          className={`docs-cta-btn${isFormOpen ? " is-active" : ""}`}
+          onClick={openForm}
+          aria-pressed={isFormOpen}
+        >
           {messages.implementationPage.ctaLabel}
         </button>
 
@@ -298,49 +386,51 @@ export default function ImplementationContact() {
       </div>
 
       {isFormOpen ? (
-        <form className="impl-contact-form" onSubmit={handleSubmit} noValidate>
-          <label className="impl-field">
-            <span>{messages.implementationPage.contactNameLabel}</span>
-            <input
-              ref={nameInputRef}
-              type="text"
-              required
-              value={form.name}
-              onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
-              aria-invalid={Boolean(errors.name)}
-            />
-            {errors.name ? <small className="impl-field-error">{errors.name}</small> : null}
-          </label>
+        <form id={CONTACT_FORM_ID} className="impl-contact-form" onSubmit={handleSubmit} noValidate>
+          <div className="impl-contact-grid">
+            <label className="impl-field">
+              <span>{messages.implementationPage.contactNameLabel}</span>
+              <input
+                ref={nameInputRef}
+                type="text"
+                required
+                value={form.name}
+                onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
+                aria-invalid={Boolean(errors.name)}
+              />
+              {errors.name ? <small className="impl-field-error">{errors.name}</small> : null}
+            </label>
 
-          <label className="impl-field">
-            <span>{messages.implementationPage.contactEmailLabel}</span>
-            <input
-              type="email"
-              required
-              value={form.email}
-              onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))}
-              aria-invalid={Boolean(errors.email)}
-            />
-            {errors.email ? <small className="impl-field-error">{errors.email}</small> : null}
-          </label>
+            <label className="impl-field">
+              <span>{messages.implementationPage.contactEmailLabel}</span>
+              <input
+                type="email"
+                required
+                value={form.email}
+                onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))}
+                aria-invalid={Boolean(errors.email)}
+              />
+              {errors.email ? <small className="impl-field-error">{errors.email}</small> : null}
+            </label>
 
-          <label className="impl-field">
-            <span>{messages.implementationPage.contactCompanyLabel}</span>
-            <input
-              type="text"
-              value={form.company}
-              onChange={(event) => setForm((current) => ({ ...current, company: event.target.value }))}
-            />
-          </label>
+            <label className="impl-field">
+              <span>{messages.implementationPage.contactCompanyLabel}</span>
+              <input
+                type="text"
+                value={form.company}
+                onChange={(event) => setForm((current) => ({ ...current, company: event.target.value }))}
+              />
+            </label>
 
-          <label className="impl-field">
-            <span>{messages.implementationPage.contactWhatsappLabel}</span>
-            <input
-              type="tel"
-              value={form.whatsapp}
-              onChange={(event) => setForm((current) => ({ ...current, whatsapp: event.target.value }))}
-            />
-          </label>
+            <label className="impl-field">
+              <span>{messages.implementationPage.contactWhatsappLabel}</span>
+              <input
+                type="tel"
+                value={form.whatsapp}
+                onChange={(event) => setForm((current) => ({ ...current, whatsapp: event.target.value }))}
+              />
+            </label>
+          </div>
 
           <label className="impl-field">
             <span>{messages.implementationPage.contactMessageLabel}</span>
@@ -355,35 +445,33 @@ export default function ImplementationContact() {
           </label>
 
           <div className="impl-captcha-wrap">
-            <Suspense fallback={null}>
-              <LazyHCaptchaGate
-                sitekey={siteKey}
-                size={captchaSize}
-                theme={captchaTheme}
-                fallbackErrorMessage={messages.implementationPage.contactCaptchaGenericErrorMessage}
-                onTokenChange={(tokenValue, ekeyValue) => {
-                  setCaptchaToken(tokenValue);
-                  setCaptchaEkey(ekeyValue || null);
-                  if (tokenValue) {
-                    setCaptchaError(null);
-                    setErrors((current) => {
-                      if (!current.captcha) {
-                        return current;
-                      }
-                      const next = { ...current };
-                      delete next.captcha;
-                      return next;
-                    });
-                  }
-                }}
-                onReadyChange={(ready) => setCaptchaReady(ready)}
-                onError={(message) => {
-                  setCaptchaError(message);
-                  setErrors((current) => ({ ...current, captcha: message }));
-                }}
-                ref={captchaRef}
-              />
-            </Suspense>
+            <HCaptchaGate
+              sitekey={siteKey}
+              size={captchaSize}
+              theme={captchaTheme}
+              fallbackErrorMessage={messages.implementationPage.contactCaptchaGenericErrorMessage}
+              onTokenChange={(tokenValue, ekeyValue) => {
+                setCaptchaToken(tokenValue);
+                setCaptchaEkey(ekeyValue || null);
+                if (tokenValue) {
+                  setCaptchaError(null);
+                  setErrors((current) => {
+                    if (!current.captcha) {
+                      return current;
+                    }
+                    const next = { ...current };
+                    delete next.captcha;
+                    return next;
+                  });
+                }
+              }}
+              onReadyChange={(ready) => setCaptchaReady(ready)}
+              onError={(message) => {
+                setCaptchaError(message);
+                setErrors((current) => ({ ...current, captcha: message }));
+              }}
+              ref={captchaRef}
+            />
             {errors.captcha || captchaError ? (
               <small className="impl-field-error">{errors.captcha || captchaError}</small>
             ) : null}

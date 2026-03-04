@@ -9,6 +9,7 @@ function RequestImplementationContent() {
 
   return (
     <KnowledgeTemplate
+      activeTopNav="request-implementation"
       badge={messages.implementationPage.badge}
       title={messages.implementationPage.title}
       description={messages.implementationPage.description}

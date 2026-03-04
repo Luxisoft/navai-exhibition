@@ -22,6 +22,8 @@ This repository is split into:
 - `frontend/`: Astro app (UI and static output).
 - `backend/`: Node.js/Express API and runtime endpoints.
 - `frontend/src/`: shared React/UI logic, docs content, i18n and NAVAI integrations.
+- `frontend/README.md`: frontend setup, env vars and commands.
+- `backend/README.md`: backend setup, env vars, endpoints and commands.
 
 ## Quick Start
 
@@ -34,6 +36,7 @@ npm install
 2. Configure environment
 
 ```bash
+cp frontend/.env.example frontend/.env
 cp backend/.env.example backend/.env
 ```
 
@@ -56,6 +59,6 @@ npm run start
 - `npm run dev:frontend`: Astro dev server (`frontend/`).
 - `npm run dev:backend`: Express API dev server.
 - `npm run build`: frontend Astro build + backend typecheck build.
-- `npm run start`: starts backend server that serves `frontend/dist`.
+- `npm run start`: starts backend server (API mode).
 
 

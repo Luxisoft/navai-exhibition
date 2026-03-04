@@ -13,6 +13,7 @@ function WordpressContent() {
 
   return (
     <KnowledgeTemplate
+      activeTopNav="wordpress"
       badge={wordpressPage.badge}
       title={wordpressPage.title}
       description={wordpressPage.description}
