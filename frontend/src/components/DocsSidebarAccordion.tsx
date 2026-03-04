@@ -34,7 +34,7 @@ export default function DocsSidebarAccordion({
   groups,
   activeSlug,
   onNavigate,
-  defaultExpandedGroupKey,
+  defaultExpandedGroupKey: _defaultExpandedGroupKey,
   basePath = "/documentation",
 }: DocsSidebarAccordionProps) {
   const itemContainsActive = (item: DocsSidebarItem): boolean =>
@@ -42,12 +42,7 @@ export default function DocsSidebarAccordion({
 
   const [expandedGroup, setExpandedGroup] = useState<DocsSidebarGroupKey | null>(() => {
     const activeGroup = groups.find((group) => group.items.some((item) => itemContainsActive(item)))?.groupKey;
-    const defaultGroup =
-      defaultExpandedGroupKey ??
-      groups.find((group) => group.groupKey === "demo")?.groupKey ??
-      groups[0]?.groupKey ??
-      null;
-    return activeGroup ?? defaultGroup;
+    return activeGroup ?? null;
   });
   const [expandedBranches, setExpandedBranches] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(

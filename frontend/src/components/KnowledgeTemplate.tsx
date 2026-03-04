@@ -6,6 +6,7 @@ import { normalizePathname, usePathname } from "@/platform/navigation";
 import { Github, Menu, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 
+import DocsCodeEditor, { inferCodeLanguageFromContent } from "@/components/DocsCodeEditor";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import NavaiMiniVoiceDock from "@/components/NavaiMiniVoiceDock";
 import ThemeSwitcher from "@/components/ThemeSwitcher";
@@ -466,9 +467,10 @@ export default function KnowledgeTemplate({
                 ) : null}
 
                 {section.code ? (
-                  <pre>
-                    <code>{section.code}</code>
-                  </pre>
+                  <DocsCodeEditor
+                    code={section.code}
+                    language={inferCodeLanguageFromContent(section.code)}
+                  />
                 ) : null}
               </section>
             ))}

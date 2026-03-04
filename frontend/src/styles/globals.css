@@ -88,6 +88,12 @@
   --sidebar-accent-foreground: oklch(0.97 0.01 292);
   --sidebar-border: oklch(1 0 0 / 14%);
   --sidebar-ring: oklch(0.82 0.05 286);
+  --navai-separator-line: linear-gradient(
+    90deg,
+    rgba(148, 163, 184, 0),
+    rgba(148, 163, 184, 0.45),
+    rgba(148, 163, 184, 0)
+  );
 }
 
 html:lang(zh),
@@ -136,7 +142,7 @@ html.lang-hi {
   --accent: oklch(0.269 0 0);
   --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
+  --border: rgb(49 21 71);
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.556 0 0);
   --chart-1: oklch(0.488 0.243 264.376);
@@ -150,7 +156,7 @@ html.lang-hi {
   --sidebar-primary-foreground: oklch(0.985 0 0);
   --sidebar-accent: oklch(0.269 0 0);
   --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-border: rgb(49 21 71);
   --sidebar-ring: oklch(0.556 0 0);
 }
 
@@ -180,6 +186,12 @@ html.lang-hi {
   --sidebar-accent-foreground: oklch(0.22 0.03 266);
   --sidebar-border: oklch(0.79 0.02 266 / 35%);
   --sidebar-ring: oklch(0.63 0.08 258);
+  --navai-separator-line: linear-gradient(
+    90deg,
+    rgba(15, 23, 42, 0),
+    rgba(71, 85, 105, 0.44),
+    rgba(15, 23, 42, 0)
+  );
 }
 
 @layer base {
@@ -459,7 +471,10 @@ html.lang-hi {
 .home-voice-divider {
   width: min(92vw, 560px);
   height: 1px;
-  background: linear-gradient(90deg, rgba(255, 255, 255, 0), rgba(184, 192, 244, 0.55), rgba(255, 255, 255, 0));
+  padding-block: 0.28rem;
+  box-sizing: content-box;
+  background-clip: content-box;
+  background: var(--navai-separator-line);
 }
 
 .navai-mini-dock {
@@ -584,6 +599,21 @@ html.lang-hi {
 .navai-mini-mic-button:disabled {
   opacity: 0.78;
   cursor: not-allowed;
+}
+
+.navai-mini-status {
+  margin: 0.45rem 0 0;
+  max-width: min(16rem, 42vw);
+  padding: 0.4rem 0.55rem;
+  border-radius: 0.62rem;
+  border: 1px solid rgba(250, 204, 21, 0.42);
+  background: rgba(35, 22, 8, 0.72);
+  color: rgba(255, 236, 179, 0.96);
+  font-size: 0.68rem;
+  line-height: 1.25;
+  text-align: center;
+  pointer-events: auto;
+  box-shadow: 0 6px 14px rgba(10, 6, 2, 0.38);
 }
 
 .navai-api-modal-backdrop {
@@ -1026,10 +1056,6 @@ html.lang-hi {
   color: #1d4ed8;
 }
 
-.light .home-voice-divider {
-  background: linear-gradient(90deg, rgba(15, 23, 42, 0), rgba(71, 85, 105, 0.44), rgba(15, 23, 42, 0));
-}
-
 .light .navai-mini-orb {
   box-shadow: none;
 }
@@ -1061,6 +1087,13 @@ html.lang-hi {
   background: linear-gradient(145deg, rgba(255, 255, 255, 0.97), rgba(229, 239, 255, 0.94));
   color: #1e3a8a;
   box-shadow: 0 8px 20px rgba(71, 85, 105, 0.2);
+}
+
+.light .navai-mini-status {
+  border-color: rgba(245, 158, 11, 0.45);
+  background: rgba(255, 251, 235, 0.96);
+  color: #92400e;
+  box-shadow: 0 8px 16px rgba(120, 53, 15, 0.14);
 }
 
 .light .navai-api-modal-backdrop {
@@ -1242,7 +1275,7 @@ html.lang-hi {
   .home-content > p {
     position: absolute;
     left: 50%;
-    top: calc(50% - 8.3rem);
+    top: calc(50% - 7.3rem);
     transform: translateX(-50%);
     width: min(92vw, 760px);
     text-align: center;
@@ -1251,7 +1284,7 @@ html.lang-hi {
   .home-actions {
     position: absolute;
     left: 50%;
-    top: calc(50% + 12.8rem);
+    top: calc(50% + 7.8rem);
     transform: translateX(-50%);
     width: min(92vw, 760px);
     margin-top: 0;

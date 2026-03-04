@@ -60,5 +60,27 @@ npm run start
 - `npm run dev:backend`: servidor de desarrollo Express API.
 - `npm run build`: build frontend Astro + typecheck build backend.
 - `npm run start`: inicia backend (modo API).
+- `npm run generate:module-loaders`: genera/actualiza loaders de funciones NAVAI del frontend.
+- `npm run check:backend-functions`: valida y lista funciones NAVAI detectadas en backend.
+
+## Comandos NAVAI (funciones frontend/backend)
+
+Todos se ejecutan desde la raíz del repo.
+
+```bash
+# Frontend: generar loaders de funciones locales NAVAI
+npm run generate:module-loaders
+
+# Backend: revisar funciones detectadas y warnings
+npm run check:backend-functions
+
+# Backend API: listar funciones expuestas para NAVAI
+curl http://localhost:3000/navai/functions
+
+# Backend API: ejecutar una funcion NAVAI
+curl -X POST http://localhost:3000/navai/functions/execute \
+  -H "Content-Type: application/json" \
+  -d "{\"function_name\":\"health_check\",\"payload\":{}}"
+```
 
 

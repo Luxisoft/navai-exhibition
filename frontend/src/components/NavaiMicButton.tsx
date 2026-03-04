@@ -149,7 +149,10 @@ export default function NavaiMicButton({
     const runConnectionCheck = async () => {
       if (!navigator.onLine) {
         if (isMounted) {
-          updateNavaiVoiceSnapshot({ backendConnectionState: "offline" });
+          updateNavaiVoiceSnapshot({
+            backendConnectionState: "offline",
+            statusMessage: "",
+          });
         }
         return;
       }
@@ -169,6 +172,9 @@ export default function NavaiMicButton({
         if (!capabilitiesResponse.ok) {
           throw new Error(`capabilities_${capabilitiesResponse.status}`);
         }
+        const capabilitiesPayload = (await capabilitiesResponse.json()) as {
+          hasBackendApiKey?: boolean;
+        };
 
         const functionsResponse = await fetch(buildBackendApiUrl("/navai/functions"), {
           cache: "no-store",
@@ -178,13 +184,28 @@ export default function NavaiMicButton({
           throw new Error(`functions_${functionsResponse.status}`);
         }
 
+        if (!capabilitiesPayload?.hasBackendApiKey) {
+          if (isMounted) {
+            updateNavaiVoiceSnapshot({
+              backendConnectionState: "unreachable",
+              statusMessage: messages.mic.missingKey,
+              ariaMessage: messages.mic.missingKey,
+            });
+          }
+          return;
+        }
+
         if (isMounted) {
-          updateNavaiVoiceSnapshot({ backendConnectionState: "ready" });
+          updateNavaiVoiceSnapshot({
+            backendConnectionState: "ready",
+            statusMessage: "",
+          });
         }
       } catch {
         if (isMounted) {
           updateNavaiVoiceSnapshot({
             backendConnectionState: navigator.onLine ? "unreachable" : "offline",
+            statusMessage: "",
           });
         }
       } finally {
@@ -203,7 +224,10 @@ export default function NavaiMicButton({
       void runConnectionCheck();
     };
     const handleOffline = () => {
-      updateNavaiVoiceSnapshot({ backendConnectionState: "offline" });
+      updateNavaiVoiceSnapshot({
+        backendConnectionState: "offline",
+        statusMessage: "",
+      });
     };
 
     window.addEventListener("online", handleOnline);
@@ -216,7 +240,7 @@ export default function NavaiMicButton({
       window.removeEventListener("offline", handleOffline);
       window.clearTimeout(debounceId);
     };
-  }, []);
+  }, [messages.mic.missingKey]);
 
   useEffect(() => {
     if (isActive) {

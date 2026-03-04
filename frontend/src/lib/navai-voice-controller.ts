@@ -75,6 +75,7 @@ const NAVAI_AGENT_BASE_INSTRUCTIONS_LINES = [
   "- list_navai_page_purpose_summaries (overview of what pages do)",
   "- search_navai_project_knowledge (search docs/implementation content snippets)",
   "- scroll_page (scroll the current page: up/down, top/bottom, percent, or selector/id)",
+  "- scrape_page_text (extract visible text from the current page to answer content questions)",
   "When useful, answer with the exact URL path or URL hash section in this app.",
   "Only use scroll_page after the user is already on the correct page.",
 ];

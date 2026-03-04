@@ -5,5 +5,6 @@ export const NAVAI_FRONTEND_FUNCTION_LOADERS: NavaiFunctionModuleLoaders = {
   "src/ai/functions-modules/contact/implementation-contact.ts": async () => await import("./functions-modules/contact/implementation-contact"),
   "src/ai/functions-modules/ecommerce/local-ecommerce.ts": async () => await import("./functions-modules/ecommerce/local-ecommerce"),
   "src/ai/functions-modules/navigation/project-navigation.js": async () => await import("./functions-modules/navigation/project-navigation"),
+  "src/ai/functions-modules/scraping/text-web.ts": async () => await import("./functions-modules/scraping/text-web"),
   "src/ai/functions-modules/ui/scroll-page.ts": async () => await import("./functions-modules/ui/scroll-page")
 };
