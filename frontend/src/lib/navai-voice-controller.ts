@@ -65,6 +65,47 @@ type ToggleOptions = {
   onNavigate?: (path: string) => void;
 };
 
+type NavaiVoiceControllerApi = {
+  getNavaiVoiceSnapshot: () => NavaiVoiceSnapshot;
+  subscribeNavaiVoiceSnapshot: (
+    listener: (snapshot: NavaiVoiceSnapshot) => void
+  ) => () => void;
+  subscribeNavaiAgentSpeaking: (listener: (isSpeaking: boolean) => void) => () => void;
+  updateNavaiVoiceSnapshot: (patch: Partial<NavaiVoiceSnapshot>) => void;
+  resetNavaiVoiceStatusMessages: () => void;
+  getNavaiCanStartVoice: () => boolean;
+  getNavaiIsConnected: () => boolean;
+  getNavaiIsDisabled: () => boolean;
+  stopNavaiVoiceSession: (message?: string) => void;
+  toggleNavaiVoiceSession: (options: ToggleOptions) => Promise<void>;
+  syncNavaiVoiceSessionLanguage: (options: {
+    languageCode: LanguageCode;
+    onNavigate?: (path: string) => void;
+  }) => Promise<void>;
+};
+
+const NAVAI_VOICE_CONTROLLER_API_KEY = "__NAVAI_VOICE_CONTROLLER_API__";
+
+type NavaiVoiceControllerGlobalHost = typeof globalThis & {
+  [NAVAI_VOICE_CONTROLLER_API_KEY]?: NavaiVoiceControllerApi;
+};
+
+let localControllerApi: NavaiVoiceControllerApi | null = null;
+
+function getControllerApi() {
+  const host = globalThis as NavaiVoiceControllerGlobalHost;
+  if (host[NAVAI_VOICE_CONTROLLER_API_KEY]) {
+    return host[NAVAI_VOICE_CONTROLLER_API_KEY];
+  }
+
+  if (!localControllerApi) {
+    throw new Error("NAVAI voice controller API is not initialized.");
+  }
+
+  host[NAVAI_VOICE_CONTROLLER_API_KEY] = localControllerApi;
+  return host[NAVAI_VOICE_CONTROLLER_API_KEY];
+}
+
 const NAVAI_AGENT_BASE_INSTRUCTIONS_LINES = [
   "You are helping users navigate this NAVAI Exhibition app.",
   "Users are non-technical. Never require users to mention internal tool names.",
@@ -446,11 +487,11 @@ async function startSession(options: ToggleOptions) {
   }
 }
 
-export function getNavaiVoiceSnapshot() {
+function localGetNavaiVoiceSnapshot() {
   return { ...currentSnapshot };
 }
 
-export function subscribeNavaiVoiceSnapshot(listener: (snapshot: NavaiVoiceSnapshot) => void) {
+function localSubscribeNavaiVoiceSnapshot(listener: (snapshot: NavaiVoiceSnapshot) => void) {
   snapshotListeners.add(listener);
   listener({ ...currentSnapshot });
   return () => {
@@ -458,7 +499,7 @@ export function subscribeNavaiVoiceSnapshot(listener: (snapshot: NavaiVoiceSnaps
   };
 }
 
-export function subscribeNavaiAgentSpeaking(listener: (isSpeaking: boolean) => void) {
+function localSubscribeNavaiAgentSpeaking(listener: (isSpeaking: boolean) => void) {
   speakingListeners.add(listener);
   listener(speakingState);
   return () => {
@@ -466,35 +507,35 @@ export function subscribeNavaiAgentSpeaking(listener: (isSpeaking: boolean) => v
   };
 }
 
-export function updateNavaiVoiceSnapshot(patch: Partial<NavaiVoiceSnapshot>) {
+function localUpdateNavaiVoiceSnapshot(patch: Partial<NavaiVoiceSnapshot>) {
   patchSnapshot(patch);
 }
 
-export function resetNavaiVoiceStatusMessages() {
+function localResetNavaiVoiceStatusMessages() {
   patchSnapshot({
     statusMessage: "",
     ariaMessage: "",
   });
 }
 
-export function getNavaiCanStartVoice() {
+function localGetNavaiCanStartVoice() {
   return getCanStartVoice();
 }
 
-export function getNavaiIsConnected() {
+function localGetNavaiIsConnected() {
   return getIsConnected();
 }
 
-export function getNavaiIsDisabled() {
+function localGetNavaiIsDisabled() {
   return currentSnapshot.state === "connecting";
 }
 
-export function stopNavaiVoiceSession(message?: string) {
+function localStopNavaiVoiceSession(message?: string) {
   stopSession(message);
 }
 
-export async function toggleNavaiVoiceSession(options: ToggleOptions) {
-  if (getNavaiIsDisabled()) {
+async function localToggleNavaiVoiceSession(options: ToggleOptions) {
+  if (localGetNavaiIsDisabled()) {
     return;
   }
 
@@ -532,7 +573,7 @@ export async function toggleNavaiVoiceSession(options: ToggleOptions) {
   await startInFlight;
 }
 
-export async function syncNavaiVoiceSessionLanguage(options: {
+async function localSyncNavaiVoiceSessionLanguage(options: {
   languageCode: LanguageCode;
   onNavigate?: (path: string) => void;
 }) {
@@ -585,4 +626,67 @@ export async function syncNavaiVoiceSessionLanguage(options: {
   } catch {
     // Ignore runtime language update failures and keep current live session.
   }
+}
+
+localControllerApi = {
+  getNavaiVoiceSnapshot: localGetNavaiVoiceSnapshot,
+  subscribeNavaiVoiceSnapshot: localSubscribeNavaiVoiceSnapshot,
+  subscribeNavaiAgentSpeaking: localSubscribeNavaiAgentSpeaking,
+  updateNavaiVoiceSnapshot: localUpdateNavaiVoiceSnapshot,
+  resetNavaiVoiceStatusMessages: localResetNavaiVoiceStatusMessages,
+  getNavaiCanStartVoice: localGetNavaiCanStartVoice,
+  getNavaiIsConnected: localGetNavaiIsConnected,
+  getNavaiIsDisabled: localGetNavaiIsDisabled,
+  stopNavaiVoiceSession: localStopNavaiVoiceSession,
+  toggleNavaiVoiceSession: localToggleNavaiVoiceSession,
+  syncNavaiVoiceSessionLanguage: localSyncNavaiVoiceSessionLanguage,
+};
+
+getControllerApi();
+
+export function getNavaiVoiceSnapshot() {
+  return getControllerApi().getNavaiVoiceSnapshot();
+}
+
+export function subscribeNavaiVoiceSnapshot(listener: (snapshot: NavaiVoiceSnapshot) => void) {
+  return getControllerApi().subscribeNavaiVoiceSnapshot(listener);
+}
+
+export function subscribeNavaiAgentSpeaking(listener: (isSpeaking: boolean) => void) {
+  return getControllerApi().subscribeNavaiAgentSpeaking(listener);
+}
+
+export function updateNavaiVoiceSnapshot(patch: Partial<NavaiVoiceSnapshot>) {
+  getControllerApi().updateNavaiVoiceSnapshot(patch);
+}
+
+export function resetNavaiVoiceStatusMessages() {
+  getControllerApi().resetNavaiVoiceStatusMessages();
+}
+
+export function getNavaiCanStartVoice() {
+  return getControllerApi().getNavaiCanStartVoice();
+}
+
+export function getNavaiIsConnected() {
+  return getControllerApi().getNavaiIsConnected();
+}
+
+export function getNavaiIsDisabled() {
+  return getControllerApi().getNavaiIsDisabled();
+}
+
+export function stopNavaiVoiceSession(message?: string) {
+  getControllerApi().stopNavaiVoiceSession(message);
+}
+
+export async function toggleNavaiVoiceSession(options: ToggleOptions) {
+  await getControllerApi().toggleNavaiVoiceSession(options);
+}
+
+export async function syncNavaiVoiceSessionLanguage(options: {
+  languageCode: LanguageCode;
+  onNavigate?: (path: string) => void;
+}) {
+  await getControllerApi().syncNavaiVoiceSessionLanguage(options);
 }
