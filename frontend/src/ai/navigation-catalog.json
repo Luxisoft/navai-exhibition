@@ -18,7 +18,11 @@
         "landing",
         "volver al inicio"
       ],
-      "screenComponents": ["HomeHero", "HomeFooterBar", "NavaiMicButton"],
+      "screenComponents": [
+        "HomeHero",
+        "HomeFooterBar",
+        "NavaiMicButton"
+      ],
       "notes": [
         "Contains the main voice activation button.",
         "Includes quick links to Documentation and Request Implementation."
@@ -30,34 +34,23 @@
       "kind": "page",
       "name": "documentation",
       "title": "Documentation",
-      "path": "/documentation",
-      "description": "Documentation index. Redirects to /documentation/home.",
+      "path": "/documentation/home",
+      "description": "Documentation home with NAVAI project overview, core libraries, framework coverage, and platform/device support.",
       "synonyms": [
         "documentacion",
         "docs",
         "manual",
         "guia tecnica",
+        "documentation home",
         "documentation hub"
       ],
-      "screenComponents": ["NavaiDocsShell", "DocsSidebarAccordion"],
-      "notes": ["Acts as a hub and redirects to the home documentation page."]
-    },
-    {
-      "id": "documentation-home",
-      "group": "documentation",
-      "kind": "page",
-      "name": "documentation-home",
-      "title": "Documentation Home",
-      "path": "/documentation/home",
-      "description": "NAVAI project overview, core libraries, framework coverage, and platform/device support.",
-      "synonyms": [
-        "docs home",
-        "readme principal",
-        "overview navai",
-        "project overview",
-        "readme root"
+      "screenComponents": [
+        "NavaiDocsShell",
+        "DocsSidebarAccordion"
       ],
-      "screenComponents": ["NavaiDocsShell", "NavaiDocMarkdown"]
+      "notes": [
+        "Primary documentation landing page at /documentation/home."
+      ]
     },
     {
       "id": "documentation-installation",
@@ -74,8 +67,13 @@
         "como instalar navai",
         "setup navai"
       ],
-      "screenComponents": ["NavaiDocsShell", "DocsSidebarAccordion"],
-      "notes": ["Sidebar submenu group: API, Web, Mobile."]
+      "screenComponents": [
+        "NavaiDocsShell",
+        "DocsSidebarAccordion"
+      ],
+      "notes": [
+        "Sidebar submenu group: API, Web, Mobile."
+      ]
     },
     {
       "id": "documentation-installation-api",
@@ -92,7 +90,10 @@
         "backend installation",
         "configurar backend navai"
       ],
-      "screenComponents": ["NavaiDocsShell", "NavaiDocMarkdown"]
+      "screenComponents": [
+        "NavaiDocsShell",
+        "NavaiDocMarkdown"
+      ]
     },
     {
       "id": "documentation-installation-web",
@@ -109,7 +110,10 @@
         "frontend web docs",
         "voice frontend setup"
       ],
-      "screenComponents": ["NavaiDocsShell", "NavaiDocMarkdown"]
+      "screenComponents": [
+        "NavaiDocsShell",
+        "NavaiDocMarkdown"
+      ]
     },
     {
       "id": "documentation-installation-mobile",
@@ -126,7 +130,30 @@
         "installation mobile",
         "mobile setup navai"
       ],
-      "screenComponents": ["NavaiDocsShell", "NavaiDocMarkdown"]
+      "screenComponents": [
+        "NavaiDocsShell",
+        "NavaiDocMarkdown"
+      ]
+    },
+    {
+      "id": "documentation-installation-wordpress",
+      "group": "documentation",
+      "kind": "page",
+      "parentId": "documentation-installation",
+      "name": "documentation-installation-wordpress",
+      "title": "Installation WordPress",
+      "path": "/documentation/installation-wordpress",
+      "description": "WordPress installation guide for NAVAI plugin setup, required endpoints, and operation checklist.",
+      "synonyms": [
+        "instalacion wordpress",
+        "wordpress setup",
+        "plugin wordpress",
+        "installation wordpress"
+      ],
+      "screenComponents": [
+        "NavaiDocsShell",
+        "NavaiDocMarkdown"
+      ]
     },
     {
       "id": "documentation-demo",
@@ -142,8 +169,13 @@
         "ejemplos",
         "demos"
       ],
-      "screenComponents": ["NavaiDocsShell", "DocsSidebarAccordion"],
-      "notes": ["Sidebar submenu group: Playground API, Playground Web, Playground Mobile."]
+      "screenComponents": [
+        "NavaiDocsShell",
+        "DocsSidebarAccordion"
+      ],
+      "notes": [
+        "Sidebar submenu group: Playground API, Playground Web, Playground Mobile."
+      ]
     },
     {
       "id": "documentation-playground-api",
@@ -159,7 +191,10 @@
         "demo api",
         "backend demo docs"
       ],
-      "screenComponents": ["NavaiDocsShell", "NavaiDocMarkdown"]
+      "screenComponents": [
+        "NavaiDocsShell",
+        "NavaiDocMarkdown"
+      ]
     },
     {
       "id": "documentation-playground-web",
@@ -175,7 +210,10 @@
         "demo web",
         "frontend demo docs"
       ],
-      "screenComponents": ["NavaiDocsShell", "NavaiDocMarkdown"]
+      "screenComponents": [
+        "NavaiDocsShell",
+        "NavaiDocMarkdown"
+      ]
     },
     {
       "id": "documentation-playground-mobile",
@@ -191,7 +229,10 @@
         "demo mobile",
         "react native demo docs"
       ],
-      "screenComponents": ["NavaiDocsShell", "NavaiDocMarkdown"]
+      "screenComponents": [
+        "NavaiDocsShell",
+        "NavaiDocMarkdown"
+      ]
     },
     {
       "id": "documentation-examples",
@@ -208,8 +249,13 @@
         "stores demo",
         "ecommerce examples"
       ],
-      "screenComponents": ["NavaiDocsShell", "DocsSidebarAccordion"],
-      "notes": ["Sidebar submenu group: Tiendas / Stores ecommerce demo and its in-page sections."]
+      "screenComponents": [
+        "NavaiDocsShell",
+        "DocsSidebarAccordion"
+      ],
+      "notes": [
+        "Sidebar submenu group: Tiendas / Stores ecommerce demo and its in-page sections."
+      ]
     },
     {
       "id": "documentation-playground-stores",
@@ -228,7 +274,11 @@
         "demo ecommerce",
         "tienda demo"
       ],
-      "screenComponents": ["NavaiDocsShell", "NavaiDocMarkdown", "EcommerceStoreDemo"],
+      "screenComponents": [
+        "NavaiDocsShell",
+        "NavaiDocMarkdown",
+        "EcommerceStoreDemo"
+      ],
       "notes": [
         "Contains a read-only SQLite seed dataset for realistic ecommerce analytics and reports.",
         "User-created products and purchase simulations are stored in localStorage only.",
@@ -244,8 +294,14 @@
       "title": "Tiendas / Overview",
       "path": "/documentation/playground-stores#ecommerce-demo-overview",
       "description": "Overview section explaining the SQLite seed and localStorage safety model for the ecommerce demo.",
-      "synonyms": ["overview tiendas", "resumen tienda demo", "ecommerce overview"],
-      "screenComponents": ["EcommerceStoreDemo"]
+      "synonyms": [
+        "overview tiendas",
+        "resumen tienda demo",
+        "ecommerce overview"
+      ],
+      "screenComponents": [
+        "EcommerceStoreDemo"
+      ]
     },
     {
       "id": "documentation-playground-stores-reports",
@@ -256,8 +312,14 @@
       "title": "Tiendas / Reports and KPIs",
       "path": "/documentation/playground-stores#ecommerce-demo-reports",
       "description": "SQLite-backed KPI dashboard and category sales report for the demo ecommerce dataset.",
-      "synonyms": ["reportes ecommerce", "kpis tienda", "sales report demo"],
-      "screenComponents": ["EcommerceStoreDemo"]
+      "synonyms": [
+        "reportes ecommerce",
+        "kpis tienda",
+        "sales report demo"
+      ],
+      "screenComponents": [
+        "EcommerceStoreDemo"
+      ]
     },
     {
       "id": "documentation-playground-stores-catalog",
@@ -268,8 +330,14 @@
       "title": "Tiendas / Catalog Browser",
       "path": "/documentation/playground-stores#ecommerce-demo-catalog",
       "description": "Combined catalog table showing read-only seed products and user-created local products.",
-      "synonyms": ["catalogo tienda demo", "catalog browser", "productos demo"],
-      "screenComponents": ["EcommerceStoreDemo"]
+      "synonyms": [
+        "catalogo tienda demo",
+        "catalog browser",
+        "productos demo"
+      ],
+      "screenComponents": [
+        "EcommerceStoreDemo"
+      ]
     },
     {
       "id": "documentation-playground-stores-product-crud",
@@ -280,8 +348,14 @@
       "title": "Tiendas / Product CRUD",
       "path": "/documentation/playground-stores#ecommerce-demo-product-crud",
       "description": "Form section to create, edit, and delete user products stored in localStorage.",
-      "synonyms": ["crud productos", "crear producto demo", "editar producto demo"],
-      "screenComponents": ["EcommerceStoreDemo"]
+      "synonyms": [
+        "crud productos",
+        "crear producto demo",
+        "editar producto demo"
+      ],
+      "screenComponents": [
+        "EcommerceStoreDemo"
+      ]
     },
     {
       "id": "documentation-playground-stores-purchase-form",
@@ -292,8 +366,14 @@
       "title": "Tiendas / Purchase Simulator",
       "path": "/documentation/playground-stores#ecommerce-demo-purchase-form",
       "description": "Form section to simulate purchases on seed or user products, saved locally in the browser.",
-      "synonyms": ["comprar producto demo", "purchase simulator", "simular compra"],
-      "screenComponents": ["EcommerceStoreDemo"]
+      "synonyms": [
+        "comprar producto demo",
+        "purchase simulator",
+        "simular compra"
+      ],
+      "screenComponents": [
+        "EcommerceStoreDemo"
+      ]
     },
     {
       "id": "documentation-playground-stores-seed-orders",
@@ -304,8 +384,14 @@
       "title": "Tiendas / Seed Orders",
       "path": "/documentation/playground-stores#ecommerce-demo-seed-orders",
       "description": "Read-only recent orders table from the SQLite seed database.",
-      "synonyms": ["ordenes demo", "seed orders", "recent orders sqlite"],
-      "screenComponents": ["EcommerceStoreDemo"]
+      "synonyms": [
+        "ordenes demo",
+        "seed orders",
+        "recent orders sqlite"
+      ],
+      "screenComponents": [
+        "EcommerceStoreDemo"
+      ]
     },
     {
       "id": "documentation-libraries",
@@ -321,8 +407,13 @@
         "packages navai",
         "sdk docs"
       ],
-      "screenComponents": ["NavaiDocsShell", "DocsSidebarAccordion"],
-      "notes": ["Sidebar submenu group: backend, frontend, and mobile packages."]
+      "screenComponents": [
+        "NavaiDocsShell",
+        "DocsSidebarAccordion"
+      ],
+      "notes": [
+        "Sidebar submenu group: backend, frontend, and mobile packages."
+      ]
     },
     {
       "id": "documentation-voice-backend",
@@ -339,7 +430,10 @@
         "libreria backend",
         "package voice backend"
       ],
-      "screenComponents": ["NavaiDocsShell", "NavaiDocMarkdown"]
+      "screenComponents": [
+        "NavaiDocsShell",
+        "NavaiDocMarkdown"
+      ]
     },
     {
       "id": "documentation-voice-frontend",
@@ -356,7 +450,10 @@
         "libreria frontend",
         "package voice frontend"
       ],
-      "screenComponents": ["NavaiDocsShell", "NavaiDocMarkdown"]
+      "screenComponents": [
+        "NavaiDocsShell",
+        "NavaiDocMarkdown"
+      ]
     },
     {
       "id": "documentation-voice-mobile",
@@ -373,7 +470,272 @@
         "libreria mobile",
         "package voice mobile"
       ],
-      "screenComponents": ["NavaiDocsShell", "NavaiDocMarkdown"]
+      "screenComponents": [
+        "NavaiDocsShell",
+        "NavaiDocMarkdown"
+      ]
+    },
+    {
+      "id": "wordpress",
+      "group": "wordpress",
+      "kind": "page",
+      "name": "wordpress",
+      "title": "WordPress Integration",
+      "path": "/wordpress",
+      "description": "WordPress integration guide with plugin installation, configuration, security, backend endpoints, and operations.",
+      "synonyms": [
+        "wordpress",
+        "integracion wordpress",
+        "plugin wordpress",
+        "guia wordpress",
+        "wordpress nav ai"
+      ],
+      "screenComponents": [
+        "KnowledgeTemplate"
+      ],
+      "notes": [
+        "Contains anchor submenus for setup, admin modules, security, REST endpoints, and operations."
+      ]
+    },
+    {
+      "id": "wordpress-overview",
+      "group": "wordpress",
+      "kind": "section",
+      "parentId": "wordpress",
+      "name": "wordpress-overview",
+      "title": "WordPress / Overview",
+      "path": "/wordpress#overview",
+      "description": "Plugin overview and architecture baseline.",
+      "synonyms": [
+        "overview wordpress",
+        "resumen wordpress",
+        "que es el plugin"
+      ],
+      "screenComponents": [
+        "KnowledgeTemplate"
+      ]
+    },
+    {
+      "id": "wordpress-quick-access",
+      "group": "wordpress",
+      "kind": "section",
+      "parentId": "wordpress",
+      "name": "wordpress-quick-access",
+      "title": "WordPress / Quick Access",
+      "path": "/wordpress#quick-access",
+      "description": "Fast operational summary and quick links.",
+      "synonyms": [
+        "accesos rapidos wordpress",
+        "quick access wordpress"
+      ],
+      "screenComponents": [
+        "KnowledgeTemplate"
+      ]
+    },
+    {
+      "id": "wordpress-capabilities",
+      "group": "wordpress",
+      "kind": "section",
+      "parentId": "wordpress",
+      "name": "wordpress-capabilities",
+      "title": "WordPress / Capabilities",
+      "path": "/wordpress#capabilities",
+      "description": "Current plugin capabilities and supported workflows.",
+      "synonyms": [
+        "capacidades wordpress",
+        "features wordpress plugin"
+      ],
+      "screenComponents": [
+        "KnowledgeTemplate"
+      ]
+    },
+    {
+      "id": "wordpress-requirements",
+      "group": "wordpress",
+      "kind": "section",
+      "parentId": "wordpress",
+      "name": "wordpress-requirements",
+      "title": "WordPress / Requirements",
+      "path": "/wordpress#requirements",
+      "description": "Minimum WordPress, PHP, and OpenAI requirements.",
+      "synonyms": [
+        "requisitos wordpress",
+        "wordpress requirements"
+      ],
+      "screenComponents": [
+        "KnowledgeTemplate"
+      ]
+    },
+    {
+      "id": "wordpress-installation-admin",
+      "group": "wordpress",
+      "kind": "section",
+      "parentId": "wordpress",
+      "name": "wordpress-installation-admin",
+      "title": "WordPress / Installation (Admin)",
+      "path": "/wordpress#installation-admin",
+      "description": "Installation flow from WordPress admin dashboard.",
+      "synonyms": [
+        "instalacion admin wordpress",
+        "upload plugin wordpress"
+      ],
+      "screenComponents": [
+        "KnowledgeTemplate"
+      ]
+    },
+    {
+      "id": "wordpress-installation-manual",
+      "group": "wordpress",
+      "kind": "section",
+      "parentId": "wordpress",
+      "name": "wordpress-installation-manual",
+      "title": "WordPress / Installation (Manual)",
+      "path": "/wordpress#installation-manual",
+      "description": "Manual filesystem installation steps.",
+      "synonyms": [
+        "instalacion manual wordpress",
+        "filesystem wordpress plugin"
+      ],
+      "screenComponents": [
+        "KnowledgeTemplate"
+      ]
+    },
+    {
+      "id": "wordpress-quick-setup",
+      "group": "wordpress",
+      "kind": "section",
+      "parentId": "wordpress",
+      "name": "wordpress-quick-setup",
+      "title": "WordPress / Quick Setup",
+      "path": "/wordpress#quick-setup",
+      "description": "Recommended quick setup for first voice session.",
+      "synonyms": [
+        "configuracion rapida wordpress",
+        "quick setup wordpress"
+      ],
+      "screenComponents": [
+        "KnowledgeTemplate"
+      ]
+    },
+    {
+      "id": "wordpress-usage",
+      "group": "wordpress",
+      "kind": "section",
+      "parentId": "wordpress",
+      "name": "wordpress-usage",
+      "title": "WordPress / Usage Modes",
+      "path": "/wordpress#usage",
+      "description": "Global button mode and shortcode mode usage.",
+      "synonyms": [
+        "uso wordpress",
+        "modo shortcode wordpress",
+        "usage wordpress"
+      ],
+      "screenComponents": [
+        "KnowledgeTemplate"
+      ]
+    },
+    {
+      "id": "wordpress-admin-tabs",
+      "group": "wordpress",
+      "kind": "section",
+      "parentId": "wordpress",
+      "name": "wordpress-admin-tabs",
+      "title": "WordPress / Admin Tabs",
+      "path": "/wordpress#admin-tabs",
+      "description": "Admin dashboard modules and navigation tabs.",
+      "synonyms": [
+        "panel wordpress",
+        "admin tabs wordpress"
+      ],
+      "screenComponents": [
+        "KnowledgeTemplate"
+      ]
+    },
+    {
+      "id": "wordpress-guardrails-phases",
+      "group": "wordpress",
+      "kind": "section",
+      "parentId": "wordpress",
+      "name": "wordpress-guardrails-phases",
+      "title": "WordPress / Guardrails Phases",
+      "path": "/wordpress#guardrails-phases",
+      "description": "Guardrails and advanced phase roadmap.",
+      "synonyms": [
+        "guardrails wordpress",
+        "fases wordpress"
+      ],
+      "screenComponents": [
+        "KnowledgeTemplate"
+      ]
+    },
+    {
+      "id": "wordpress-rest-endpoints",
+      "group": "wordpress",
+      "kind": "section",
+      "parentId": "wordpress",
+      "name": "wordpress-rest-endpoints",
+      "title": "WordPress / REST Endpoints",
+      "path": "/wordpress#rest-endpoints",
+      "description": "Main REST endpoints exposed by the plugin.",
+      "synonyms": [
+        "endpoints wordpress",
+        "rest wordpress"
+      ],
+      "screenComponents": [
+        "KnowledgeTemplate"
+      ]
+    },
+    {
+      "id": "wordpress-backend-extensibility",
+      "group": "wordpress",
+      "kind": "section",
+      "parentId": "wordpress",
+      "name": "wordpress-backend-extensibility",
+      "title": "WordPress / Backend Extensibility",
+      "path": "/wordpress#backend-extensibility",
+      "description": "Backend extension filters and integration points.",
+      "synonyms": [
+        "extensibilidad wordpress",
+        "filters wordpress plugin"
+      ],
+      "screenComponents": [
+        "KnowledgeTemplate"
+      ]
+    },
+    {
+      "id": "wordpress-security",
+      "group": "wordpress",
+      "kind": "section",
+      "parentId": "wordpress",
+      "name": "wordpress-security",
+      "title": "WordPress / Security",
+      "path": "/wordpress#security",
+      "description": "Security guidance for keys, routes, and function guardrails.",
+      "synonyms": [
+        "seguridad wordpress",
+        "security wordpress"
+      ],
+      "screenComponents": [
+        "KnowledgeTemplate"
+      ]
+    },
+    {
+      "id": "wordpress-operations",
+      "group": "wordpress",
+      "kind": "section",
+      "parentId": "wordpress",
+      "name": "wordpress-operations",
+      "title": "WordPress / Operations",
+      "path": "/wordpress#operations",
+      "description": "Packaging, deployment updates, and troubleshooting.",
+      "synonyms": [
+        "operaciones wordpress",
+        "troubleshooting wordpress"
+      ],
+      "screenComponents": [
+        "KnowledgeTemplate"
+      ]
     },
     {
       "id": "request-implementation",
@@ -391,7 +753,10 @@
         "solicitar propuesta",
         "hire implementation"
       ],
-      "screenComponents": ["KnowledgeTemplate", "ImplementationContact"],
+      "screenComponents": [
+        "KnowledgeTemplate",
+        "ImplementationContact"
+      ],
       "notes": [
         "Contains implementation scope sections, pricing plans, and contact form.",
         "Has anchor submenus for service scope, process, pricing, plans, and contact."
@@ -412,7 +777,9 @@
         "alcance",
         "deliverables"
       ],
-      "screenComponents": ["KnowledgeTemplate"]
+      "screenComponents": [
+        "KnowledgeTemplate"
+      ]
     },
     {
       "id": "request-implementation-process",
@@ -428,7 +795,9 @@
         "delivery process",
         "implementation process"
       ],
-      "screenComponents": ["KnowledgeTemplate"]
+      "screenComponents": [
+        "KnowledgeTemplate"
+      ]
     },
     {
       "id": "request-implementation-pricing-note",
@@ -444,7 +813,9 @@
         "pricing model",
         "modelo de precios"
       ],
-      "screenComponents": ["KnowledgeTemplate"]
+      "screenComponents": [
+        "KnowledgeTemplate"
+      ]
     },
     {
       "id": "request-implementation-plans",
@@ -461,7 +832,9 @@
         "pricing plans",
         "starter growth scale enterprise"
       ],
-      "screenComponents": ["KnowledgeTemplate"]
+      "screenComponents": [
+        "KnowledgeTemplate"
+      ]
     },
     {
       "id": "request-implementation-contact",
@@ -478,7 +851,9 @@
         "formulario",
         "whatsapp"
       ],
-      "screenComponents": ["ImplementationContact"]
+      "screenComponents": [
+        "ImplementationContact"
+      ]
     }
   ]
 }

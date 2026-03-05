@@ -117,9 +117,15 @@ function buildPagePurposeProfile(route, parent, children) {
     agentGuidance.push("Use URL hashes for direct jumps to plans, pricing note, process, or contact form.");
   }
 
+  if (group === "wordpress") {
+    pageRole.push("WordPress integration guide surface");
+    whatUserCanDo.push("Review plugin setup, guardrails, endpoint contracts, and operational checklists");
+    agentGuidance.push("Use URL hashes for direct jumps to setup, security, endpoints, and operations sections.");
+  }
+
   if (group === "app") {
     pageRole.push("Top-level application surface");
-    whatUserCanDo.push("Use entry-point actions to access documentation, implementation, or the voice demo");
+    whatUserCanDo.push("Use entry-point actions to access documentation, implementation, WordPress, or the voice demo");
   }
 
   if (components.includes("NavaiMicButton")) {
@@ -168,8 +174,12 @@ function buildPagePurposeProfile(route, parent, children) {
     contentSources.push("ImplementationContact form");
   }
 
-  if (route.path === "/documentation") {
-    whatUserCanDo.push("Enter the documentation hub (redirects to /documentation/home)");
+  if (route.path === "/documentation/home") {
+    whatUserCanDo.push("Open the main documentation home page.");
+  }
+
+  if (route.path === "/wordpress") {
+    whatUserCanDo.push("Open the WordPress integration guide and navigate its anchored sections.");
   }
 
   if (childItems.length > 0) {
@@ -192,6 +202,9 @@ function buildPagePurposeProfile(route, parent, children) {
   }
   if (group === "implementation") {
     audienceHints.push("Teams requesting implementation services");
+  }
+  if (group === "wordpress") {
+    audienceHints.push("Teams integrating NAVAI in WordPress");
   }
   if (group === "app" && route.path === "/") {
     audienceHints.push("Visitors exploring NAVAI capabilities");
