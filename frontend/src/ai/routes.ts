@@ -15,7 +15,10 @@ type NavigationCatalogData = {
 const catalog = navigationCatalog as NavigationCatalogData;
 
 const EXCLUDED_PATH_PREFIXES = ["/example"];
-const EXCLUDED_PATHS = new Set<string>(["/documentation/playground-stores"]);
+const EXCLUDED_PATHS = new Set<string>([
+  "/documentation",
+  "/documentation/playground-stores",
+]);
 
 export const NAVAI_ROUTE_ITEMS: NavaiRoute[] = catalog.routes
   .filter((route) => {

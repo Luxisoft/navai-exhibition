@@ -54,12 +54,38 @@ function warnNavigationFallback(href: string, error: unknown) {
   );
 }
 
+function resolveStableAppHref(href: string) {
+  if (typeof window === "undefined") {
+    return href;
+  }
+
+  let parsedHref: URL;
+  try {
+    parsedHref = new URL(href, window.location.href);
+  } catch {
+    return href;
+  }
+
+  if (parsedHref.origin !== window.location.origin) {
+    return href;
+  }
+
+  const normalizedPathname = normalizePathname(parsedHref.pathname);
+  if (normalizedPathname === "/documentation") {
+    parsedHref.pathname = "/documentation/home";
+  }
+
+  const normalizedSearch = parsedHref.search;
+  const normalizedHash = parsedHref.hash;
+  return `${parsedHref.pathname}${normalizedSearch}${normalizedHash}`;
+}
+
 export async function navigatePath(href: string, options?: { replace?: boolean }) {
   if (typeof window === "undefined") {
     return;
   }
 
-  const normalizedHref = String(href ?? "").trim();
+  const normalizedHref = resolveStableAppHref(String(href ?? "").trim());
   if (!normalizedHref) {
     return;
   }
