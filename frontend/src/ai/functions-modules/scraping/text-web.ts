@@ -5,8 +5,29 @@ type ScrapeOptions = {
   includeLinkText?: boolean; // incluye o no textos dentro de enlaces
   excludeUrlLikeText?: boolean; // filtra textos que son URL
   chunkSize?: number; // imprime en bloques (0 = todo)
-  debug?: boolean; // logs de consola para depuracion
+  debug?: boolean; // logs de consola para depuracion (override explicito)
 };
+
+function parseDebugFlag(raw: unknown): boolean {
+  if (typeof raw !== "string") return false;
+  const normalized = raw.trim().toLowerCase();
+  return ["1", "true", "yes", "on"].includes(normalized);
+}
+
+function shouldEnableScrapingDebug(explicitDebug: boolean | undefined): boolean {
+  if (typeof explicitDebug === "boolean") {
+    return explicitDebug;
+  }
+
+  const windowDebug =
+    typeof window !== "undefined" &&
+    Boolean((window as Window & { __NAVAI_SCRAPE_DEBUG__?: unknown }).__NAVAI_SCRAPE_DEBUG__);
+
+  const envDebug = parseDebugFlag(import.meta.env.PUBLIC_NAVAI_SCRAPE_DEBUG);
+  const devDebug = Boolean(import.meta.env.DEV);
+
+  return windowDebug || envDebug || devDebug;
+}
 
 export function scrapePageText(options: ScrapeOptions = {}): string[] {
   const {
@@ -16,8 +37,9 @@ export function scrapePageText(options: ScrapeOptions = {}): string[] {
     includeLinkText = false,
     excludeUrlLikeText = true,
     chunkSize = 200,
-    debug = false,
+    debug,
   } = options;
+  const debugEnabled = shouldEnableScrapingDebug(debug);
 
   if (typeof window === "undefined" || typeof document === "undefined") {
     return [];
@@ -45,32 +67,66 @@ export function scrapePageText(options: ScrapeOptions = {}): string[] {
   const isUrlLikeText = (text: string): boolean =>
     /^(https?:\/\/|www\.)\S+$/i.test(text) || /^(mailto:|tel:)\S+$/i.test(text);
 
-  const visibilityCache = new WeakMap<Element, boolean>();
+  const styleVisibilityCache = new WeakMap<Element, boolean>();
+  const boxVisibilityCache = new WeakMap<Element, boolean>();
 
-  const isElementVisible = (el: Element): boolean => {
-    const cached = visibilityCache.get(el);
+  const isElementStyleVisible = (el: Element): boolean => {
+    const cached = styleVisibilityCache.get(el);
+    if (typeof cached === "boolean") return cached;
+
+    let current: Element | null = el;
+    const visited: Element[] = [];
+
+    while (current) {
+      const cachedCurrent = styleVisibilityCache.get(current);
+      if (typeof cachedCurrent === "boolean") {
+        for (const item of visited) styleVisibilityCache.set(item, cachedCurrent);
+        return cachedCurrent;
+      }
+
+      visited.push(current);
+      const htmlEl = current as HTMLElement;
+
+      if (htmlEl.hidden || htmlEl.getAttribute("aria-hidden") === "true") {
+        for (const item of visited) styleVisibilityCache.set(item, false);
+        return false;
+      }
+
+      const style = window.getComputedStyle(htmlEl);
+      if (
+        style.display === "none" ||
+        style.visibility === "hidden" ||
+        Number.parseFloat(style.opacity || "1") <= 0
+      ) {
+        for (const item of visited) styleVisibilityCache.set(item, false);
+        return false;
+      }
+
+      current = current.parentElement;
+    }
+
+    for (const item of visited) styleVisibilityCache.set(item, true);
+    return true;
+  };
+
+  const hasRenderableBox = (el: Element): boolean => {
+    const cached = boxVisibilityCache.get(el);
     if (typeof cached === "boolean") return cached;
 
     const htmlEl = el as HTMLElement;
-    if (htmlEl.hidden || htmlEl.getAttribute("aria-hidden") === "true") {
-      visibilityCache.set(el, false);
-      return false;
-    }
-
-    const style = window.getComputedStyle(htmlEl);
-    if (
-      style.display === "none" ||
-      style.visibility === "hidden" ||
-      Number.parseFloat(style.opacity || "1") <= 0
-    ) {
-      visibilityCache.set(el, false);
-      return false;
-    }
-
     const rect = htmlEl.getBoundingClientRect();
-    const visible = !(rect.width === 0 && rect.height === 0);
-    visibilityCache.set(el, visible);
-    return visible;
+    if (rect.width > 0 || rect.height > 0) {
+      boxVisibilityCache.set(el, true);
+      return true;
+    }
+
+    if (htmlEl.getClientRects().length > 0) {
+      boxVisibilityCache.set(el, true);
+      return true;
+    }
+
+    boxVisibilityCache.set(el, false);
+    return false;
   };
 
   const texts: string[] = [];
@@ -80,7 +136,6 @@ export function scrapePageText(options: ScrapeOptions = {}): string[] {
       if (node.nodeType === Node.ELEMENT_NODE) {
         const el = node as Element;
         if (SKIP_TAGS.has(el.tagName)) return NodeFilter.FILTER_REJECT;
-        if (onlyVisible && !isElementVisible(el)) return NodeFilter.FILTER_REJECT;
         return NodeFilter.FILTER_SKIP;
       }
 
@@ -88,8 +143,11 @@ export function scrapePageText(options: ScrapeOptions = {}): string[] {
         const parent = node.parentElement;
         if (!parent) return NodeFilter.FILTER_REJECT;
         if (SKIP_TAGS.has(parent.tagName)) return NodeFilter.FILTER_REJECT;
-        if (onlyVisible && !isElementVisible(parent)) return NodeFilter.FILTER_REJECT;
         if (!includeLinkText && parent.closest("a")) return NodeFilter.FILTER_REJECT;
+
+        if (onlyVisible && (!isElementStyleVisible(parent) || !hasRenderableBox(parent))) {
+          return NodeFilter.FILTER_REJECT;
+        }
 
         const text = normalize(node.nodeValue);
         if (text.length < minLength) return NodeFilter.FILTER_REJECT;
@@ -135,13 +193,39 @@ export function scrapePageText(options: ScrapeOptions = {}): string[] {
     });
   }
 
-  if (debug) {
-    console.log(`Textos extraidos: ${output.length}`);
+  if (onlyVisible && output.length <= 1) {
+    const relaxedOutput = scrapePageText({
+      dedupe,
+      minLength,
+      onlyVisible: false,
+      includeLinkText,
+      excludeUrlLikeText,
+      chunkSize: 0,
+      debug: false,
+    });
+    if (relaxedOutput.length > output.length) {
+      if (debugEnabled) {
+        console.warn(
+          `[NAVAI][scrape_page_text] Resultado bajo con onlyVisible=true (${output.length}). Aplicando fallback con onlyVisible=false (${relaxedOutput.length}).`
+        );
+      }
+      output = relaxedOutput;
+    }
+  }
+
+  if (debugEnabled) {
+    console.log(
+      `[NAVAI][scrape_page_text] Textos extraidos: ${output.length} | onlyVisible=${onlyVisible} | includeLinkText=${includeLinkText} | excludeUrlLikeText=${excludeUrlLikeText} | minLength=${minLength}`
+    );
+    console.log("[NAVAI][scrape_page_text] Payload exacto que usa NAVAI (array):", output);
 
     if (!chunkSize || chunkSize <= 0) {
+      console.log("[NAVAI][scrape_page_text] Texto completo usado por NAVAI:");
       console.log(output.join("\n"));
     } else {
       for (let i = 0; i < output.length; i += chunkSize) {
+        const chunkIndex = Math.floor(i / chunkSize) + 1;
+        console.log(`[NAVAI][scrape_page_text] Chunk ${chunkIndex}`);
         console.log(output.slice(i, i + chunkSize).join("\n"));
       }
     }

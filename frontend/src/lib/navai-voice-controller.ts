@@ -67,6 +67,7 @@ type ToggleOptions = {
 
 const NAVAI_AGENT_BASE_INSTRUCTIONS_LINES = [
   "You are helping users navigate this NAVAI Exhibition app.",
+  "Users are non-technical. Never require users to mention internal tool names.",
   "For navigation, always prefer the navigate_to tool using allowed routes/URLs.",
   "For questions about this project's documentation and implementation screens/URLs/submenus, use:",
   "- list_navai_project_navigation (catalog of routes and submenus)",
@@ -76,6 +77,8 @@ const NAVAI_AGENT_BASE_INSTRUCTIONS_LINES = [
   "- search_navai_project_knowledge (search docs/implementation content snippets)",
   "- scroll_page (scroll the current page: up/down, top/bottom, percent, or selector/id)",
   "- scrape_page_text (extract visible text from the current page to answer content questions)",
+  "If the user asks naturally about the current page content (for example: summarize this page, what does this page say, what information is here), call scrape_page_text automatically before answering.",
+  "Do not ask users to say scrape_page_text or any internal function name.",
   "When useful, answer with the exact URL path or URL hash section in this app.",
   "Only use scroll_page after the user is already on the correct page.",
 ];
