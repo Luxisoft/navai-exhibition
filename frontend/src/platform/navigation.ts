@@ -25,10 +25,33 @@ async function tryAstroNavigate(href: string, history: "push" | "replace") {
   try {
     const transitionsClient = await import("astro:transitions/client");
     await transitionsClient.navigate(href, { history });
-    return true;
-  } catch {
-    return false;
+    return { handled: true as const, error: null };
+  } catch (error) {
+    return { handled: false as const, error };
   }
+}
+
+let hasWarnedNavigationFallback = false;
+
+function warnNavigationFallback(href: string, error: unknown) {
+  if (hasWarnedNavigationFallback || typeof console === "undefined") {
+    return;
+  }
+
+  hasWarnedNavigationFallback = true;
+  const reason = error instanceof Error ? error.message : String(error ?? "");
+  if (reason) {
+    console.warn(
+      "[NAVAI] Client-side navigation fallback to full reload. Voice session may reset between pages.",
+      { href, reason }
+    );
+    return;
+  }
+
+  console.warn(
+    "[NAVAI] Client-side navigation fallback to full reload. Voice session may reset between pages.",
+    { href }
+  );
 }
 
 export async function navigatePath(href: string, options?: { replace?: boolean }) {
@@ -42,10 +65,15 @@ export async function navigatePath(href: string, options?: { replace?: boolean }
   }
 
   const replace = options?.replace === true;
-  const handledByAstro = await tryAstroNavigate(normalizedHref, replace ? "replace" : "push");
-  if (handledByAstro) {
+  const astroNavigationResult = await tryAstroNavigate(
+    normalizedHref,
+    replace ? "replace" : "push"
+  );
+  if (astroNavigationResult.handled) {
     return;
   }
+
+  warnNavigationFallback(normalizedHref, astroNavigationResult.error);
 
   if (replace) {
     window.location.replace(normalizedHref);
