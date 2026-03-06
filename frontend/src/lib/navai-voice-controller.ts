@@ -1,10 +1,11 @@
 import { NAVAI_FRONTEND_FUNCTION_LOADERS } from "@/ai/frontend-function-loaders";
 import { NAVAI_ROUTE_ITEMS } from "@/ai/routes";
 import { getBackendApiBaseUrl } from "@/lib/backend-api";
+import type { NavaiAgentVoiceState, NavaiSessionStatus } from "@/lib/navai-agent-state";
 import { navigatePath } from "@/platform/navigation";
 import type { LanguageCode } from "@/i18n/messages";
 
-export type VoiceState = "idle" | "connecting" | "connected" | "error";
+export type VoiceState = NavaiSessionStatus;
 export type BackendConnectionState = "idle" | "checking" | "ready" | "offline" | "unreachable";
 export type ApiKeyValidationState = "idle" | "checking" | "valid" | "invalid";
 
@@ -16,6 +17,7 @@ type NavaiBackendClientLike = {
 
 type RealtimeSessionLike = {
   on: (event: string, listener: (...args: any[]) => void) => void;
+  off?: (event: string, listener: (...args: any[]) => void) => void;
   connect: (options: { apiKey: string }) => Promise<void>;
   updateAgent: (newAgent: any) => Promise<any>;
   close: () => void;
@@ -31,7 +33,8 @@ type VoiceRuntime = {
     executeBackendFunction: NavaiBackendClientLike["executeFunction"];
   }) => Promise<{ agent: any; warnings: string[] }>;
   createNavaiBackendClient: (options: { apiBaseUrl: string }) => NavaiBackendClientLike;
-  RealtimeSession: new (agent: any) => RealtimeSessionLike;
+  RealtimeSession: new (agent: any, options?: { transport?: unknown }) => RealtimeSessionLike;
+  OpenAIRealtimeWebRTC?: new (options?: { audioElement?: HTMLAudioElement }) => unknown;
 };
 
 export type NavaiMicMessages = {
@@ -52,7 +55,9 @@ export type NavaiVoiceSnapshot = {
   isApiKeyValidated: boolean;
   apiKeyValidationState: ApiKeyValidationState;
   backendConnectionState: BackendConnectionState;
+  status: NavaiSessionStatus;
   state: VoiceState;
+  agentVoiceState: NavaiAgentVoiceState;
   ariaMessage: string;
   statusMessage: string;
   isAgentSpeaking: boolean;
@@ -90,20 +95,29 @@ type NavaiVoiceControllerGlobalHost = typeof globalThis & {
   [NAVAI_VOICE_CONTROLLER_API_KEY]?: NavaiVoiceControllerApi;
 };
 
+const NAVAI_DEBUG_STATE_LOGS = true;
+
 let localControllerApi: NavaiVoiceControllerApi | null = null;
+
+function logNavaiVoiceDebug(event: string, payload: Record<string, unknown> = {}) {
+  if (typeof window === "undefined" || !NAVAI_DEBUG_STATE_LOGS) {
+    return;
+  }
+  console.log(`[NAVAI][VoiceController] ${event}`, payload);
+}
 
 function getControllerApi() {
   const host = globalThis as NavaiVoiceControllerGlobalHost;
+  if (localControllerApi) {
+    host[NAVAI_VOICE_CONTROLLER_API_KEY] = localControllerApi;
+    return host[NAVAI_VOICE_CONTROLLER_API_KEY];
+  }
+
   if (host[NAVAI_VOICE_CONTROLLER_API_KEY]) {
     return host[NAVAI_VOICE_CONTROLLER_API_KEY];
   }
 
-  if (!localControllerApi) {
-    throw new Error("NAVAI voice controller API is not initialized.");
-  }
-
-  host[NAVAI_VOICE_CONTROLLER_API_KEY] = localControllerApi;
-  return host[NAVAI_VOICE_CONTROLLER_API_KEY];
+  throw new Error("NAVAI voice controller API is not initialized.");
 }
 
 const NAVAI_AGENT_BASE_INSTRUCTIONS_LINES = [
@@ -152,11 +166,17 @@ const initialSnapshot: NavaiVoiceSnapshot = {
   isApiKeyValidated: false,
   apiKeyValidationState: "idle",
   backendConnectionState: "idle",
+  status: "idle",
   state: "idle",
+  agentVoiceState: "idle",
   ariaMessage: "",
   statusMessage: "",
   isAgentSpeaking: false,
 };
+
+export function createInitialNavaiVoiceSnapshot(): NavaiVoiceSnapshot {
+  return { ...initialSnapshot };
+}
 
 let currentSnapshot: NavaiVoiceSnapshot = { ...initialSnapshot };
 let voiceRuntimePromise: Promise<VoiceRuntime> | null = null;
@@ -166,13 +186,12 @@ let backendFunctionsRef: any[] = [];
 let navigateHandlerRef: ((path: string) => void) | null = null;
 let activeLanguageCode: LanguageCode = "es";
 let speakingState = false;
-let audioPlaying = false;
-let agentTurnActive = false;
-let audioSeenInTurn = false;
-let speakingFallbackUntil = 0;
-let speakingOffTimeout: number | null = null;
+let modelSpeakingSignal = false;
+let playbackSpeakingSignal = false;
 let startInFlight: Promise<void> | null = null;
 let beforeUnloadBound = false;
+let attachedSessionRef: RealtimeSessionLike | null = null;
+let detachPlaybackTrackObserverRef: (() => void) | null = null;
 
 const snapshotListeners = new Set<(snapshot: NavaiVoiceSnapshot) => void>();
 const speakingListeners = new Set<(isSpeaking: boolean) => void>();
@@ -199,10 +218,29 @@ function notifySpeakingListeners() {
 }
 
 function patchSnapshot(patch: Partial<NavaiVoiceSnapshot>) {
+  const normalizedPatch: Partial<NavaiVoiceSnapshot> = { ...patch };
+
+  if (typeof normalizedPatch.state === "string" && typeof normalizedPatch.status !== "string") {
+    normalizedPatch.status = normalizedPatch.state;
+  } else if (typeof normalizedPatch.status === "string" && typeof normalizedPatch.state !== "string") {
+    normalizedPatch.state = normalizedPatch.status;
+  }
+
+  if (typeof normalizedPatch.isAgentSpeaking === "boolean" && typeof normalizedPatch.agentVoiceState !== "string") {
+    normalizedPatch.agentVoiceState = normalizedPatch.isAgentSpeaking ? "speaking" : "idle";
+  } else if (
+    typeof normalizedPatch.agentVoiceState === "string" &&
+    typeof normalizedPatch.isAgentSpeaking !== "boolean"
+  ) {
+    normalizedPatch.isAgentSpeaking = normalizedPatch.agentVoiceState === "speaking";
+  }
+
   let changed = false;
   let speakingChanged = false;
 
-  for (const [key, value] of Object.entries(patch) as Array<[keyof NavaiVoiceSnapshot, NavaiVoiceSnapshot[keyof NavaiVoiceSnapshot]]>) {
+  for (const [key, value] of Object.entries(normalizedPatch) as Array<
+    [keyof NavaiVoiceSnapshot, NavaiVoiceSnapshot[keyof NavaiVoiceSnapshot]]
+  >) {
     if (Object.is(currentSnapshot[key], value)) {
       continue;
     }
@@ -211,13 +249,32 @@ function patchSnapshot(patch: Partial<NavaiVoiceSnapshot>) {
       [key]: value,
     };
     changed = true;
-    if (key === "isAgentSpeaking") {
+    if (key === "isAgentSpeaking" || key === "agentVoiceState") {
       speakingChanged = true;
     }
   }
 
   if (!changed) {
     return;
+  }
+
+  if (speakingChanged) {
+    speakingState = currentSnapshot.agentVoiceState === "speaking";
+  }
+
+  if (
+    "state" in normalizedPatch ||
+    "status" in normalizedPatch ||
+    "agentVoiceState" in normalizedPatch ||
+    "isAgentSpeaking" in normalizedPatch
+  ) {
+    logNavaiVoiceDebug("snapshot_update", {
+      changedKeys: Object.keys(normalizedPatch),
+      status: currentSnapshot.status,
+      state: currentSnapshot.state,
+      agentVoiceState: currentSnapshot.agentVoiceState,
+      isAgentSpeaking: currentSnapshot.isAgentSpeaking,
+    });
   }
 
   emitSnapshot();
@@ -241,18 +298,6 @@ function bindBeforeUnload() {
   });
 }
 
-function estimateSpeechDurationMs(outputText: string) {
-  const normalized = outputText.trim();
-  if (normalized.length === 0) {
-    return 1400;
-  }
-
-  const wordCount = normalized.split(/\s+/).filter(Boolean).length;
-  const tokenLikeCount = wordCount > 1 ? wordCount : Math.ceil(normalized.length / 3);
-  const estimatedMs = Math.round((tokenLikeCount / 2.6) * 1000) + 700;
-  return Math.max(1800, Math.min(16000, estimatedMs));
-}
-
 function formatVoiceError(error: unknown, messages: NavaiMicMessages) {
   const message = error instanceof Error ? error.message : String(error);
 
@@ -273,40 +318,244 @@ function formatVoiceError(error: unknown, messages: NavaiMicMessages) {
   return message || messages.genericError;
 }
 
-function clearSpeakingOffTimeout() {
-  if (speakingOffTimeout !== null && typeof window !== "undefined") {
-    window.clearTimeout(speakingOffTimeout);
-  }
-  speakingOffTimeout = null;
-}
-
 function setSpeakingState(isSpeaking: boolean) {
   if (speakingState === isSpeaking) {
     return;
   }
+  const previousSpeakingState = speakingState;
   speakingState = isSpeaking;
-  patchSnapshot({ isAgentSpeaking: isSpeaking });
+  patchSnapshot({
+    isAgentSpeaking: isSpeaking,
+    agentVoiceState: isSpeaking ? "speaking" : "idle",
+  });
+  logNavaiVoiceDebug("speaking_transition", {
+    from: previousSpeakingState ? "speaking" : "idle",
+    to: isSpeaking ? "speaking" : "idle",
+  });
 }
 
-function scheduleSpeakingOff(delayMs = 1200) {
+function applySpeakingSignals() {
+  const isConnected = currentSnapshot.state === "connected";
+  setSpeakingState(isConnected && (modelSpeakingSignal || playbackSpeakingSignal));
+}
+
+function setModelSpeakingSignal(isSpeaking: boolean, source: string) {
+  if (modelSpeakingSignal === isSpeaking) {
+    return;
+  }
+
+  const previous = modelSpeakingSignal;
+  modelSpeakingSignal = isSpeaking;
+  logNavaiVoiceDebug("model_speaking_signal", {
+    source,
+    from: previous ? "speaking" : "idle",
+    to: isSpeaking ? "speaking" : "idle",
+  });
+  applySpeakingSignals();
+}
+
+function setPlaybackSpeakingSignal(isSpeaking: boolean, source: string) {
+  if (playbackSpeakingSignal === isSpeaking) {
+    return;
+  }
+
+  const previous = playbackSpeakingSignal;
+  playbackSpeakingSignal = isSpeaking;
+  logNavaiVoiceDebug("playback_speaking_signal", {
+    source,
+    from: previous ? "speaking" : "idle",
+    to: isSpeaking ? "speaking" : "idle",
+  });
+  applySpeakingSignals();
+}
+
+function clearSpeakingSignals(source: string) {
+  modelSpeakingSignal = false;
+  playbackSpeakingSignal = false;
+  logNavaiVoiceDebug("speaking_signals_cleared", {
+    source,
+  });
+  applySpeakingSignals();
+}
+
+function detachPlaybackTrackObserver() {
+  detachPlaybackTrackObserverRef?.();
+  detachPlaybackTrackObserverRef = null;
+}
+
+function attachPlaybackTrackObserver(audioElement: HTMLAudioElement) {
   if (typeof window === "undefined") {
     return;
   }
-  clearSpeakingOffTimeout();
-  speakingOffTimeout = window.setTimeout(() => {
-    speakingOffTimeout = null;
-    if (!agentTurnActive && !audioPlaying) {
-      setSpeakingState(false);
+
+  detachPlaybackTrackObserver();
+
+  let currentTrack: MediaStreamTrack | null = null;
+
+  const onTrackUnmute = () => {
+    logNavaiVoiceDebug("track_unmute");
+  };
+  const onTrackMute = () => {
+    logNavaiVoiceDebug("track_mute");
+  };
+  const onTrackEnded = () => {
+    logNavaiVoiceDebug("track_ended");
+  };
+
+  const detachTrackListeners = () => {
+    if (!currentTrack) {
+      return;
     }
-  }, delayMs);
+    currentTrack.removeEventListener("unmute", onTrackUnmute);
+    currentTrack.removeEventListener("mute", onTrackMute);
+    currentTrack.removeEventListener("ended", onTrackEnded);
+    currentTrack = null;
+  };
+
+  const attachTrackListeners = (track: MediaStreamTrack) => {
+    track.addEventListener("unmute", onTrackUnmute);
+    track.addEventListener("mute", onTrackMute);
+    track.addEventListener("ended", onTrackEnded);
+    currentTrack = track;
+    logNavaiVoiceDebug("track_attached", {
+      muted: track.muted,
+      readyState: track.readyState,
+    });
+  };
+
+  const syncTrack = () => {
+    const srcObject = audioElement.srcObject;
+    const stream = srcObject instanceof MediaStream ? srcObject : null;
+    const nextTrack = stream?.getAudioTracks()[0] ?? null;
+
+    if (nextTrack === currentTrack) {
+      return;
+    }
+
+    detachTrackListeners();
+
+    if (!nextTrack) {
+      return;
+    }
+
+    attachTrackListeners(nextTrack);
+  };
+
+  const pollId = window.setInterval(syncTrack, 120);
+  syncTrack();
+
+  detachPlaybackTrackObserverRef = () => {
+    window.clearInterval(pollId);
+    detachTrackListeners();
+  };
 }
 
-function markSpeakingOn() {
-  clearSpeakingOffTimeout();
-  setSpeakingState(true);
+function detachSessionAudioListeners() {
+  if (!attachedSessionRef?.off) {
+    attachedSessionRef = null;
+    return;
+  }
+
+  attachedSessionRef.off("audio_start", handleSessionAudioStart);
+  attachedSessionRef.off("audio", handleSessionAudioChunk);
+  attachedSessionRef.off("audio_stopped", handleSessionAudioStopped);
+  attachedSessionRef.off("audio_interrupted", handleSessionAudioInterrupted);
+  attachedSessionRef.off("transport_event", handleSessionTransportEvent);
+  attachedSessionRef.off("error", handleSessionError);
+  attachedSessionRef = null;
+}
+
+function attachSessionAudioListeners(session: RealtimeSessionLike) {
+  detachSessionAudioListeners();
+  session.on("audio_start", handleSessionAudioStart);
+  session.on("audio", handleSessionAudioChunk);
+  session.on("audio_stopped", handleSessionAudioStopped);
+  session.on("audio_interrupted", handleSessionAudioInterrupted);
+  session.on("transport_event", handleSessionTransportEvent);
+  session.on("error", handleSessionError);
+  attachedSessionRef = session;
+  logNavaiVoiceDebug("session_audio_listeners_attached");
+}
+
+function handleSessionAudioStart() {
+  logNavaiVoiceDebug("event_audio_start");
+  setModelSpeakingSignal(true, "audio_start");
+}
+
+function handleSessionAudioChunk() {
+  setModelSpeakingSignal(true, "audio_chunk");
+}
+
+function handleSessionAudioStopped() {
+  logNavaiVoiceDebug("event_audio_stopped");
+}
+
+function handleSessionAudioInterrupted() {
+  logNavaiVoiceDebug("event_audio_interrupted");
+  setModelSpeakingSignal(false, "audio_interrupted");
+}
+
+function handleSessionError() {
+  logNavaiVoiceDebug("event_error");
+  setModelSpeakingSignal(false, "error");
+}
+
+function handleSessionTransportEvent(event: unknown) {
+  if (!event || typeof event !== "object" || !("type" in event)) {
+    return;
+  }
+
+  const eventType = String((event as { type?: unknown }).type ?? "");
+  if (eventType.length === 0) {
+    return;
+  }
+
+  const modelSpeakingStartEvent =
+    eventType === "response.output_audio.delta" ||
+    eventType === "response.output_audio_transcript.delta";
+  const modelSpeakingStopEvent = eventType === "response.output_audio_transcript.done";
+  const playbackSpeakingStartEvent = eventType === "output_audio_buffer.started";
+  const playbackSpeakingStopEvent =
+    eventType === "output_audio_buffer.stopped" ||
+    eventType === "output_audio_buffer.cleared";
+
+  if (
+    !modelSpeakingStartEvent &&
+    !modelSpeakingStopEvent &&
+    !playbackSpeakingStartEvent &&
+    !playbackSpeakingStopEvent
+  ) {
+    return;
+  }
+
+  logNavaiVoiceDebug("transport_event", {
+    type: eventType,
+  });
+
+  if (modelSpeakingStartEvent) {
+    setModelSpeakingSignal(true, eventType);
+    return;
+  }
+
+  if (modelSpeakingStopEvent) {
+    setModelSpeakingSignal(false, eventType);
+    return;
+  }
+
+  if (playbackSpeakingStartEvent) {
+    setPlaybackSpeakingSignal(true, eventType);
+    return;
+  }
+
+  setPlaybackSpeakingSignal(false, eventType);
 }
 
 function stopSession(message?: string) {
+  logNavaiVoiceDebug("stop_session", {
+    hasMessage: Boolean(message),
+  });
+  detachSessionAudioListeners();
+  detachPlaybackTrackObserver();
   try {
     sessionRef?.close();
   } catch {
@@ -316,12 +565,7 @@ function stopSession(message?: string) {
     backendClientRef = null;
     backendFunctionsRef = [];
     navigateHandlerRef = null;
-    clearSpeakingOffTimeout();
-    audioPlaying = false;
-    agentTurnActive = false;
-    audioSeenInTurn = false;
-    speakingFallbackUntil = 0;
-    setSpeakingState(false);
+    clearSpeakingSignals("stop_session");
     patchSnapshot({
       state: "idle",
       ...(message
@@ -343,6 +587,7 @@ async function loadVoiceRuntime(): Promise<VoiceRuntime> {
       buildNavaiAgent: voiceFrontendModule.buildNavaiAgent,
       createNavaiBackendClient: voiceFrontendModule.createNavaiBackendClient,
       RealtimeSession: realtimeModule.RealtimeSession,
+      OpenAIRealtimeWebRTC: realtimeModule.OpenAIRealtimeWebRTC,
     }));
   }
 
@@ -358,6 +603,9 @@ async function startSession(options: ToggleOptions) {
   }
 
   bindBeforeUnload();
+  logNavaiVoiceDebug("start_session", {
+    backendConnectionState: currentSnapshot.backendConnectionState,
+  });
   patchSnapshot({
     state: "connecting",
     ariaMessage: options.micMessages.connecting,
@@ -374,11 +622,7 @@ async function startSession(options: ToggleOptions) {
   activeLanguageCode = options.languageCode ?? activeLanguageCode;
 
   try {
-    audioPlaying = false;
-    agentTurnActive = false;
-    audioSeenInTurn = false;
-    speakingFallbackUntil = 0;
-    clearSpeakingOffTimeout();
+    clearSpeakingSignals("start_session");
 
     const trimmedKey = options.apiKey.trim();
     const secret = await backendClient.createClientSecret(
@@ -412,59 +656,24 @@ async function startSession(options: ToggleOptions) {
       }
     }
 
-    const realtimeSession = new voiceRuntime.RealtimeSession(agent);
-    realtimeSession.on("agent_start", () => {
-      agentTurnActive = true;
-      audioSeenInTurn = false;
-      speakingFallbackUntil = 0;
-      markSpeakingOn();
-    });
-    realtimeSession.on("agent_end", (_context, _agent, output) => {
-      agentTurnActive = false;
-      if (audioSeenInTurn) {
-        if (!audioPlaying) {
-          scheduleSpeakingOff(1800);
-        }
-        return;
-      }
+    const audioElement = document.createElement("audio");
+    audioElement.autoplay = true;
+    audioElement.playsInline = true;
+    attachPlaybackTrackObserver(audioElement);
 
-      const expectedUntil = Date.now() + estimateSpeechDurationMs(output ?? "");
-      speakingFallbackUntil = Math.max(speakingFallbackUntil, expectedUntil);
-      if (!audioPlaying) {
-        const delay = Math.max(1200, speakingFallbackUntil - Date.now() + 200);
-        scheduleSpeakingOff(delay);
-      }
-    });
-    realtimeSession.on("audio_start", () => {
-      audioPlaying = true;
-      audioSeenInTurn = true;
-      speakingFallbackUntil = 0;
-      markSpeakingOn();
-    });
-    realtimeSession.on("audio", () => {
-      audioPlaying = true;
-      audioSeenInTurn = true;
-      speakingFallbackUntil = 0;
-      markSpeakingOn();
-    });
-    realtimeSession.on("audio_stopped", () => {
-      audioPlaying = false;
-      if (!agentTurnActive) {
-        scheduleSpeakingOff(1800);
-      }
-    });
-    realtimeSession.on("audio_interrupted", () => {
-      audioPlaying = false;
-      audioSeenInTurn = false;
-      speakingFallbackUntil = 0;
-      if (!agentTurnActive) {
-        scheduleSpeakingOff(400);
-      }
-    });
+    const transport =
+      typeof voiceRuntime.OpenAIRealtimeWebRTC === "function"
+        ? new voiceRuntime.OpenAIRealtimeWebRTC({ audioElement })
+        : null;
+    const realtimeSession = transport
+      ? new voiceRuntime.RealtimeSession(agent, { transport })
+      : new voiceRuntime.RealtimeSession(agent);
+    attachSessionAudioListeners(realtimeSession);
 
     await realtimeSession.connect({ apiKey: secret.value });
 
     sessionRef = realtimeSession;
+    logNavaiVoiceDebug("session_connected");
     patchSnapshot({
       state: "connected",
       ariaMessage: options.micMessages.active,
@@ -473,6 +682,11 @@ async function startSession(options: ToggleOptions) {
   } catch (error) {
     patchSnapshot({ isApiKeyValidated: false });
     const message = formatVoiceError(error, options.micMessages);
+    logNavaiVoiceDebug("session_error", {
+      message,
+    });
+    detachSessionAudioListeners();
+    detachPlaybackTrackObserver();
     stopSession();
     patchSnapshot({
       state: "error",

@@ -3,9 +3,15 @@
 import Link from "@/platform/link";
 import Image from "@/platform/image";
 import dynamic from "@/platform/dynamic";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { useI18n } from "@/i18n/provider";
+import { resolveNavaiAgentRuntimeSnapshot } from "@/lib/navai-agent-state";
+import {
+  createInitialNavaiVoiceSnapshot,
+  getNavaiVoiceSnapshot,
+  subscribeNavaiVoiceSnapshot,
+} from "@/lib/navai-voice-controller";
 import { useTheme } from "@/theme/provider";
 import bannerAvif1x from "@/assets/navai_banner.avif";
 import bannerAvif15x from "@/assets/navai_banner@1_5x.avif";
@@ -55,16 +61,43 @@ const Orb = dynamic(() => import("@/components/Orb"), {
 export default function HomeHero() {
   const { messages } = useI18n();
   const { theme } = useTheme();
-  const [isAgentSpeaking, setIsAgentSpeaking] = useState(false);
+  const [voiceSnapshot, setVoiceSnapshot] = useState(createInitialNavaiVoiceSnapshot);
   const [isOrbReady, setIsOrbReady] = useState(ORB_READY_IMMEDIATELY);
   const [isOrbAutoAnimating, setIsOrbAutoAnimating] = useState(ORB_AUTOPLAY_IMMEDIATELY);
   const [isVoicePanelReady, setIsVoicePanelReady] = useState(VOICE_PANEL_READY_IMMEDIATELY);
+  const agentRuntimeSnapshot = useMemo(() => {
+    return resolveNavaiAgentRuntimeSnapshot(voiceSnapshot);
+  }, [voiceSnapshot]);
+  const isAgentSpeaking = agentRuntimeSnapshot.isAgentSpeaking;
   const shouldAnimateOrb = isAgentSpeaking || isOrbAutoAnimating;
   const orbHoverIntensity = isAgentSpeaking ? 0.66 : 0.08;
 
-  const handleAgentSpeakingChange = useCallback((isSpeaking: boolean) => {
-    setIsAgentSpeaking(isSpeaking);
+  useEffect(() => {
+    setVoiceSnapshot(getNavaiVoiceSnapshot());
+
+    return subscribeNavaiVoiceSnapshot((snapshot) => {
+      setVoiceSnapshot(snapshot);
+    });
   }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    console.log("[NAVAI][HomeHero] runtime_state", {
+      status: agentRuntimeSnapshot.status,
+      agentVoiceState: agentRuntimeSnapshot.agentVoiceState,
+      runtimeState: agentRuntimeSnapshot.runtimeState,
+      isAgentSpeaking,
+      forceHoverState: isAgentSpeaking,
+    });
+  }, [
+    agentRuntimeSnapshot.agentVoiceState,
+    agentRuntimeSnapshot.runtimeState,
+    agentRuntimeSnapshot.status,
+    isAgentSpeaking,
+  ]);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -175,7 +208,7 @@ export default function HomeHero() {
 
       <div className="home-voice-slot">
         {isVoicePanelReady ? (
-          <NavaiMicButton onAgentSpeakingChange={handleAgentSpeakingChange} />
+          <NavaiMicButton />
         ) : (
           <div className="home-voice-placeholder" aria-hidden="true" />
         )}

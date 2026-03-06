@@ -5,8 +5,10 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import dynamic from "@/platform/dynamic";
 import { useI18n } from "@/i18n/provider";
+import { resolveNavaiAgentRuntimeSnapshot } from "@/lib/navai-agent-state";
 import { buildBackendApiUrl } from "@/lib/backend-api";
 import {
+  createInitialNavaiVoiceSnapshot,
   getNavaiVoiceSnapshot,
   stopNavaiVoiceSession,
   subscribeNavaiVoiceSnapshot,
@@ -32,24 +34,27 @@ export default function NavaiMiniVoiceDock({ className = "" }: NavaiMiniVoiceDoc
   const { language, messages } = useI18n();
   const { theme } = useTheme();
   const router = useRouter();
-  const [isMounted, setIsMounted] = useState(false);
-  const [voiceSnapshot, setVoiceSnapshot] = useState(getNavaiVoiceSnapshot);
+  const [voiceSnapshot, setVoiceSnapshot] = useState(createInitialNavaiVoiceSnapshot);
 
   const {
     backendConnectionState,
-    state,
     ariaMessage,
     statusMessage,
-    isAgentSpeaking,
   } = voiceSnapshot;
+  const agentRuntimeSnapshot = useMemo(() => {
+    return resolveNavaiAgentRuntimeSnapshot(voiceSnapshot);
+  }, [voiceSnapshot]);
+  const status = agentRuntimeSnapshot.status;
+  const isAgentSpeaking = agentRuntimeSnapshot.isAgentSpeaking;
 
-  const isConnected = state === "connected";
-  const isActive = state === "connecting" || state === "connected";
+  const isConnected = status === "connected";
+  const isActive = status === "connecting" || status === "connected";
+  const isConnectedVisual = status === "connected";
   const shouldAnimateOrb = true;
   const shouldHighlightOrb = isAgentSpeaking || isActive;
   const orbHoverIntensity = isAgentSpeaking ? 0.66 : 0.08;
   const canStartVoice = backendConnectionState === "ready";
-  const isDisabled = state === "connecting" || (!isConnected && !canStartVoice);
+  const isDisabled = status === "connecting" || (!isConnected && !canStartVoice);
   const missingBackendKeyMessage = useMemo(() => {
     return statusMessage === messages.mic.missingKey ? statusMessage : "";
   }, [messages.mic.missingKey, statusMessage]);
@@ -62,36 +67,50 @@ export default function NavaiMiniVoiceDock({ className = "" }: NavaiMiniVoiceDoc
     return [
       "navai-mini-mic-shell",
       canStartVoice ? "is-ready" : "",
-      isActive ? "is-active" : "",
+      isConnectedVisual ? "is-active" : "",
     ]
       .filter(Boolean)
       .join(" ");
-  }, [canStartVoice, isActive]);
+  }, [canStartVoice, isConnectedVisual]);
 
   const miniButtonClassName = useMemo(() => {
     return [
       "navai-mini-mic-button",
-      isActive ? "is-active" : "",
+      isConnectedVisual ? "is-active" : "",
     ]
       .filter(Boolean)
       .join(" ");
-  }, [isActive]);
+  }, [isConnectedVisual]);
 
   useEffect(() => {
-    setIsMounted(true);
-  }, []);
+    setVoiceSnapshot(getNavaiVoiceSnapshot());
 
-  useEffect(() => {
-    if (!isMounted) {
-      return;
-    }
     return subscribeNavaiVoiceSnapshot((snapshot) => {
       setVoiceSnapshot(snapshot);
     });
-  }, [isMounted]);
+  }, []);
 
   useEffect(() => {
-    if (!isMounted) {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    console.log("[NAVAI][MiniDock] runtime_state", {
+      status,
+      agentVoiceState: agentRuntimeSnapshot.agentVoiceState,
+      runtimeState: agentRuntimeSnapshot.runtimeState,
+      isAgentSpeaking,
+      forceHoverState: isAgentSpeaking,
+    });
+  }, [
+    agentRuntimeSnapshot.agentVoiceState,
+    agentRuntimeSnapshot.runtimeState,
+    isAgentSpeaking,
+    status,
+  ]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
       return;
     }
 
@@ -101,10 +120,10 @@ export default function NavaiMiniVoiceDock({ className = "" }: NavaiMiniVoiceDoc
         router.push(path);
       },
     });
-  }, [isMounted, language, router]);
+  }, [language, router]);
 
   useEffect(() => {
-    if (!isMounted || typeof window === "undefined") {
+    if (typeof window === "undefined") {
       return;
     }
 
@@ -205,10 +224,10 @@ export default function NavaiMiniVoiceDock({ className = "" }: NavaiMiniVoiceDoc
       window.removeEventListener("offline", handleOffline);
       window.clearTimeout(debounceId);
     };
-  }, [isMounted, messages.mic.missingKey]);
+  }, [messages.mic.missingKey]);
 
   const handleVoice = useCallback(async () => {
-    if (state === "connecting") {
+    if (status === "connecting") {
       stopNavaiVoiceSession(messages.mic.stopped);
       return;
     }
@@ -221,11 +240,7 @@ export default function NavaiMiniVoiceDock({ className = "" }: NavaiMiniVoiceDoc
         router.push(path);
       },
     });
-  }, [language, messages.mic, router, state]);
-
-  if (!isMounted) {
-    return null;
-  }
+  }, [language, messages.mic, router, status]);
 
   return (
     <aside className={dockClassName}>
@@ -247,9 +262,9 @@ export default function NavaiMiniVoiceDock({ className = "" }: NavaiMiniVoiceDoc
             className={miniButtonClassName}
             onClick={handleVoice}
             disabled={isDisabled}
-            aria-label={isConnected || state === "connecting" ? messages.mic.ariaStop : messages.mic.ariaStart}
+            aria-label={isConnected || status === "connecting" ? messages.mic.ariaStop : messages.mic.ariaStart}
           >
-            <Mic size={20} className={isActive ? "pulse" : undefined} />
+            <Mic size={20} className={isConnectedVisual ? "pulse" : undefined} />
           </button>
         </div>
       </div>

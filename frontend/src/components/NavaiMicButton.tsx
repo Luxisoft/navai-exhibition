@@ -4,10 +4,16 @@ import { Mic } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { useI18n } from "@/i18n/provider";
+import {
+  resolveNavaiAgentRuntimeSnapshot,
+  type NavaiAgentRuntimeState,
+  type NavaiAgentVoiceState,
+  type NavaiSessionStatus,
+} from "@/lib/navai-agent-state";
 import { buildBackendApiUrl } from "@/lib/backend-api";
 import {
+  createInitialNavaiVoiceSnapshot,
   getNavaiVoiceSnapshot,
-  subscribeNavaiAgentSpeaking,
   subscribeNavaiVoiceSnapshot,
   syncNavaiVoiceSessionLanguage,
   toggleNavaiVoiceSession,
@@ -36,32 +42,46 @@ const TELEPROMPTER_LINES = {
   ],
 } as const;
 
+export type NavaiAgentRuntimeSnapshot = {
+  status: NavaiSessionStatus;
+  agentVoiceState: NavaiAgentVoiceState;
+  runtimeState: NavaiAgentRuntimeState;
+};
+
 type NavaiMicButtonProps = {
   onAgentSpeakingChange?: (isSpeaking: boolean) => void;
+  onAgentRuntimeStateChange?: (snapshot: NavaiAgentRuntimeSnapshot) => void;
 };
 
 export default function NavaiMicButton({
   onAgentSpeakingChange,
+  onAgentRuntimeStateChange,
 }: NavaiMicButtonProps) {
   const { language, messages } = useI18n();
   const router = useRouter();
-  const [voiceSnapshot, setVoiceSnapshot] = useState(getNavaiVoiceSnapshot);
+  const [voiceSnapshot, setVoiceSnapshot] = useState(createInitialNavaiVoiceSnapshot);
   const [teleprompterIndex, setTeleprompterIndex] = useState(0);
 
   const {
     backendConnectionState,
-    state,
     ariaMessage,
     statusMessage,
   } = voiceSnapshot;
+  const agentRuntimeSnapshot = useMemo(() => {
+    return resolveNavaiAgentRuntimeSnapshot(voiceSnapshot);
+  }, [voiceSnapshot]);
+  const status = agentRuntimeSnapshot.status;
+  const agentVoiceState = agentRuntimeSnapshot.agentVoiceState;
+  const runtimeState = agentRuntimeSnapshot.runtimeState;
 
-  const isConnected = state === "connected";
-  const isActive = state === "connecting" || state === "connected";
-  const isError = state === "error";
+  const isConnected = status === "connected";
+  const isActive = status === "connecting" || status === "connected";
+  const isConnectedVisual = status === "connected";
+  const isError = runtimeState === "error";
   const canStartVoice = backendConnectionState === "ready";
   const showVoiceButton = true;
-  const isVoiceReadyVisual = canStartVoice || isConnected || state === "connecting";
-  const isDisabled = state === "connecting" || (!isConnected && !canStartVoice);
+  const isVoiceReadyVisual = canStartVoice || isConnected || status === "connecting";
+  const isDisabled = status === "connecting" || (!isConnected && !canStartVoice);
 
   const voiceClassName = useMemo(() => {
     return ["home-voice", showVoiceButton ? "has-mic" : "is-compact"]
@@ -73,12 +93,12 @@ export default function NavaiMicButton({
     return [
       "navai-mic-button",
       isVoiceReadyVisual ? "is-ready" : "is-empty",
-      isActive ? "is-active" : "",
+      isConnectedVisual ? "is-active" : "",
       isError ? "is-error" : "",
     ]
       .filter(Boolean)
       .join(" ");
-  }, [isActive, isError, isVoiceReadyVisual]);
+  }, [isConnectedVisual, isError, isVoiceReadyVisual]);
 
   const connectionStatusMessage = useMemo(() => {
     if (backendConnectionState === "checking") {
@@ -114,20 +134,45 @@ export default function NavaiMicButton({
   const teleprompterText = teleprompterLines[teleprompterIndex] ?? "";
 
   useEffect(() => {
+    setVoiceSnapshot(getNavaiVoiceSnapshot());
+
     return subscribeNavaiVoiceSnapshot((snapshot) => {
       setVoiceSnapshot(snapshot);
     });
   }, []);
 
   useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    console.log("[NAVAI][MicButton] runtime_state", {
+      status,
+      agentVoiceState,
+      runtimeState,
+      isAgentSpeaking: agentRuntimeSnapshot.isAgentSpeaking,
+    });
+  }, [agentRuntimeSnapshot.isAgentSpeaking, agentVoiceState, runtimeState, status]);
+
+  useEffect(() => {
     if (typeof onAgentSpeakingChange !== "function") {
       return;
     }
 
-    return subscribeNavaiAgentSpeaking((isSpeaking) => {
-      onAgentSpeakingChange(isSpeaking);
+    onAgentSpeakingChange(agentRuntimeSnapshot.isAgentSpeaking);
+  }, [agentRuntimeSnapshot.isAgentSpeaking, onAgentSpeakingChange]);
+
+  useEffect(() => {
+    if (typeof onAgentRuntimeStateChange !== "function") {
+      return;
+    }
+
+    onAgentRuntimeStateChange({
+      status,
+      agentVoiceState,
+      runtimeState,
     });
-  }, [onAgentSpeakingChange]);
+  }, [agentVoiceState, onAgentRuntimeStateChange, runtimeState, status]);
 
   useEffect(() => {
     void syncNavaiVoiceSessionLanguage({
@@ -296,7 +341,7 @@ export default function NavaiMicButton({
             className={[
               "navai-mic-shell",
               canStartVoice ? "is-ready" : "",
-              isActive ? "is-active" : "",
+              isConnectedVisual ? "is-active" : "",
             ]
               .filter(Boolean)
               .join(" ")}
@@ -308,7 +353,7 @@ export default function NavaiMicButton({
               disabled={isDisabled}
               aria-label={isConnected ? messages.mic.ariaStop : messages.mic.ariaStart}
             >
-              <Mic size={30} className={isActive ? "pulse" : undefined} />
+              <Mic size={30} className={isConnectedVisual ? "pulse" : undefined} />
             </button>
           </div>
         </div>
