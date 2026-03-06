@@ -2020,6 +2020,10 @@
     padding: 0.84rem;
   }
 
+  .docs-layout--drawer-nav .docs-markdown-body.is-root-doc p[align="center"] img {
+    max-width: min(78vw, 17.5rem);
+  }
+
   .plans-grid {
     grid-template-columns: minmax(0, 1fr);
   }
