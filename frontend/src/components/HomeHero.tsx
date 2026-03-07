@@ -3,20 +3,14 @@
 import Link from "@/platform/link";
 import Image from "@/platform/image";
 import dynamic from "@/platform/dynamic";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 import { useI18n } from "@/i18n/provider";
-import { resolveNavaiAgentRuntimeSnapshot } from "@/lib/navai-agent-state";
-import {
-  createInitialNavaiVoiceSnapshot,
-  getNavaiVoiceSnapshot,
-  subscribeNavaiVoiceSnapshot,
-} from "@/lib/navai-voice-controller";
-import { useTheme } from "@/theme/provider";
 import bannerAvif1x from "@/assets/navai_banner.avif";
 import bannerAvif15x from "@/assets/navai_banner@1_5x.avif";
 import bannerWebp1x from "@/assets/navai_banner.webp";
 import bannerWebp15x from "@/assets/navai_banner@1_5x.webp";
+import { NavaiProjectVoiceHeroOrb } from "@/components/orb";
 
 const ORB_AUTOPLAY_DELAY_MS_DEFAULT = 9000;
 const ORB_AUTOPLAY_DELAY_MS_MIN = 0;
@@ -42,8 +36,6 @@ const VOICE_PANEL_REVEAL_DELAY_MS = parsePublicDelayMs(
   import.meta.env.PUBLIC_VOICE_PANEL_REVEAL_DELAY_MS,
   VOICE_PANEL_REVEAL_DELAY_MS_DEFAULT
 );
-const ORB_READY_IMMEDIATELY = ORB_REVEAL_DELAY_MS === 0;
-const ORB_AUTOPLAY_IMMEDIATELY = ORB_AUTOPLAY_DELAY_MS === 0;
 const VOICE_PANEL_READY_IMMEDIATELY = VOICE_PANEL_REVEAL_DELAY_MS === 0;
 const bannerAvif1xSrc = resolveAssetSrc(bannerAvif1x);
 const bannerAvif15xSrc = resolveAssetSrc(bannerAvif15x);
@@ -54,50 +46,9 @@ const NavaiMicButton = dynamic(() => import("@/components/NavaiMicButton"), {
   ssr: false,
 });
 
-const Orb = dynamic(() => import("@/components/Orb"), {
-  ssr: false,
-});
-
 export default function HomeHero() {
   const { messages } = useI18n();
-  const { theme } = useTheme();
-  const [voiceSnapshot, setVoiceSnapshot] = useState(createInitialNavaiVoiceSnapshot);
-  const [isOrbReady, setIsOrbReady] = useState(ORB_READY_IMMEDIATELY);
-  const [isOrbAutoAnimating, setIsOrbAutoAnimating] = useState(ORB_AUTOPLAY_IMMEDIATELY);
   const [isVoicePanelReady, setIsVoicePanelReady] = useState(VOICE_PANEL_READY_IMMEDIATELY);
-  const agentRuntimeSnapshot = useMemo(() => {
-    return resolveNavaiAgentRuntimeSnapshot(voiceSnapshot);
-  }, [voiceSnapshot]);
-  const isAgentSpeaking = agentRuntimeSnapshot.isAgentSpeaking;
-  const shouldAnimateOrb = isAgentSpeaking || isOrbAutoAnimating;
-  const orbHoverIntensity = isAgentSpeaking ? 0.66 : 0.08;
-
-  useEffect(() => {
-    setVoiceSnapshot(getNavaiVoiceSnapshot());
-
-    return subscribeNavaiVoiceSnapshot((snapshot) => {
-      setVoiceSnapshot(snapshot);
-    });
-  }, []);
-
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-
-    console.log("[NAVAI][HomeHero] runtime_state", {
-      status: agentRuntimeSnapshot.status,
-      agentVoiceState: agentRuntimeSnapshot.agentVoiceState,
-      runtimeState: agentRuntimeSnapshot.runtimeState,
-      isAgentSpeaking,
-      forceHoverState: isAgentSpeaking,
-    });
-  }, [
-    agentRuntimeSnapshot.agentVoiceState,
-    agentRuntimeSnapshot.runtimeState,
-    agentRuntimeSnapshot.status,
-    isAgentSpeaking,
-  ]);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -133,77 +84,13 @@ export default function HomeHero() {
     };
   }, []);
 
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-    if (ORB_READY_IMMEDIATELY) {
-      return;
-    }
-
-    const revealOrb = () => setIsOrbReady(true);
-    window.addEventListener("pointerdown", revealOrb, { passive: true, once: true });
-    window.addEventListener("touchstart", revealOrb, { passive: true, once: true });
-    window.addEventListener("keydown", revealOrb, { once: true });
-
-    const timeoutId = window.setTimeout(revealOrb, ORB_REVEAL_DELAY_MS);
-    return () => {
-      window.removeEventListener("pointerdown", revealOrb);
-      window.removeEventListener("touchstart", revealOrb);
-      window.removeEventListener("keydown", revealOrb);
-      window.clearTimeout(timeoutId);
-    };
-  }, []);
-
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-    if (ORB_AUTOPLAY_IMMEDIATELY) {
-      return;
-    }
-
-    let started = false;
-    const startOrbAnimation = () => {
-      if (started) {
-        return;
-      }
-      started = true;
-      setIsOrbAutoAnimating(true);
-    };
-
-    if (navigator.userActivation?.hasBeenActive) {
-      startOrbAnimation();
-    }
-
-    const handleUserIntent = () => startOrbAnimation();
-    window.addEventListener("pointerdown", handleUserIntent, { passive: true, once: true });
-    window.addEventListener("keydown", handleUserIntent, { once: true });
-    window.addEventListener("touchstart", handleUserIntent, { passive: true, once: true });
-
-    const timeoutId = window.setTimeout(startOrbAnimation, ORB_AUTOPLAY_DELAY_MS);
-
-    return () => {
-      window.removeEventListener("pointerdown", handleUserIntent);
-      window.removeEventListener("keydown", handleUserIntent);
-      window.removeEventListener("touchstart", handleUserIntent);
-      window.clearTimeout(timeoutId);
-    };
-  }, []);
-
   return (
     <>
       <div className="home-orb-layer">
-        {isOrbReady ? (
-          <Orb
-            hoverIntensity={orbHoverIntensity}
-            rotateOnHover
-            forceHoverState={isAgentSpeaking}
-            enablePointerHover={false}
-            animate={shouldAnimateOrb}
-            backgroundColor={theme === "light" ? "#ffffff" : "#000000"}
-          />
-        ) : null}
+        <NavaiProjectVoiceHeroOrb
+          revealDelayMs={ORB_REVEAL_DELAY_MS}
+          autoplayDelayMs={ORB_AUTOPLAY_DELAY_MS}
+        />
       </div>
 
       <div className="home-voice-slot">
