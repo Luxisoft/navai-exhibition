@@ -223,7 +223,7 @@ export default function KnowledgeTemplate({
   }, [isMobileMenuOpen]);
 
   useEffect(() => {
-    const mediaQuery = window.matchMedia("(max-width: 640px)");
+    const mediaQuery = window.matchMedia("(max-width: 768px)");
     setIsMobileViewport(mediaQuery.matches);
 
     const handleViewportChange = (event: MediaQueryListEvent) => {

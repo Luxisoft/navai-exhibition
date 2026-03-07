@@ -136,6 +136,10 @@ const NAVAI_AGENT_BASE_INSTRUCTIONS_LINES = [
   "Do not ask users to say scrape_page_text or any internal function name.",
   "When useful, answer with the exact URL path or URL hash section in this app.",
   "Only use scroll_page after the user is already on the correct page.",
+  "When users ask to complete the request-implementation contact form, collect required fields step by step: full name, work email, and project details.",
+  "After each user answer, update the form with the contact tools instead of waiting for all data at once.",
+  "Before submit, review the form state and ask for confirmation.",
+  "If submit is blocked because captcha is not verified, ask the user to complete captcha and then retry submit.",
 ];
 
 const NAVAI_LANGUAGE_LABELS: Record<LanguageCode, string> = {

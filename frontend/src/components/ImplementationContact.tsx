@@ -386,12 +386,19 @@ export default function ImplementationContact() {
       </div>
 
       {isFormOpen ? (
-        <form id={CONTACT_FORM_ID} className="impl-contact-form" onSubmit={handleSubmit} noValidate>
+        <form
+          id={CONTACT_FORM_ID}
+          className="impl-contact-form"
+          onSubmit={handleSubmit}
+          data-navai-contact-form="implementation"
+          noValidate
+        >
           <div className="impl-contact-grid">
             <label className="impl-field">
               <span>{messages.implementationPage.contactNameLabel}</span>
               <input
                 ref={nameInputRef}
+                name="name"
                 type="text"
                 required
                 value={form.name}
@@ -404,6 +411,7 @@ export default function ImplementationContact() {
             <label className="impl-field">
               <span>{messages.implementationPage.contactEmailLabel}</span>
               <input
+                name="email"
                 type="email"
                 required
                 value={form.email}
@@ -416,6 +424,7 @@ export default function ImplementationContact() {
             <label className="impl-field">
               <span>{messages.implementationPage.contactCompanyLabel}</span>
               <input
+                name="company"
                 type="text"
                 value={form.company}
                 onChange={(event) => setForm((current) => ({ ...current, company: event.target.value }))}
@@ -425,6 +434,7 @@ export default function ImplementationContact() {
             <label className="impl-field">
               <span>{messages.implementationPage.contactWhatsappLabel}</span>
               <input
+                name="whatsapp"
                 type="tel"
                 value={form.whatsapp}
                 onChange={(event) => setForm((current) => ({ ...current, whatsapp: event.target.value }))}
@@ -435,6 +445,7 @@ export default function ImplementationContact() {
           <label className="impl-field">
             <span>{messages.implementationPage.contactMessageLabel}</span>
             <textarea
+              name="message"
               required
               rows={5}
               value={form.message}
@@ -481,6 +492,7 @@ export default function ImplementationContact() {
             <button
               type="submit"
               className="docs-cta-btn"
+              data-navai-contact-submit="true"
               disabled={status === "loading" || !isCaptchaVerified}
             >
               {status === "loading" ? (

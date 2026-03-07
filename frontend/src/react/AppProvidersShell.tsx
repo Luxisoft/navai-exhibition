@@ -26,7 +26,7 @@ export default function AppProvidersShell({ children, showMiniDock }: AppProvide
   const shouldShowFloatingMiniDock = shouldShowMiniDock && !isMobileViewport;
 
   useEffect(() => {
-    const mediaQuery = window.matchMedia("(max-width: 640px)");
+    const mediaQuery = window.matchMedia("(max-width: 768px)");
     const updateViewport = (matches: boolean) => {
       setIsMobileViewport(matches);
     };
