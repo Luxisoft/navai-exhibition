@@ -1,5 +1,6 @@
 'use client';
 
+import { NavaiVoiceOrbDock } from "@navai/voice-frontend";
 import Link from "@/platform/link";
 import Image from "@/platform/image";
 import { normalizePathname, usePathname } from "@/platform/navigation";
@@ -8,7 +9,7 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react
 
 import DocsCodeEditor, { inferCodeLanguageFromContent } from "@/components/DocsCodeEditor";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
-import NavaiMiniVoiceDock from "@/components/NavaiMiniVoiceDock";
+import { useNavaiMiniVoiceOrbDockProps } from "@/components/NavaiMiniVoiceDock";
 import ThemeSwitcher from "@/components/ThemeSwitcher";
 import type { LocalizedPlan, LocalizedSection } from "@/i18n/messages";
 import { useI18n } from "@/i18n/provider";
@@ -110,6 +111,9 @@ export default function KnowledgeTemplate({
   const [activeTocId, setActiveTocId] = useState<string>(tocIds[0] ?? "");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMobileViewport, setIsMobileViewport] = useState(false);
+  const topbarMiniDockProps = useNavaiMiniVoiceOrbDockProps({
+    className: "navai-mini-dock--in-topbar-mobile",
+  });
 
   useEffect(() => {
     if (tocIds.length === 0) {
@@ -302,7 +306,7 @@ export default function KnowledgeTemplate({
 
           {isMobileViewport ? (
             <div className="docs-topbar-mini-orb">
-              <NavaiMiniVoiceDock className="navai-mini-dock--in-topbar-mobile" />
+              <NavaiVoiceOrbDock {...topbarMiniDockProps} />
             </div>
           ) : null}
 

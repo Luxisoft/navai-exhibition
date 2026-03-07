@@ -880,10 +880,13 @@
 .docs-section-block .docs-code-editor,
 .docs-markdown-body .docs-code-editor {
   margin: 0.82rem 0 0;
+  position: relative;
+  isolation: isolate;
   border-radius: 0.82rem;
   border: 1px solid rgba(12, 24, 58, 0.2);
   background: #070f22;
   overflow: visible;
+  clip-path: inset(0 round 0.82rem);
   box-shadow: inset 0 1px 0 rgba(148, 163, 184, 0.08);
 }
 
@@ -902,6 +905,8 @@
   gap: 0.6rem;
   padding: 0.56rem 0.72rem;
   border-bottom: 1px solid rgba(148, 163, 184, 0.22);
+  border-top-left-radius: calc(0.82rem - 1px);
+  border-top-right-radius: calc(0.82rem - 1px);
   background: linear-gradient(180deg, rgba(12, 19, 40, 0.98), rgba(10, 16, 33, 0.95));
   backdrop-filter: blur(7px);
 }
@@ -959,6 +964,8 @@
   border-radius: 0;
   background: transparent;
   padding: 0.64rem 0 0.74rem;
+  border-bottom-left-radius: calc(0.82rem - 1px);
+  border-bottom-right-radius: calc(0.82rem - 1px);
   overflow: visible;
 }
 
@@ -1073,18 +1080,30 @@
   hyphens: auto;
 }
 
+.docs-table-wrap {
+  width: 100%;
+  margin-top: 0.4rem;
+  border: 1px solid rgba(12, 24, 58, 0.12);
+  border-radius: 0.8rem;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  background: #ffffff;
+}
+
 .docs-markdown-body table {
   width: 100%;
-  border-collapse: collapse;
-  margin-top: 0.4rem;
+  min-width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  margin-top: 0;
   font-size: 0.9rem;
-  border-radius: 0.8rem;
-  overflow: hidden;
 }
 
 .docs-markdown-body th,
 .docs-markdown-body td {
-  border: 1px solid rgba(12, 24, 58, 0.12);
+  border-right: 1px solid rgba(12, 24, 58, 0.12);
+  border-bottom: 1px solid rgba(12, 24, 58, 0.12);
   padding: 0.5rem 0.55rem;
   text-align: left;
   vertical-align: top;
@@ -1096,24 +1115,20 @@
   font-weight: 600;
 }
 
-.docs-markdown-body table tr:first-child th:first-child,
-.docs-markdown-body table tr:first-child td:first-child {
-  border-top-left-radius: 0.8rem;
+.docs-markdown-body tr > :last-child {
+  border-right: 0;
 }
 
-.docs-markdown-body table tr:first-child th:last-child,
-.docs-markdown-body table tr:first-child td:last-child {
-  border-top-right-radius: 0.8rem;
+.docs-markdown-body tbody tr:last-child > td,
+.docs-markdown-body tbody tr:last-child > th {
+  border-bottom: 0;
 }
 
-.docs-markdown-body table tr:last-child th:first-child,
-.docs-markdown-body table tr:last-child td:first-child {
-  border-bottom-left-radius: 0.8rem;
-}
-
-.docs-markdown-body table tr:last-child th:last-child,
-.docs-markdown-body table tr:last-child td:last-child {
-  border-bottom-right-radius: 0.8rem;
+.docs-markdown-body table > thead:last-child > tr:last-child > th,
+.docs-markdown-body table > thead:last-child > tr:last-child > td,
+.docs-markdown-body table > tr:last-child > td,
+.docs-markdown-body table > tr:last-child > th {
+  border-bottom: 0;
 }
 
 .docs-markdown-body img {
@@ -1499,6 +1514,7 @@
   color: rgba(148, 163, 184, 0.78);
 }
 
+.dark .docs-table-wrap,
 .dark .docs-markdown-body table,
 .dark .docs-markdown-body th,
 .dark .docs-markdown-body td,
@@ -1508,6 +1524,10 @@
 }
 
 .dark .plan-card {
+  background: rgba(10, 15, 33, 0.88);
+}
+
+.dark .docs-table-wrap {
   background: rgba(10, 15, 33, 0.88);
 }
 
@@ -1982,6 +2002,24 @@
     flex: 0 0 auto;
   }
 
+  .navai-voice-orb-dock.navai-mini-dock--in-topbar-mobile {
+    gap: 0;
+  }
+
+  .navai-voice-orb-dock.navai-mini-dock--in-topbar-mobile .navai-voice-orb-wrap {
+    width: clamp(3.2rem, 15vw, 3.8rem);
+  }
+
+  .navai-voice-orb-dock.navai-mini-dock--in-topbar-mobile .navai-voice-orb-button-shell {
+    width: clamp(2.05rem, 10.4vw, 2.4rem);
+    height: clamp(2.05rem, 10.4vw, 2.4rem);
+  }
+
+  .navai-voice-orb-dock.navai-mini-dock--in-topbar-mobile .navai-voice-orb-button {
+    width: clamp(1.6rem, 7.8vw, 1.9rem);
+    height: clamp(1.6rem, 7.8vw, 1.9rem);
+  }
+
   .docs-shell {
     width: calc(100% - 1rem);
     padding-top: 0.8rem;
@@ -2045,11 +2083,8 @@
     border-top: 1px solid var(--docs-light-container-border);
   }
 
-  .docs-markdown-body table {
-    display: block;
-    width: 100%;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
+  .docs-table-wrap {
+    max-width: 100%;
   }
 
   .docs-section-block > pre:not(.docs-code-editor-pre),
@@ -2150,5 +2185,19 @@
   .docs-mobile-toc-link {
     font-size: 0.76rem;
     padding: 0.32rem 0.56rem;
+  }
+
+  .navai-voice-orb-dock.navai-mini-dock--in-topbar-mobile .navai-voice-orb-wrap {
+    width: clamp(3rem, 16vw, 3.5rem);
+  }
+
+  .navai-voice-orb-dock.navai-mini-dock--in-topbar-mobile .navai-voice-orb-button-shell {
+    width: clamp(1.98rem, 10.8vw, 2.28rem);
+    height: clamp(1.98rem, 10.8vw, 2.28rem);
+  }
+
+  .navai-voice-orb-dock.navai-mini-dock--in-topbar-mobile .navai-voice-orb-button {
+    width: clamp(1.55rem, 8vw, 1.82rem);
+    height: clamp(1.55rem, 8vw, 1.82rem);
   }
 }

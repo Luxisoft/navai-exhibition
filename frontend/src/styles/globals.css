@@ -699,6 +699,14 @@ html.lang-hi {
   box-shadow: 0 0 0 4px rgba(255, 108, 154, 0.24), 0 18px 40px rgba(96, 14, 39, 0.48);
 }
 
+.navai-mic-button.is-connecting {
+  color: #2457dc;
+}
+
+.navai-mic-button.is-connecting:disabled {
+  opacity: 0.96;
+}
+
 .navai-mic-button.is-error {
   background: rgba(254, 160, 92, 0.94);
   color: rgba(44, 21, 6, 0.98);
@@ -716,6 +724,14 @@ html.lang-hi {
   border-style: dashed;
   opacity: 0.58;
   box-shadow: none;
+}
+
+.navai-mic-button-icon {
+  display: block;
+}
+
+.navai-mic-button-icon.is-spinning {
+  animation: spin 0.9s linear infinite;
 }
 
 .home-voice-status {
@@ -1021,6 +1037,14 @@ html.lang-hi {
   background: linear-gradient(145deg, rgba(255, 255, 255, 0.97), rgba(227, 239, 255, 0.94));
   color: #1d4ed8;
   border-color: rgba(59, 130, 246, 0.44);
+}
+
+.light .navai-mic-button.is-active,
+.light .navai-mic-button.is-ready.is-active {
+  background: rgba(255, 92, 132, 0.94);
+  color: rgba(50, 8, 20, 0.98);
+  border-color: rgba(255, 154, 183, 0.95);
+  box-shadow: 0 0 0 4px rgba(255, 108, 154, 0.24), 0 18px 40px rgba(96, 14, 39, 0.34);
 }
 
 .light .navai-mic-button.is-empty {

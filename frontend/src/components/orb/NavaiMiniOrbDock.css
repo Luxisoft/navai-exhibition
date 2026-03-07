@@ -117,6 +117,14 @@
   box-shadow: 0 0 0 3px rgba(255, 108, 154, 0.24), 0 10px 24px rgba(96, 14, 39, 0.42);
 }
 
+.navai-mini-mic-button.is-connecting {
+  color: #2457dc;
+}
+
+.navai-mini-mic-button.is-connecting:disabled {
+  opacity: 0.96;
+}
+
 .navai-mini-mic-button:disabled {
   opacity: 0.78;
   cursor: not-allowed;
@@ -139,6 +147,11 @@
 
 .navai-mini-mic-glyph {
   display: block;
+}
+
+.navai-mini-spinner-glyph {
+  display: block;
+  animation: navai-mini-spin 0.9s linear infinite;
 }
 
 .navai-mini-mic-glyph.pulse {
@@ -174,6 +187,16 @@
   }
 }
 
+@keyframes navai-mini-spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .light .navai-mini-orb {
   box-shadow: none;
 }
@@ -205,6 +228,13 @@
   background: linear-gradient(145deg, rgba(255, 255, 255, 0.97), rgba(229, 239, 255, 0.94));
   color: #1e3a8a;
   box-shadow: 0 8px 20px rgba(71, 85, 105, 0.2);
+}
+
+.light .navai-mini-mic-button.is-active {
+  background: rgba(255, 92, 132, 0.94);
+  color: rgba(50, 8, 20, 0.98);
+  border-color: rgba(255, 154, 183, 0.95);
+  box-shadow: 0 0 0 3px rgba(255, 108, 154, 0.24), 0 10px 24px rgba(96, 14, 39, 0.3);
 }
 
 .light .navai-mini-status {

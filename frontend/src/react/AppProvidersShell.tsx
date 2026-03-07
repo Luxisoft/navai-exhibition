@@ -1,16 +1,23 @@
 'use client';
 
+import { NavaiVoiceOrbDock } from "@navai/voice-frontend";
 import { useEffect, useState, type ReactNode } from "react";
 
 import ClientProviders from "@/components/ClientProviders";
+import { useNavaiMiniVoiceOrbDockProps } from "@/components/NavaiMiniVoiceDock";
 import { usePathname } from "@/platform/navigation";
-import NavaiMiniVoiceDock from "@/components/NavaiMiniVoiceDock";
 import PageMetadataSync from "@/components/PageMetadataSync";
 
 type AppProvidersShellProps = {
   children: ReactNode;
   showMiniDock?: boolean;
 };
+
+function FloatingMiniVoiceOrbDock() {
+  const floatingMiniDockProps = useNavaiMiniVoiceOrbDockProps();
+
+  return <NavaiVoiceOrbDock {...floatingMiniDockProps} />;
+}
 
 export default function AppProvidersShell({ children, showMiniDock }: AppProvidersShellProps) {
   const pathname = usePathname();
@@ -50,7 +57,7 @@ export default function AppProvidersShell({ children, showMiniDock }: AppProvide
       <PageMetadataSync />
       <div className="site-shell">
         <main className="site-main">{children}</main>
-        {shouldShowFloatingMiniDock ? <NavaiMiniVoiceDock /> : null}
+        {shouldShowFloatingMiniDock ? <FloatingMiniVoiceOrbDock /> : null}
       </div>
     </ClientProviders>
   );

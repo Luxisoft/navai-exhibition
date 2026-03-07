@@ -481,6 +481,13 @@ export default function NavaiDocMarkdown({ doc }: NavaiDocMarkdownProps) {
             const language = extractCodeLanguageFromClassName(codeNode.props.className);
             return <DocsCodeEditor code={rawCode} language={language} />;
           },
+          table: ({ children, className }) => {
+            return (
+              <div className="docs-table-wrap">
+                <table className={className}>{children}</table>
+              </div>
+            );
+          },
           h2: ({ children, node }) => {
             const id = buildStableHeadingId({
               title: cleanHeadingText(extractNodeText(children)),

@@ -14,6 +14,7 @@ export type NavaiMiniOrbDockProps = {
   className?: string;
   isActive?: boolean;
   isConnected?: boolean;
+  isConnecting?: boolean;
   isReady?: boolean;
   isDisabled?: boolean;
   isAgentSpeaking?: boolean;
@@ -31,6 +32,7 @@ export default function NavaiMiniOrbDock({
   className = "",
   isActive = false,
   isConnected = false,
+  isConnecting = false,
   isReady = false,
   isDisabled = false,
   isAgentSpeaking = false,
@@ -53,6 +55,7 @@ export default function NavaiMiniOrbDock({
     .join(" ");
   const miniButtonClassName = [
     "navai-mini-mic-button",
+    isConnecting ? "is-connecting" : "",
     isConnected ? "is-active" : "",
   ]
     .filter(Boolean)
@@ -81,6 +84,7 @@ export default function NavaiMiniOrbDock({
             onClick={onButtonClick}
             disabled={isDisabled}
             aria-label={buttonAriaLabel}
+            aria-busy={isConnecting ? true : undefined}
           >
             {buttonIcon}
           </button>

@@ -58,6 +58,7 @@ export default function NavaiVoiceOrbDock({
   connectionCheck,
 }: NavaiVoiceOrbDockProps) {
   const [voiceSnapshot, setVoiceSnapshot] = useState(voiceController.createInitialVoiceSnapshot);
+  const [isStartingSession, setIsStartingSession] = useState(false);
   const {
     backendConnectionState,
     ariaMessage,
@@ -68,11 +69,19 @@ export default function NavaiVoiceOrbDock({
   }, [resolveAgentRuntimeSnapshot, voiceSnapshot]);
   const status = runtimeSnapshot.status;
   const isAgentSpeaking = runtimeSnapshot.isAgentSpeaking;
+  const isConnecting =
+    isStartingSession ||
+    voiceSnapshot.state === "connecting" ||
+    voiceSnapshot.status === "connecting" ||
+    status === "connecting" ||
+    runtimeSnapshot.runtimeState === "connecting" ||
+    statusMessage === messages.connecting ||
+    ariaMessage === messages.connecting;
   const isConnected = status === "connected";
   const isConnectedVisual = status === "connected";
-  const isActive = status === "connecting" || status === "connected";
+  const isActive = isConnecting || isConnected;
   const canStartVoice = backendConnectionState === "ready";
-  const isDisabled = status === "connecting" || (!isConnected && !canStartVoice);
+  const isDisabled = isConnecting || (!isConnected && !canStartVoice);
   const missingBackendKeyMessage = useMemo(() => {
     return statusMessage === messages.missingKey ? statusMessage : "";
   }, [messages.missingKey, statusMessage]);
@@ -83,6 +92,14 @@ export default function NavaiVoiceOrbDock({
       setVoiceSnapshot(snapshot);
     });
   }, [voiceController]);
+
+  useEffect(() => {
+    if (isConnecting) {
+      return;
+    }
+
+    setIsStartingSession(false);
+  }, [isConnecting]);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -209,31 +226,34 @@ export default function NavaiVoiceOrbDock({
   }, [connectionCheck, messages.missingKey, voiceController]);
 
   const handleVoice = useCallback(async () => {
-    if (status === "connecting") {
+    if (isConnecting) {
+      setIsStartingSession(false);
       voiceController.stopVoiceSession(messages.stopped);
       return;
     }
 
+    setIsStartingSession(true);
     await voiceController.toggleVoiceSession({
       apiKey: "",
       micMessages: messages,
       languageCode,
       onNavigate,
     });
-  }, [languageCode, messages, onNavigate, status, voiceController]);
+  }, [isConnecting, languageCode, messages, onNavigate, voiceController]);
 
   return (
     <NavaiMiniOrbDock
       className={className}
       isActive={isActive}
       isConnected={isConnectedVisual}
+      isConnecting={isConnecting}
       isReady={canStartVoice}
       isDisabled={isDisabled}
       isAgentSpeaking={isAgentSpeaking}
       animateOrb
       backgroundColor={themeMode === "light" ? backgroundColorLight : backgroundColorDark}
-      buttonAriaLabel={isConnected || status === "connecting" ? messages.ariaStop : messages.ariaStart}
-      buttonIcon={<NavaiVoiceOrbDockMicIcon isActive={isConnectedVisual} />}
+      buttonAriaLabel={isConnected || isConnecting ? messages.ariaStop : messages.ariaStart}
+      buttonIcon={<NavaiVoiceOrbDockMicIcon isActive={isConnectedVisual} isConnecting={isConnecting} />}
       onButtonClick={() => {
         void handleVoice();
       }}

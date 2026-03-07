@@ -1,5 +1,6 @@
 'use client';
 
+import { NavaiVoiceOrbDock } from "@navai/voice-frontend";
 import Image from "@/platform/image";
 import Link from "@/platform/link";
 import { normalizePathname } from "@/platform/navigation";
@@ -8,7 +9,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 
 import DocsSidebarAccordion from "@/components/DocsSidebarAccordion";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
-import NavaiMiniVoiceDock from "@/components/NavaiMiniVoiceDock";
+import { useNavaiMiniVoiceOrbDockProps } from "@/components/NavaiMiniVoiceDock";
 import ThemeSwitcher from "@/components/ThemeSwitcher";
 import { getLocalizedNavaiDocs } from "@/i18n/docs-catalog";
 import { useI18n } from "@/i18n/provider";
@@ -101,6 +102,9 @@ export default function NavaiDocsShell({
   const [activeRightHref, setActiveRightHref] = useState<string>(() => normalizeHashHref(rightItems[0]?.href ?? ""));
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMobileViewport, setIsMobileViewport] = useState(false);
+  const topbarMiniDockProps = useNavaiMiniVoiceOrbDockProps({
+    className: "navai-mini-dock--in-topbar-mobile",
+  });
   const rightItemsSignature = useMemo(
     () => rightItems.map((item) => `${item.href}|${item.depth ?? 2}|${item.label}`).join("||"),
     [rightItems]
@@ -357,7 +361,7 @@ export default function NavaiDocsShell({
 
           {isMobileViewport ? (
             <div className="docs-topbar-mini-orb">
-              <NavaiMiniVoiceDock className="navai-mini-dock--in-topbar-mobile" />
+              <NavaiVoiceOrbDock {...topbarMiniDockProps} />
             </div>
           ) : null}
 

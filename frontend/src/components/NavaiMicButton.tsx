@@ -1,6 +1,6 @@
 'use client';
 
-import { Mic } from "lucide-react";
+import { LoaderCircle, Mic } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { useI18n } from "@/i18n/provider";
@@ -60,6 +60,7 @@ export default function NavaiMicButton({
   const { language, messages } = useI18n();
   const router = useRouter();
   const [voiceSnapshot, setVoiceSnapshot] = useState(createInitialNavaiVoiceSnapshot);
+  const [isStartingSession, setIsStartingSession] = useState(false);
   const [teleprompterIndex, setTeleprompterIndex] = useState(0);
 
   const {
@@ -75,13 +76,21 @@ export default function NavaiMicButton({
   const runtimeState = agentRuntimeSnapshot.runtimeState;
 
   const isConnected = status === "connected";
-  const isActive = status === "connecting" || status === "connected";
+  const isConnecting =
+    isStartingSession ||
+    voiceSnapshot.state === "connecting" ||
+    voiceSnapshot.status === "connecting" ||
+    status === "connecting" ||
+    runtimeState === "connecting" ||
+    statusMessage === messages.mic.connecting ||
+    ariaMessage === messages.mic.connecting;
+  const isActive = isConnecting || isConnected;
   const isConnectedVisual = status === "connected";
   const isError = runtimeState === "error";
   const canStartVoice = backendConnectionState === "ready";
   const showVoiceButton = true;
-  const isVoiceReadyVisual = canStartVoice || isConnected || status === "connecting";
-  const isDisabled = status === "connecting" || (!isConnected && !canStartVoice);
+  const isVoiceReadyVisual = canStartVoice || isActive;
+  const isDisabled = isConnecting || (!isConnected && !canStartVoice);
 
   const voiceClassName = useMemo(() => {
     return ["home-voice", showVoiceButton ? "has-mic" : "is-compact"]
@@ -93,12 +102,13 @@ export default function NavaiMicButton({
     return [
       "navai-mic-button",
       isVoiceReadyVisual ? "is-ready" : "is-empty",
+      isConnecting ? "is-connecting" : "",
       isConnectedVisual ? "is-active" : "",
       isError ? "is-error" : "",
     ]
       .filter(Boolean)
       .join(" ");
-  }, [isConnectedVisual, isError, isVoiceReadyVisual]);
+  }, [isConnectedVisual, isConnecting, isError, isVoiceReadyVisual]);
 
   const connectionStatusMessage = useMemo(() => {
     if (backendConnectionState === "checking") {
@@ -140,6 +150,14 @@ export default function NavaiMicButton({
       setVoiceSnapshot(snapshot);
     });
   }, []);
+
+  useEffect(() => {
+    if (isConnecting) {
+      return;
+    }
+
+    setIsStartingSession(false);
+  }, [isConnecting]);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -315,6 +333,10 @@ export default function NavaiMicButton({
   }, [isActive, teleprompterLines]);
 
   const handleVoice = useCallback(async () => {
+    if (!isConnected) {
+      setIsStartingSession(true);
+    }
+
     await toggleNavaiVoiceSession({
       apiKey: "",
       micMessages: messages.mic,
@@ -323,7 +345,7 @@ export default function NavaiMicButton({
         router.push(path);
       },
     });
-  }, [language, messages.mic, router]);
+  }, [isConnected, language, messages.mic, router]);
 
   return (
     <div className={voiceClassName}>
@@ -351,9 +373,17 @@ export default function NavaiMicButton({
               className={buttonClassName}
               onClick={handleVoice}
               disabled={isDisabled}
-              aria-label={isConnected ? messages.mic.ariaStop : messages.mic.ariaStart}
+              aria-label={isConnected || isConnecting ? messages.mic.ariaStop : messages.mic.ariaStart}
+              aria-busy={isConnecting ? true : undefined}
             >
-              <Mic size={30} className={isConnectedVisual ? "pulse" : undefined} />
+              {isConnecting ? (
+                <LoaderCircle size={30} className="navai-mic-button-icon is-spinning" />
+              ) : (
+                <Mic
+                  size={30}
+                  className={["navai-mic-button-icon", isConnectedVisual ? "pulse" : ""].filter(Boolean).join(" ")}
+                />
+              )}
             </button>
           </div>
         </div>
