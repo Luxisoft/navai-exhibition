@@ -9,10 +9,11 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 
 import DocsSidebarAccordion from "@/components/DocsSidebarAccordion";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
-import { useNavaiMiniVoiceOrbDockProps } from "@/components/NavaiMiniVoiceDock";
 import ThemeSwitcher from "@/components/ThemeSwitcher";
 import { getLocalizedNavaiDocs } from "@/i18n/docs-catalog";
 import { useI18n } from "@/i18n/provider";
+import { stripLeadingDecorativeText } from "@/lib/decorative-text";
+import { useNavaiMiniVoiceOrbDockProps } from "@/lib/navai-voice-orb";
 import { getLocalizedWordpressPage } from "@/i18n/wordpress-page";
 
 type NavaiDocSlug =
@@ -98,7 +99,9 @@ export default function NavaiDocsShell({
   const { language, messages } = useI18n();
   const localizedDocs = useMemo(() => getLocalizedNavaiDocs(language), [language]);
   const wordpressPage = useMemo(() => getLocalizedWordpressPage(language), [language]);
-  const [resolvedRightItems, setResolvedRightItems] = useState<RightItem[]>(rightItems);
+  const [resolvedRightItems, setResolvedRightItems] = useState<RightItem[]>(() =>
+    rightItems.map((item) => ({ ...item, label: stripLeadingDecorativeText(item.label) }))
+  );
   const [activeRightHref, setActiveRightHref] = useState<string>(() => normalizeHashHref(rightItems[0]?.href ?? ""));
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMobileViewport, setIsMobileViewport] = useState(false);
@@ -121,9 +124,9 @@ export default function NavaiDocsShell({
   const secondaryGroups = groups.filter((group) => group.groupKey !== "home" && group.groupKey !== "examples");
   const localizedDocEntry = activeSlug ? localizedDocs.entries[activeSlug as NavaiDocSlug] : undefined;
   const getLocalizedDocTitle = (slug: string, fallbackTitle: string) =>
-    localizedDocs.entries[slug as NavaiDocSlug]?.title ?? fallbackTitle;
+    stripLeadingDecorativeText(localizedDocs.entries[slug as NavaiDocSlug]?.title ?? fallbackTitle);
   const getLocalizedGroupLabel = (groupKey: string, fallbackLabel?: string) =>
-    localizedDocs.groupLabels[groupKey as NavaiDocGroupKey] ?? fallbackLabel ?? groupKey;
+    stripLeadingDecorativeText(localizedDocs.groupLabels[groupKey as NavaiDocGroupKey] ?? fallbackLabel ?? groupKey);
   const localizeNavItem = (item: DocsNavGroup["items"][number]) => ({
     slug: item.slug,
     title: getLocalizedDocTitle(item.slug, item.title),
@@ -133,20 +136,24 @@ export default function NavaiDocsShell({
     })),
   });
 
-  const displayTitle = activeSlug ? (localizedDocEntry?.title ?? title) : title;
-  const displayDescription = activeSlug ? (localizedDocEntry?.summary ?? description) : description;
+  const displayTitle = stripLeadingDecorativeText(activeSlug ? (localizedDocEntry?.title ?? title) : title);
+  const displayDescription = stripLeadingDecorativeText(
+    activeSlug ? (localizedDocEntry?.summary ?? description) : description
+  );
 
-  const displayBadge = isDocGroupKey(badge) ? (localizedDocs.groupLabels[badge] ?? badge) : badge;
-  const resolvedSourceLabel = sourceLabel ?? messages.common.docsOpenReadmeGithub;
-  const resolvedRightTitle = rightTitle ?? messages.common.docsOnThisPage;
-  const resolvedSidebarNavTitle = sidebarNavTitle ?? messages.common.docsSidebarTitle;
+  const displayBadge = stripLeadingDecorativeText(
+    isDocGroupKey(badge) ? (localizedDocs.groupLabels[badge] ?? badge) : badge
+  );
+  const resolvedSourceLabel = stripLeadingDecorativeText(sourceLabel ?? messages.common.docsOpenReadmeGithub);
+  const resolvedRightTitle = stripLeadingDecorativeText(rightTitle ?? messages.common.docsOnThisPage);
+  const resolvedSidebarNavTitle = stripLeadingDecorativeText(sidebarNavTitle ?? messages.common.docsSidebarTitle);
   const normalizedSidebarBasePath = normalizePathname(sidebarBasePath);
   const isDocumentationTabActive = normalizedSidebarBasePath.startsWith("/documentation");
   const isRequestImplementationTabActive = normalizedSidebarBasePath.startsWith("/request-implementation");
   const isWordpressTabActive = normalizedSidebarBasePath.startsWith("/wordpress");
 
   useEffect(() => {
-    setResolvedRightItems(rightItems);
+    setResolvedRightItems(rightItems.map((item) => ({ ...item, label: stripLeadingDecorativeText(item.label) })));
   }, [rightItems]);
 
   useEffect(() => {
@@ -170,8 +177,8 @@ export default function NavaiDocsShell({
         return;
       }
 
-      const nextItems = headingElements.map((heading) => {
-        const label = heading.textContent?.trim() || heading.id;
+        const nextItems = headingElements.map((heading) => {
+        const label = stripLeadingDecorativeText(heading.textContent?.trim() || heading.id);
         const depth = heading.tagName === "H3" ? 3 : 2;
         return {
           href: `#${heading.id}`,

@@ -9,10 +9,11 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react
 
 import DocsCodeEditor, { inferCodeLanguageFromContent } from "@/components/DocsCodeEditor";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
-import { useNavaiMiniVoiceOrbDockProps } from "@/components/NavaiMiniVoiceDock";
 import ThemeSwitcher from "@/components/ThemeSwitcher";
 import type { LocalizedPlan, LocalizedSection } from "@/i18n/messages";
 import { useI18n } from "@/i18n/provider";
+import { stripLeadingDecorativeText } from "@/lib/decorative-text";
+import { useNavaiMiniVoiceOrbDockProps } from "@/lib/navai-voice-orb";
 import { getLocalizedWordpressPage } from "@/i18n/wordpress-page";
 
 type TopNavSection = "documentation" | "request-implementation" | "wordpress";
@@ -60,6 +61,36 @@ export default function KnowledgeTemplate({
   const pathname = usePathname();
   const normalizedPathname = normalizePathname(pathname);
   const wordpressPage = getLocalizedWordpressPage(language);
+  const displayBadge = useMemo(() => stripLeadingDecorativeText(badge), [badge]);
+  const displayTitle = useMemo(() => stripLeadingDecorativeText(title), [title]);
+  const displayDescription = useMemo(() => stripLeadingDecorativeText(description), [description]);
+  const displaySidebarTitle = useMemo(() => stripLeadingDecorativeText(sidebarTitle), [sidebarTitle]);
+  const displayPlansTitle = useMemo(
+    () => (plansTitle ? stripLeadingDecorativeText(plansTitle) : undefined),
+    [plansTitle]
+  );
+  const displayContactSectionTitle = useMemo(
+    () => (contactSectionTitle ? stripLeadingDecorativeText(contactSectionTitle) : undefined),
+    [contactSectionTitle]
+  );
+  const displayContactSectionDescription = useMemo(
+    () => (contactSectionDescription ? stripLeadingDecorativeText(contactSectionDescription) : undefined),
+    [contactSectionDescription]
+  );
+  const resolvedPlansHeading = useMemo(
+    () => displayPlansTitle ?? stripLeadingDecorativeText(messages.common.plansLabel),
+    [displayPlansTitle, messages.common.plansLabel]
+  );
+  const displaySections = useMemo(
+    () =>
+      sections.map((section) => ({
+        ...section,
+        title: stripLeadingDecorativeText(section.title),
+        description: stripLeadingDecorativeText(section.description),
+        bullets: section.bullets?.map((bullet) => stripLeadingDecorativeText(bullet)),
+      })),
+    [sections]
+  );
 
   const pageLinks = [
     { href: "/documentation/home", label: messages.common.documentation },
@@ -90,20 +121,23 @@ export default function KnowledgeTemplate({
 
   const tocItems = useMemo(
     () => [
-      ...sections.map((section) => ({ id: section.id, label: section.title })),
-      ...(plans && plans.length > 0 ? [{ id: "plans", label: plansTitle ?? messages.common.plansLabel }] : []),
-      ...(contactForm && contactSectionId && contactSectionTitle
-        ? [{ id: contactSectionId, label: contactSectionTitle }]
+      ...displaySections.map((section) => ({ id: section.id, label: section.title })),
+      ...(plans && plans.length > 0
+        ? [{ id: "plans", label: resolvedPlansHeading }]
+        : []),
+      ...(contactForm && contactSectionId && displayContactSectionTitle
+        ? [{ id: contactSectionId, label: displayContactSectionTitle }]
         : []),
     ],
     [
       contactForm,
       contactSectionId,
-      contactSectionTitle,
+      displayContactSectionTitle,
+      displayPlansTitle,
+      displaySections,
+      resolvedPlansHeading,
       messages.common.plansLabel,
       plans,
-      plansTitle,
-      sections,
     ]
   );
   const tocIds = useMemo(() => tocItems.map((item) => item.id), [tocItems]);
@@ -365,7 +399,7 @@ export default function KnowledgeTemplate({
 
             <div className="docs-mobile-menu-separator" aria-hidden="true" />
 
-            <nav className="docs-mobile-menu-submenus" aria-label={sidebarTitle}>
+            <nav className="docs-mobile-menu-submenus" aria-label={displaySidebarTitle}>
               {tocItems.map((item) => (
                 <a
                   key={`mobile-drawer-${item.id}`}
@@ -421,7 +455,7 @@ export default function KnowledgeTemplate({
             })}
           </div>
 
-          <p className="docs-sidebar-title">{sidebarTitle}</p>
+          <p className="docs-sidebar-title">{displaySidebarTitle}</p>
           <nav className="docs-toc">
             {tocItems.map((item) => (
               <a
@@ -451,13 +485,13 @@ export default function KnowledgeTemplate({
           </nav>
 
           <header className="docs-header">
-            <p className="docs-badge">{badge}</p>
-            <h1>{title}</h1>
-            <p>{description}</p>
+            <p className="docs-badge">{displayBadge}</p>
+            <h1>{displayTitle}</h1>
+            <p>{displayDescription}</p>
           </header>
 
           <div className="docs-sections">
-            {sections.map((section) => (
+            {displaySections.map((section) => (
               <section key={section.id} id={section.id} className="docs-section-block">
                 <h2>{section.title}</h2>
                 <p>{section.description}</p>
@@ -481,7 +515,7 @@ export default function KnowledgeTemplate({
 
             {plans?.length ? (
               <section id="plans" className="docs-section-block">
-                <h2>{plansTitle}</h2>
+                <h2>{resolvedPlansHeading}</h2>
                 <div className="plans-grid">
                   {plans.map((plan) => (
                     <article key={`${plan.name}-${plan.menuRange}`} className="plan-card">
@@ -508,10 +542,10 @@ export default function KnowledgeTemplate({
               </div>
             ) : null}
 
-            {contactForm && contactSectionId && contactSectionTitle ? (
+            {contactForm && contactSectionId && displayContactSectionTitle ? (
               <section id={contactSectionId} className="docs-section-block">
-                <h2>{contactSectionTitle}</h2>
-                {contactSectionDescription ? <p>{contactSectionDescription}</p> : null}
+                <h2>{displayContactSectionTitle}</h2>
+                {displayContactSectionDescription ? <p>{displayContactSectionDescription}</p> : null}
                 {contactForm}
               </section>
             ) : null}

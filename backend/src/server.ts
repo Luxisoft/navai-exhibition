@@ -11,6 +11,10 @@ import {
 } from "./handlers/navai-functions";
 import { postQuote } from "./handlers/quote";
 import { postRealtimeClientSecret } from "./handlers/realtime-client-secret";
+import {
+  createNavaiAbuseProtection,
+  NAVAI_BROWSER_CLIENT_ID_HEADER,
+} from "./lib/navai-abuse-protection";
 
 import { resolveProjectRoot } from "./lib/project-root";
 
@@ -92,8 +96,17 @@ const corsAllowAnyOrigin = corsAllowedOrigins.includes("*");
 const corsAllowCredentials = readBooleanEnv(process.env.CORS_ALLOW_CREDENTIALS) ?? false;
 const corsAllowedMethods =
   process.env.CORS_ALLOWED_METHODS ?? "GET,POST,PUT,PATCH,DELETE,OPTIONS";
-const corsAllowedHeaders =
+const configuredCorsAllowedHeaders =
   process.env.CORS_ALLOWED_HEADERS ?? "Content-Type, Authorization, X-Requested-With";
+const corsAllowedHeaders = Array.from(
+  new Set(
+    configuredCorsAllowedHeaders
+      .split(",")
+      .map((entry) => entry.trim())
+      .filter(Boolean)
+      .concat(NAVAI_BROWSER_CLIENT_ID_HEADER)
+  )
+).join(", ");
 const corsExposeHeaders = process.env.CORS_EXPOSE_HEADERS?.trim() ?? "";
 
 const app = express();
@@ -115,6 +128,13 @@ app.use((request, response, next) => {
 
   next();
 });
+app.use(
+  "/navai",
+  createNavaiAbuseProtection({
+    allowedOrigins: corsAllowedOrigins,
+    allowAnyOrigin: corsAllowAnyOrigin,
+  })
+);
 
 app.get("/health", (_request, response) => {
   response.json({ ok: true });

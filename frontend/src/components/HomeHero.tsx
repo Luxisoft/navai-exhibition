@@ -1,5 +1,6 @@
 'use client';
 
+import { NavaiVoiceHeroOrb } from "@navai/voice-frontend";
 import Link from "@/platform/link";
 import Image from "@/platform/image";
 import dynamic from "@/platform/dynamic";
@@ -10,7 +11,8 @@ import bannerAvif1x from "@/assets/navai_banner.avif";
 import bannerAvif15x from "@/assets/navai_banner@1_5x.avif";
 import bannerWebp1x from "@/assets/navai_banner.webp";
 import bannerWebp15x from "@/assets/navai_banner@1_5x.webp";
-import { NavaiProjectVoiceHeroOrb } from "@/components/orb";
+import { useNavaiVoiceOrbAgent } from "@/lib/navai-voice-orb";
+import { useTheme } from "@/theme/provider";
 
 const ORB_AUTOPLAY_DELAY_MS_DEFAULT = 9000;
 const ORB_AUTOPLAY_DELAY_MS_MIN = 0;
@@ -48,6 +50,8 @@ const NavaiMicButton = dynamic(() => import("@/components/NavaiMicButton"), {
 
 export default function HomeHero() {
   const { messages } = useI18n();
+  const { theme } = useTheme();
+  const voiceOrbAgent = useNavaiVoiceOrbAgent();
   const [isVoicePanelReady, setIsVoicePanelReady] = useState(VOICE_PANEL_READY_IMMEDIATELY);
 
   useEffect(() => {
@@ -87,10 +91,15 @@ export default function HomeHero() {
   return (
     <>
       <div className="home-orb-layer">
-        <NavaiProjectVoiceHeroOrb
-          revealDelayMs={ORB_REVEAL_DELAY_MS}
-          autoplayDelayMs={ORB_AUTOPLAY_DELAY_MS}
-        />
+        <div className="home-hero-orb-wrap">
+          <NavaiVoiceHeroOrb
+            agent={voiceOrbAgent}
+            themeMode={theme}
+            backgroundColorLight="#000000"
+            revealDelayMs={ORB_REVEAL_DELAY_MS}
+            autoplayDelayMs={ORB_AUTOPLAY_DELAY_MS}
+          />
+        </div>
       </div>
 
       <div className="home-voice-slot">

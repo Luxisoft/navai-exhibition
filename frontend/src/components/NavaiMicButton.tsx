@@ -11,6 +11,7 @@ import {
   type NavaiSessionStatus,
 } from "@/lib/navai-agent-state";
 import { buildBackendApiUrl } from "@/lib/backend-api";
+import { withNavaiClientRequestInit } from "@/lib/navai-client-identity";
 import {
   createInitialNavaiVoiceSnapshot,
   getNavaiVoiceSnapshot,
@@ -229,8 +230,10 @@ export default function NavaiMicButton({
 
       try {
         const capabilitiesResponse = await fetch(buildBackendApiUrl("/api/backend-capabilities"), {
-          cache: "no-store",
-          signal: controller.signal,
+          ...withNavaiClientRequestInit({
+            cache: "no-store",
+            signal: controller.signal,
+          }),
         });
         if (!capabilitiesResponse.ok) {
           throw new Error(`capabilities_${capabilitiesResponse.status}`);
@@ -240,8 +243,10 @@ export default function NavaiMicButton({
         };
 
         const functionsResponse = await fetch(buildBackendApiUrl("/navai/functions"), {
-          cache: "no-store",
-          signal: controller.signal,
+          ...withNavaiClientRequestInit({
+            cache: "no-store",
+            signal: controller.signal,
+          }),
         });
         if (!functionsResponse.ok) {
           throw new Error(`functions_${functionsResponse.status}`);

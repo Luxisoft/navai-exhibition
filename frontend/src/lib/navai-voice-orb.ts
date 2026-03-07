@@ -1,11 +1,10 @@
 'use client';
 
-import {
-  NavaiVoiceOrbDock,
-  type NavaiVoiceOrbDockProps,
-  type NavaiWebVoiceAgentLike,
+import type {
+  NavaiVoiceOrbDockProps,
+  NavaiWebVoiceAgentLike,
 } from "@navai/voice-frontend";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { useI18n } from "@/i18n/provider";
 import {
@@ -15,19 +14,17 @@ import {
   syncNavaiVoiceSessionLanguage,
   toggleNavaiVoiceSession,
 } from "@/lib/navai-voice-controller";
+import { useRouter } from "@/platform/navigation";
 import { useTheme } from "@/theme/provider";
 
-type NavaiMiniVoiceDockProps = {
-  className?: string;
-};
-
-type UseNavaiMiniVoiceOrbDockPropsOptions = Pick<
+export type UseNavaiMiniVoiceOrbDockPropsOptions = Pick<
   NavaiVoiceOrbDockProps,
   "className" | "placement" | "showStatus"
 >;
 
-function useNavaiMiniVoiceOrbAgent(): NavaiWebVoiceAgentLike {
+export function useNavaiVoiceOrbAgent(): NavaiWebVoiceAgentLike {
   const { language, messages } = useI18n();
+  const router = useRouter();
   const [voiceSnapshot, setVoiceSnapshot] = useState(getNavaiVoiceSnapshot);
 
   useEffect(() => {
@@ -37,23 +34,32 @@ function useNavaiMiniVoiceOrbAgent(): NavaiWebVoiceAgentLike {
     });
   }, []);
 
+  const handleNavigate = useCallback(
+    (path: string) => {
+      router.push(path);
+    },
+    [router]
+  );
+
   useEffect(() => {
     void syncNavaiVoiceSessionLanguage({
       languageCode: language,
+      onNavigate: handleNavigate,
     });
-  }, [language]);
+  }, [handleNavigate, language]);
 
-  const start = async () => {
+  const start = useCallback(async () => {
     await toggleNavaiVoiceSession({
       apiKey: "",
       micMessages: messages.mic,
       languageCode: language,
+      onNavigate: handleNavigate,
     });
-  };
+  }, [handleNavigate, language, messages.mic]);
 
-  const stop = () => {
+  const stop = useCallback(() => {
     stopNavaiVoiceSession(messages.mic.stopped);
-  };
+  }, [messages.mic.stopped]);
 
   return useMemo(() => {
     const resolvedStatus = voiceSnapshot.status ?? voiceSnapshot.state;
@@ -81,7 +87,7 @@ export function useNavaiMiniVoiceOrbDockProps({
 }: UseNavaiMiniVoiceOrbDockPropsOptions = {}): NavaiVoiceOrbDockProps {
   const { messages } = useI18n();
   const { theme } = useTheme();
-  const agent = useNavaiMiniVoiceOrbAgent();
+  const agent = useNavaiVoiceOrbAgent();
   const resolvedPlacement =
     placement ?? (className.includes("navai-mini-dock--in-topbar-mobile") ? "inline" : "bottom-right");
 
@@ -103,10 +109,4 @@ export function useNavaiMiniVoiceOrbDockProps({
       messages: orbMessages,
     };
   }, [agent, className, orbMessages, resolvedPlacement, showStatus, theme]);
-}
-
-export default function NavaiMiniVoiceDock({ className = "" }: NavaiMiniVoiceDockProps) {
-  const dockProps = useNavaiMiniVoiceOrbDockProps({ className });
-
-  return <NavaiVoiceOrbDock {...dockProps} />;
 }

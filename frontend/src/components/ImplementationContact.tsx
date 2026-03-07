@@ -13,6 +13,7 @@ import {
 import HCaptchaGate, { type HCaptchaGateRef } from "@/components/security/HCaptchaGate";
 import { useI18n } from "@/i18n/provider";
 import { buildBackendApiUrl } from "@/lib/backend-api";
+import { stripLeadingDecorativeText } from "@/lib/decorative-text";
 import { getLuxisoftWhatsAppLink } from "@/lib/luxisoft-contact";
 
 type ContactFormState = {
@@ -508,17 +509,17 @@ export default function ImplementationContact() {
 
           {status === "success" ? (
             <p className="impl-field-success" role="status">
-              {messages.implementationPage.contactSuccessMessage}
+              {stripLeadingDecorativeText(messages.implementationPage.contactSuccessMessage)}
             </p>
           ) : null}
 
           {status !== "success" && errors.form ? (
             <p className="impl-field-error" role="alert">
-              {errors.form}
+              {stripLeadingDecorativeText(errors.form)}
             </p>
           ) : null}
 
-          <p className="impl-contact-note">{messages.implementationPage.contactDisclaimer}</p>
+          <p className="impl-contact-note">{stripLeadingDecorativeText(messages.implementationPage.contactDisclaimer)}</p>
         </form>
       ) : null}
     </div>

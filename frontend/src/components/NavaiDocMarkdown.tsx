@@ -9,6 +9,7 @@ import DocsCodeEditor, { extractCodeLanguageFromClassName } from "@/components/D
 import localizedMarkdownRaw from "@/content/navai-readmes/localized-markdown.json";
 import type { LanguageCode } from "@/i18n/messages";
 import { useI18n } from "@/i18n/provider";
+import { stripLeadingDecorativeMarkdownText, stripLeadingDecorativeText } from "@/lib/decorative-text";
 import { buildStableHeadingId, cleanHeadingText } from "@/lib/heading-id";
 
 type NavaiDocSlug =
@@ -62,8 +63,7 @@ const README_PATH_TO_SLUG = new Map<string, NavaiDocSlug>([
 ]);
 
 const HOME_USE_CASES_HEADING_ICON = "🚀";
-const HOME_REMOVED_HEADING_ICONS = ["📦", "🧩"];
-const HOME_PLATFORMS_HEADING_ICON = "📱";
+const HOME_REMOVED_HEADING_ICONS = ["📦", "🧩", "📱"];
 const HOME_USE_CASE_CARD_ICONS = ["💼", "🛒", "🤝", "🚚", "🏥", "🏦", "⚙️", "🧭"];
 const HOME_ACCESSIBILITY_ICON = "♿";
 const HOME_ACCESSIBILITY_KEYWORDS = [
@@ -75,6 +75,7 @@ const HOME_ACCESSIBILITY_KEYWORDS = [
   "low vision",
   "blind",
 ];
+const HOME_HERO_TITLE_PREFIX_PATTERN = /^\s*(?:🦉\s*)?NAVAI\s*(?:[:\-—–]\s*)?/iu;
 
 type LocalizedMarkdownMap = Partial<
   Record<NavaiDocSlug, Partial<Record<Exclude<LanguageCode, "en">, string>>>
@@ -344,9 +345,6 @@ function transformHomeMarkdown(markdown: string) {
     if (headingLine.includes(HOME_USE_CASES_HEADING_ICON)) {
       transformed.push('<div class="docs-home-section-separator" aria-hidden="true"></div>');
       transformed.push(...renderHomeUseCaseCardsSection(headingLineHtml, bodyLines));
-    } else if (headingLine.includes(HOME_PLATFORMS_HEADING_ICON)) {
-      transformed.push('<div class="docs-home-section-separator" aria-hidden="true"></div>');
-      transformed.push(headingLineHtml, ...bodyLines);
     } else {
       transformed.push(headingLineHtml, ...bodyLines);
     }
@@ -375,7 +373,7 @@ function compactHomeIntroParagraph(markdown: string, language: LanguageCode) {
   }
 
   const compactIntroText =
-    "🎙️🤖 NAVAI permite controlar aplicaciones con voz natural para navegar la UI y ejecutar funciones frontend/backend en tiempo real, mejorando además la accesibilidad web y móvil con interacción manos libres.";
+    "🎙️🤖 NAVAI permite controlar aplicaciones con voz natural para navegar y ejecutar funciones en tiempo real, mejorando además la accesibilidad web y móvil con interacción manos libres.";
 
   const updatedLines = [
     ...lines.slice(0, horizontalRuleIndex + 1),
@@ -415,6 +413,10 @@ function stripMarkdownHeadingMarkers(markdown: string) {
   return cleanedLines.join("\n");
 }
 
+function normalizeHomeHeroTitle(value: string) {
+  return stripLeadingDecorativeText(cleanHeadingText(value)).replace(/^NAVAI\s*(?:[:\-—–]\s*)?/iu, "").trim();
+}
+
 export default function NavaiDocMarkdown({ doc }: NavaiDocMarkdownProps) {
   const { language, messages } = useI18n();
   const localizedMarkdown = LOCALIZED_MARKDOWN[doc.slug]?.[language as Exclude<LanguageCode, "en">];
@@ -424,7 +426,8 @@ export default function NavaiDocMarkdown({ doc }: NavaiDocMarkdownProps) {
   const normalizedMarkdownContent = normalizeMarkdownBlockFormatting(compactedHomeIntroMarkdown);
   const homeAdjustedMarkdown =
     doc.slug === "home" ? transformHomeMarkdown(normalizedMarkdownContent) : normalizedMarkdownContent;
-  const markdownContent = stripMarkdownHeadingMarkers(homeAdjustedMarkdown);
+  const sanitizedMarkdownContent = stripLeadingDecorativeMarkdownText(homeAdjustedMarkdown);
+  const markdownContent = stripMarkdownHeadingMarkers(sanitizedMarkdownContent);
   const wordpressInstallLabel = WORDPRESS_INSTALL_LABEL_BY_LANGUAGE[language] ?? WORDPRESS_INSTALL_LABEL_BY_LANGUAGE.en;
 
   const installLinksByHref: Record<string, string> = {
@@ -496,6 +499,13 @@ export default function NavaiDocMarkdown({ doc }: NavaiDocMarkdownProps) {
               column: node?.position?.start?.column ?? null,
             });
             return <h2 id={id}>{children}</h2>;
+          },
+          h1: ({ children, className }) => {
+            if (doc.slug !== "home") {
+              return <h1 className={className}>{children}</h1>;
+            }
+
+            return <h1 className={className}>{normalizeHomeHeroTitle(extractNodeText(children))}</h1>;
           },
           h3: ({ children, node }) => {
             const id = buildStableHeadingId({

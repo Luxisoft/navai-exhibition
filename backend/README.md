@@ -46,6 +46,16 @@ Copy-Item backend/.env.example backend/.env
 | `OPENAI_REALTIME_VOICE_TONE` | No | `friendly and professional` | Tono por defecto. |
 | `OPENAI_REALTIME_CLIENT_SECRET_TTL` | No | `600` | TTL del client secret (segundos). |
 | `NAVAI_ALLOW_FRONTEND_API_KEY` | No | `false` | Permite `apiKey` enviada por frontend (usar con cuidado). |
+| `NAVAI_SECURITY_ENABLED` | No | `true` | Activa proteccion anti-abuso solo para `/navai/*`. |
+| `NAVAI_SECURITY_ALLOW_MISSING_ORIGIN` | No | `true` | Permite requests sin header `Origin` (curl/mobile/server-to-server). |
+| `NAVAI_SECURITY_REQUIRE_BROWSER_CLIENT_ID` | No | `true` | Exige `X-NAVAI-Client-Id` cuando llega un `Origin` de navegador. |
+| `NAVAI_SECURITY_WINDOW_SECONDS` | No | `600` | Ventana de conteo para cuotas del agente. |
+| `NAVAI_SECURITY_BLOCK_SECONDS` | No | `600` | Tiempo de enfriamiento cuando una identidad supera el presupuesto. |
+| `NAVAI_SECURITY_MAX_REQUESTS_PER_WINDOW` | No | `240` | Maximo total de requests `/navai/*` por identidad y ventana. |
+| `NAVAI_SECURITY_MAX_CLIENT_SECRETS_PER_WINDOW` | No | `10` | Maximo de emisiones `client_secret` por identidad y ventana. |
+| `NAVAI_SECURITY_MAX_FUNCTION_LISTS_PER_WINDOW` | No | `120` | Maximo de consultas a `/navai/functions` por identidad y ventana. |
+| `NAVAI_SECURITY_MAX_FUNCTION_EXECUTIONS_PER_WINDOW` | No | `150` | Maximo de ejecuciones `/navai/functions/execute` por identidad y ventana. |
+| `NAVAI_SECURITY_MIN_CLIENT_SECRET_INTERVAL_SECONDS` | No | `8` | Tiempo minimo entre emisiones consecutivas de `client_secret` por identidad. |
 | `NAVAI_FUNCTIONS_FOLDERS` | Si | `backend/src/ai/functions-modules` | Carpetas backend para auto-cargar tools. |
 | `NAVAI_FUNCTIONS_BASE_DIR` | No | vacio | Base dir opcional para resolver loaders. |
 | `PUBLIC_HCAPTCHA_SITE_KEY` | No | vacio | Site key publica (fallback para frontend/API). |
@@ -87,6 +97,18 @@ npm run start
 - `POST /navai/realtime/client-secret`
 - `GET /navai/functions`
 - `POST /navai/functions/execute`
+
+## Proteccion anti-abuso del agente
+
+El backend ahora aplica una capa de seguridad en memoria sobre `/navai/*` para reducir abuso y costo de OpenAI:
+
+- valida `Origin` cuando existe y rechaza origenes fuera de `CORS_ALLOWED_ORIGINS`
+- identifica al navegador por `X-NAVAI-Client-Id` y cae a IP cuando ese header no existe
+- limita emisiones de `client_secret`, consultas de functions y ejecuciones backend por ventana
+- aplica enfriamiento temporal cuando una identidad supera el presupuesto
+- devuelve `Retry-After` para que el frontend sepa cuando puede reintentar
+
+Limitacion importante: en esta arquitectura el browser se conecta directo a OpenAI Realtime despues de recibir `client_secret`. Eso significa que este backend puede frenar reconexiones, bursts y abuso de emision de sesiones, pero no medir ni cortar con precision los tokens consumidos dentro de una sesion ya abierta. Para imponer presupuesto exacto por token o duracion real necesitas un relay/proxy server-side entre cliente y OpenAI.
 
 ## Estructura de funciones
 

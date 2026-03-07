@@ -4,6 +4,7 @@ import { useEffect, useMemo } from "react";
 
 import { getLocalizedNavaiDocs, type NavaiDocSlug } from "@/i18n/docs-catalog";
 import { useI18n } from "@/i18n/provider";
+import { stripLeadingDecorativeText } from "@/lib/decorative-text";
 import { getLocalizedWordpressPage } from "@/i18n/wordpress-page";
 import { normalizePathname, usePathname } from "@/platform/navigation";
 
@@ -63,10 +64,19 @@ function resolvePageMetadata(options: {
     docsDescription,
     docsEntries,
   } = options;
+  const resolvedHomeTagline = stripLeadingDecorativeText(homeTagline);
+  const resolvedDocsLabel = stripLeadingDecorativeText(docsLabel);
+  const resolvedImplementationLabel = stripLeadingDecorativeText(implementationLabel);
+  const resolvedWordpressLabel = stripLeadingDecorativeText(wordpressLabel);
+  const resolvedImplementationTitle = stripLeadingDecorativeText(implementationTitle);
+  const resolvedImplementationDescription = stripLeadingDecorativeText(implementationDescription);
+  const resolvedWordpressTitle = stripLeadingDecorativeText(wordpressTitle);
+  const resolvedWordpressDescription = stripLeadingDecorativeText(wordpressDescription);
+  const resolvedDocsDescription = stripLeadingDecorativeText(docsDescription);
 
   if (pathname === "/") {
-    const title = `NAVAI | ${homeTagline}`;
-    const description = `${homeTagline}. ${docsLabel} | ${implementationLabel} | ${wordpressLabel}.`;
+    const title = `NAVAI | ${resolvedHomeTagline}`;
+    const description = `${resolvedHomeTagline}. ${resolvedDocsLabel} | ${resolvedImplementationLabel} | ${resolvedWordpressLabel}.`;
     return {
       title,
       description,
@@ -76,16 +86,16 @@ function resolvePageMetadata(options: {
 
   if (pathname === "/request-implementation") {
     return {
-      title: `NAVAI | ${implementationTitle}`,
-      description: implementationDescription,
+      title: `NAVAI | ${resolvedImplementationTitle}`,
+      description: resolvedImplementationDescription,
       canonicalUrl: new URL("/request-implementation", SITE_URL).toString(),
     } satisfies PageMetadata;
   }
 
   if (pathname === "/wordpress") {
     return {
-      title: `NAVAI | ${wordpressTitle}`,
-      description: wordpressDescription,
+      title: `NAVAI | ${resolvedWordpressTitle}`,
+      description: resolvedWordpressDescription,
       canonicalUrl: new URL("/wordpress", SITE_URL).toString(),
     } satisfies PageMetadata;
   }
@@ -95,8 +105,10 @@ function resolvePageMetadata(options: {
     const localizedDoc = docsEntries[slug as NavaiDocSlug];
 
     return {
-      title: localizedDoc ? `NAVAI | ${docsLabel}: ${localizedDoc.title}` : `NAVAI | ${docsLabel}`,
-      description: localizedDoc?.summary ?? docsDescription,
+      title: localizedDoc
+        ? `NAVAI | ${resolvedDocsLabel}: ${stripLeadingDecorativeText(localizedDoc.title)}`
+        : `NAVAI | ${resolvedDocsLabel}`,
+      description: localizedDoc?.summary ? stripLeadingDecorativeText(localizedDoc.summary) : resolvedDocsDescription,
       canonicalUrl: new URL(pathname, SITE_URL).toString(),
     } satisfies PageMetadata;
   }
@@ -151,9 +163,18 @@ export default function PageMetadataSync() {
 
   const primaryNavItems = useMemo(
     () => [
-      { name: messages.common.documentation, url: new URL("/documentation/home", SITE_URL).toString() },
-      { name: messages.common.requestImplementation, url: new URL("/request-implementation", SITE_URL).toString() },
-      { name: wordpressPage.navigationLabel, url: new URL("/wordpress", SITE_URL).toString() },
+      {
+        name: stripLeadingDecorativeText(messages.common.documentation),
+        url: new URL("/documentation/home", SITE_URL).toString(),
+      },
+      {
+        name: stripLeadingDecorativeText(messages.common.requestImplementation),
+        url: new URL("/request-implementation", SITE_URL).toString(),
+      },
+      {
+        name: stripLeadingDecorativeText(wordpressPage.navigationLabel),
+        url: new URL("/wordpress", SITE_URL).toString(),
+      },
     ],
     [messages.common.documentation, messages.common.requestImplementation, wordpressPage.navigationLabel]
   );

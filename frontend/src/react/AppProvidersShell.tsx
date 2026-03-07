@@ -4,9 +4,9 @@ import { NavaiVoiceOrbDock } from "@navai/voice-frontend";
 import { useEffect, useState, type ReactNode } from "react";
 
 import ClientProviders from "@/components/ClientProviders";
-import { useNavaiMiniVoiceOrbDockProps } from "@/components/NavaiMiniVoiceDock";
 import { usePathname } from "@/platform/navigation";
 import PageMetadataSync from "@/components/PageMetadataSync";
+import { useNavaiMiniVoiceOrbDockProps } from "@/lib/navai-voice-orb";
 
 type AppProvidersShellProps = {
   children: ReactNode;

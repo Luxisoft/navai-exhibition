@@ -748,6 +748,10 @@
   margin: 0 auto;
 }
 
+.docs-markdown-body.is-root-doc hr + p {
+  padding-top: 0.7rem;
+}
+
 .docs-markdown-body ul,
 .docs-markdown-body ol {
   margin: 0.2rem 0 0;
@@ -778,8 +782,11 @@
 .docs-markdown-body .docs-install-links {
   display: flex;
   flex-wrap: wrap;
+  justify-content: center;
   gap: 0.55rem;
-  margin-top: 0.5rem;
+  width: 100%;
+  margin-top: 0;
+  padding: 0.85rem 0 1rem;
 }
 
 .docs-markdown-body .docs-install-link {

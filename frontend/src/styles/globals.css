@@ -357,6 +357,19 @@ html.lang-hi {
   inset: 0;
   z-index: 1;
   pointer-events: none;
+  display: grid;
+  place-items: center;
+}
+
+.home-orb-layer .home-hero-orb-wrap {
+  width: min(56rem, 92vw);
+  max-width: none;
+  transform: translateY(-2%);
+}
+
+.home-orb-layer .home-hero-orb-wrap > .navai-voice-orb-hero {
+  width: 100% !important;
+  max-width: none !important;
 }
 
 .home-content {
@@ -1098,6 +1111,10 @@ html.lang-hi {
 }
 
 @media (min-width: 641px) {
+  .home-orb-layer .home-hero-orb-wrap {
+    width: min(58rem, 88vw);
+  }
+
   .home-content {
     position: absolute;
     inset: 0;
@@ -1142,6 +1159,11 @@ html.lang-hi {
 }
 
 @media (max-width: 640px) {
+  .home-orb-layer .home-hero-orb-wrap {
+    width: min(42rem, 118vw);
+    transform: translateY(-1%);
+  }
+
   .home-section {
     align-items: flex-start;
     padding-top: calc(env(safe-area-inset-top) + 1.2rem);
@@ -1213,6 +1235,11 @@ html.lang-hi {
 }
 
 @media (max-width: 480px) {
+  .home-orb-layer .home-hero-orb-wrap {
+    width: min(34rem, 132vw);
+    transform: none;
+  }
+
   .home-section {
     padding-top: calc(env(safe-area-inset-top) + 0.96rem);
   }

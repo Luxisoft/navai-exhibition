@@ -2,6 +2,7 @@ import { NAVAI_FRONTEND_FUNCTION_LOADERS } from "@/ai/frontend-function-loaders"
 import { NAVAI_ROUTE_ITEMS } from "@/ai/routes";
 import { getBackendApiBaseUrl } from "@/lib/backend-api";
 import type { NavaiAgentVoiceState, NavaiSessionStatus } from "@/lib/navai-agent-state";
+import { withNavaiClientRequestInit } from "@/lib/navai-client-identity";
 import { navigatePath } from "@/platform/navigation";
 import type { LanguageCode } from "@/i18n/messages";
 
@@ -617,11 +618,12 @@ async function startSession(options: ToggleOptions) {
   });
 
   const voiceRuntime = await loadVoiceRuntime();
-  const backendApiBaseUrl = getBackendApiBaseUrl();
-  const backendClient = voiceRuntime.createNavaiBackendClient({
-    apiBaseUrl: backendApiBaseUrl,
-  });
-  backendClientRef = backendClient;
+    const backendApiBaseUrl = getBackendApiBaseUrl();
+    const backendClient = voiceRuntime.createNavaiBackendClient({
+      apiBaseUrl: backendApiBaseUrl,
+      fetchImpl: (input, init) => fetch(input, withNavaiClientRequestInit(init)),
+    });
+    backendClientRef = backendClient;
   navigateHandlerRef = options.onNavigate ?? ((path) => void navigatePath(path));
   activeLanguageCode = options.languageCode ?? activeLanguageCode;
 
