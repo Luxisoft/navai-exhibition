@@ -11,10 +11,17 @@ import {
 } from "react";
 
 import HCaptchaGate, { type HCaptchaGateRef } from "@/components/security/HCaptchaGate";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import { Textarea } from "@/components/ui/textarea";
 import { useI18n } from "@/i18n/provider";
 import { buildBackendApiUrl } from "@/lib/backend-api";
 import { stripLeadingDecorativeText } from "@/lib/decorative-text";
 import { getLuxisoftWhatsAppLink } from "@/lib/luxisoft-contact";
+import { cn } from "@/lib/utils";
 
 type ContactFormState = {
   name: string;
@@ -41,6 +48,13 @@ const INITIAL_FORM_STATE: ContactFormState = {
 const CONTACT_SECTION_ID = "contacto";
 const CONTACT_FORM_ID = "implementation-contact-form";
 const CONTACT_COMMAND_EVENT = "navai:implementation-contact-command";
+const CONTACT_FIELD_IDS = {
+  name: "implementation-contact-name",
+  email: "implementation-contact-email",
+  company: "implementation-contact-company",
+  whatsapp: "implementation-contact-whatsapp",
+  message: "implementation-contact-message",
+} as const;
 
 function readInitialCaptchaSiteKey() {
   if (typeof import.meta !== "undefined" && typeof import.meta.env.PUBLIC_HCAPTCHA_SITE_KEY === "string") {
@@ -365,162 +379,185 @@ export default function ImplementationContact() {
   return (
     <div className="impl-contact-wrap">
       <div className="impl-contact-top-actions">
-        <button
+        <Button
           type="button"
-          className={`docs-cta-btn${isFormOpen ? " is-active" : ""}`}
+          size="lg"
+          className={cn("min-w-[13rem]", isFormOpen ? "border-primary/45 from-primary/14 to-primary/28" : undefined)}
           onClick={openForm}
           aria-pressed={isFormOpen}
         >
           {messages.implementationPage.ctaLabel}
-        </button>
+        </Button>
 
-        <a
-          href={whatsappLink}
-          target="_blank"
-          rel="noreferrer noopener"
-          className="impl-whatsapp-icon-btn"
-          aria-label={messages.implementationPage.whatsappButtonLabel}
-          title={messages.implementationPage.whatsappButtonLabel}
+        <Button
+          asChild
+          variant="success"
+          size="icon"
+          className="impl-whatsapp-icon-btn h-[2.58rem] w-[2.58rem] rounded-[0.65rem]"
         >
-          <MessageCircle className="impl-whatsapp-icon" aria-hidden="true" />
-        </a>
+          <a
+            href={whatsappLink}
+            target="_blank"
+            rel="noreferrer noopener"
+            aria-label={messages.implementationPage.whatsappButtonLabel}
+            title={messages.implementationPage.whatsappButtonLabel}
+          >
+            <MessageCircle className="impl-whatsapp-icon" aria-hidden="true" />
+          </a>
+        </Button>
       </div>
 
       {isFormOpen ? (
-        <form
-          id={CONTACT_FORM_ID}
-          className="impl-contact-form"
-          onSubmit={handleSubmit}
-          data-navai-contact-form="implementation"
-          noValidate
-        >
-          <div className="impl-contact-grid">
-            <label className="impl-field">
-              <span>{messages.implementationPage.contactNameLabel}</span>
-              <input
-                ref={nameInputRef}
-                name="name"
-                type="text"
-                required
-                value={form.name}
-                onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
-                aria-invalid={Boolean(errors.name)}
-              />
-              {errors.name ? <small className="impl-field-error">{errors.name}</small> : null}
-            </label>
+        <>
+          <Separator />
+          <Card className="border-border/70 bg-card/55 shadow-none">
+            <CardContent className="p-4 sm:p-5">
+              <form
+                id={CONTACT_FORM_ID}
+                className="impl-contact-form"
+                onSubmit={handleSubmit}
+                data-navai-contact-form="implementation"
+                noValidate
+              >
+                <div className="impl-contact-grid">
+                  <div className="impl-field">
+                    <Label htmlFor={CONTACT_FIELD_IDS.name}>{messages.implementationPage.contactNameLabel}</Label>
+                    <Input
+                      ref={nameInputRef}
+                      id={CONTACT_FIELD_IDS.name}
+                      name="name"
+                      type="text"
+                      required
+                      value={form.name}
+                      onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
+                      aria-invalid={Boolean(errors.name)}
+                    />
+                    {errors.name ? <small className="impl-field-error">{errors.name}</small> : null}
+                  </div>
 
-            <label className="impl-field">
-              <span>{messages.implementationPage.contactEmailLabel}</span>
-              <input
-                name="email"
-                type="email"
-                required
-                value={form.email}
-                onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))}
-                aria-invalid={Boolean(errors.email)}
-              />
-              {errors.email ? <small className="impl-field-error">{errors.email}</small> : null}
-            </label>
+                  <div className="impl-field">
+                    <Label htmlFor={CONTACT_FIELD_IDS.email}>{messages.implementationPage.contactEmailLabel}</Label>
+                    <Input
+                      id={CONTACT_FIELD_IDS.email}
+                      name="email"
+                      type="email"
+                      required
+                      value={form.email}
+                      onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))}
+                      aria-invalid={Boolean(errors.email)}
+                    />
+                    {errors.email ? <small className="impl-field-error">{errors.email}</small> : null}
+                  </div>
 
-            <label className="impl-field">
-              <span>{messages.implementationPage.contactCompanyLabel}</span>
-              <input
-                name="company"
-                type="text"
-                value={form.company}
-                onChange={(event) => setForm((current) => ({ ...current, company: event.target.value }))}
-              />
-            </label>
+                  <div className="impl-field">
+                    <Label htmlFor={CONTACT_FIELD_IDS.company}>{messages.implementationPage.contactCompanyLabel}</Label>
+                    <Input
+                      id={CONTACT_FIELD_IDS.company}
+                      name="company"
+                      type="text"
+                      value={form.company}
+                      onChange={(event) => setForm((current) => ({ ...current, company: event.target.value }))}
+                    />
+                  </div>
 
-            <label className="impl-field">
-              <span>{messages.implementationPage.contactWhatsappLabel}</span>
-              <input
-                name="whatsapp"
-                type="tel"
-                value={form.whatsapp}
-                onChange={(event) => setForm((current) => ({ ...current, whatsapp: event.target.value }))}
-              />
-            </label>
-          </div>
+                  <div className="impl-field">
+                    <Label htmlFor={CONTACT_FIELD_IDS.whatsapp}>{messages.implementationPage.contactWhatsappLabel}</Label>
+                    <Input
+                      id={CONTACT_FIELD_IDS.whatsapp}
+                      name="whatsapp"
+                      type="tel"
+                      value={form.whatsapp}
+                      onChange={(event) => setForm((current) => ({ ...current, whatsapp: event.target.value }))}
+                    />
+                  </div>
+                </div>
 
-          <label className="impl-field">
-            <span>{messages.implementationPage.contactMessageLabel}</span>
-            <textarea
-              name="message"
-              required
-              rows={5}
-              value={form.message}
-              onChange={(event) => setForm((current) => ({ ...current, message: event.target.value }))}
-              aria-invalid={Boolean(errors.message)}
-            />
-            {errors.message ? <small className="impl-field-error">{errors.message}</small> : null}
-          </label>
+                <div className="impl-field">
+                  <Label htmlFor={CONTACT_FIELD_IDS.message}>{messages.implementationPage.contactMessageLabel}</Label>
+                  <Textarea
+                    id={CONTACT_FIELD_IDS.message}
+                    name="message"
+                    required
+                    rows={5}
+                    className="min-h-32 resize-y"
+                    value={form.message}
+                    onChange={(event) => setForm((current) => ({ ...current, message: event.target.value }))}
+                    aria-invalid={Boolean(errors.message)}
+                  />
+                  {errors.message ? <small className="impl-field-error">{errors.message}</small> : null}
+                </div>
 
-          <div className="impl-captcha-wrap">
-            <HCaptchaGate
-              sitekey={siteKey}
-              size={captchaSize}
-              theme={captchaTheme}
-              fallbackErrorMessage={messages.implementationPage.contactCaptchaGenericErrorMessage}
-              onTokenChange={(tokenValue, ekeyValue) => {
-                setCaptchaToken(tokenValue);
-                setCaptchaEkey(ekeyValue || null);
-                if (tokenValue) {
-                  setCaptchaError(null);
-                  setErrors((current) => {
-                    if (!current.captcha) {
-                      return current;
-                    }
-                    const next = { ...current };
-                    delete next.captcha;
-                    return next;
-                  });
-                }
-              }}
-              onReadyChange={(ready) => setCaptchaReady(ready)}
-              onError={(message) => {
-                setCaptchaError(message);
-                setErrors((current) => ({ ...current, captcha: message }));
-              }}
-              ref={captchaRef}
-            />
-            {errors.captcha || captchaError ? (
-              <small className="impl-field-error">{errors.captcha || captchaError}</small>
-            ) : null}
-          </div>
+                <div className="impl-captcha-wrap">
+                  <HCaptchaGate
+                    sitekey={siteKey}
+                    size={captchaSize}
+                    theme={captchaTheme}
+                    fallbackErrorMessage={messages.implementationPage.contactCaptchaGenericErrorMessage}
+                    onTokenChange={(tokenValue, ekeyValue) => {
+                      setCaptchaToken(tokenValue);
+                      setCaptchaEkey(ekeyValue || null);
+                      if (tokenValue) {
+                        setCaptchaError(null);
+                        setErrors((current) => {
+                          if (!current.captcha) {
+                            return current;
+                          }
+                          const next = { ...current };
+                          delete next.captcha;
+                          return next;
+                        });
+                      }
+                    }}
+                    onReadyChange={(ready) => setCaptchaReady(ready)}
+                    onError={(message) => {
+                      setCaptchaError(message);
+                      setErrors((current) => ({ ...current, captcha: message }));
+                    }}
+                    ref={captchaRef}
+                  />
+                  {errors.captcha || captchaError ? (
+                    <small className="impl-field-error">{errors.captcha || captchaError}</small>
+                  ) : null}
+                </div>
 
-          <div className="impl-contact-actions">
-            <button
-              type="submit"
-              className="docs-cta-btn"
-              data-navai-contact-submit="true"
-              disabled={status === "loading" || !isCaptchaVerified}
-            >
-              {status === "loading" ? (
-                <>
-                  <Loader2 className="impl-spinner" aria-hidden="true" />
-                  {messages.implementationPage.contactSendingLabel}
-                </>
-              ) : (
-                messages.implementationPage.contactSubmitLabel
-              )}
-            </button>
-          </div>
+                <div className="impl-contact-actions">
+                  <Button
+                    type="submit"
+                    size="lg"
+                    data-navai-contact-submit="true"
+                    disabled={status === "loading" || !isCaptchaVerified}
+                    className="min-w-[13rem]"
+                  >
+                    {status === "loading" ? (
+                      <>
+                        <Loader2 className="impl-spinner" aria-hidden="true" />
+                        {messages.implementationPage.contactSendingLabel}
+                      </>
+                    ) : (
+                      messages.implementationPage.contactSubmitLabel
+                    )}
+                  </Button>
+                </div>
 
-          {status === "success" ? (
-            <p className="impl-field-success" role="status">
-              {stripLeadingDecorativeText(messages.implementationPage.contactSuccessMessage)}
-            </p>
-          ) : null}
+                {status === "success" ? (
+                  <p className="impl-field-success" role="status">
+                    {stripLeadingDecorativeText(messages.implementationPage.contactSuccessMessage)}
+                  </p>
+                ) : null}
 
-          {status !== "success" && errors.form ? (
-            <p className="impl-field-error" role="alert">
-              {stripLeadingDecorativeText(errors.form)}
-            </p>
-          ) : null}
+                {status !== "success" && errors.form ? (
+                  <p className="impl-field-error" role="alert">
+                    {stripLeadingDecorativeText(errors.form)}
+                  </p>
+                ) : null}
 
-          <p className="impl-contact-note">{stripLeadingDecorativeText(messages.implementationPage.contactDisclaimer)}</p>
-        </form>
+                <p className="impl-contact-note">
+                  {stripLeadingDecorativeText(messages.implementationPage.contactDisclaimer)}
+                </p>
+              </form>
+            </CardContent>
+          </Card>
+        </>
       ) : null}
     </div>
   );

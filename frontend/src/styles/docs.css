@@ -647,25 +647,6 @@
   padding-top: 0.34rem;
 }
 
-.docs-cta-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 0.65rem;
-  padding: 0.64rem 1rem;
-  border: 1px solid rgba(37, 99, 235, 0.24);
-  background: linear-gradient(180deg, #eff6ff, #dbeafe);
-  color: #1e40af;
-  font-weight: 650;
-  text-decoration: none;
-}
-
-.docs-cta-btn.is-active {
-  border-color: rgba(37, 99, 235, 0.38);
-  background: linear-gradient(180deg, #dbeafe, #bfdbfe);
-  color: #1e3a8a;
-}
-
 .docs-markdown-body {
   display: grid;
   gap: 0.82rem;
@@ -1199,47 +1180,9 @@
   min-width: 0;
 }
 
-.impl-field span {
-  color: #334155;
-  font-size: 0.79rem;
-  font-weight: 500;
-}
-
-.impl-field input,
-.impl-field textarea {
-  width: 100%;
-  border: 1px solid rgba(15, 23, 42, 0.2);
-  border-radius: 0.62rem;
-  background: #ffffff;
-  color: #0f172a;
-  font-size: 0.9rem;
-  line-height: 1.4;
-  padding: 0.58rem 0.65rem;
-  resize: vertical;
-}
-
-.impl-field input:focus,
-.impl-field textarea:focus {
-  outline: none;
-  border-color: rgba(37, 99, 235, 0.5);
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
-}
-
 .impl-contact-actions {
   display: flex;
   justify-content: flex-start;
-}
-
-.impl-contact-actions .docs-cta-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  cursor: pointer;
-}
-
-.impl-contact-actions .docs-cta-btn:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
 }
 
 .impl-contact-note {
@@ -1435,17 +1378,10 @@
 }
 
 .dark .docs-badge,
-.dark .docs-inline-source,
-.dark .docs-cta-btn {
+.dark .docs-inline-source {
   border-color: rgba(148, 197, 255, 0.35);
   background: rgba(30, 64, 175, 0.2);
   color: #bfdbfe;
-}
-
-.dark .docs-cta-btn.is-active {
-  border-color: rgba(148, 197, 255, 0.58);
-  background: rgba(30, 64, 175, 0.38);
-  color: #dbeafe;
 }
 
 .dark .docs-markdown-body a {
@@ -1582,23 +1518,6 @@
 
 .dark .impl-whatsapp-icon-btn:hover {
   border-color: rgba(110, 231, 183, 0.55);
-}
-
-.dark .impl-field span {
-  color: rgba(203, 213, 225, 0.9);
-}
-
-.dark .impl-field input,
-.dark .impl-field textarea {
-  border-color: rgba(148, 163, 184, 0.25);
-  background: rgba(12, 19, 40, 0.9);
-  color: #e2e8f0;
-}
-
-.dark .impl-field input:focus,
-.dark .impl-field textarea:focus {
-  border-color: rgba(147, 197, 253, 0.45);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
 }
 
 .dark .impl-contact-note {

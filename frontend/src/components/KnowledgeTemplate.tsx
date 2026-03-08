@@ -10,6 +10,7 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react
 import DocsCodeEditor, { inferCodeLanguageFromContent } from "@/components/DocsCodeEditor";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import ThemeSwitcher from "@/components/ThemeSwitcher";
+import { Button } from "@/components/ui/button";
 import type { LocalizedPlan, LocalizedSection } from "@/i18n/messages";
 import { useI18n } from "@/i18n/provider";
 import { stripLeadingDecorativeText } from "@/lib/decorative-text";
@@ -536,9 +537,9 @@ export default function KnowledgeTemplate({
 
             {ctaLabel && ctaHref ? (
               <div className="docs-cta-wrap">
-                <Link href={ctaHref} className="docs-cta-btn">
-                  {ctaLabel}
-                </Link>
+                <Button asChild size="lg">
+                  <Link href={ctaHref}>{ctaLabel}</Link>
+                </Button>
               </div>
             ) : null}
 
