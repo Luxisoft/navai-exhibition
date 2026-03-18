@@ -1,0 +1,20 @@
+{
+  "dependencies": {
+    "@navai/voice-backend": "0.1.2",
+    "@navai/voice-frontend": "0.1.6",
+    "@navai/voice-mobile": "0.1.5",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "scheduler": "0.27.0"
+  },
+  "scripts": {
+    "generate:module-loaders": "navai-generate-web-loaders",
+    "predev": "npm run generate:module-loaders",
+    "prebuild": "npm run generate:module-loaders",
+    "pretypecheck": "npm run generate:module-loaders",
+    "prelint": "npm run generate:module-loaders",
+    "generate:ai-modules": "navai-generate-mobile-loaders",
+    "preandroid": "npm run generate:ai-modules",
+    "preios": "npm run generate:ai-modules"
+  }
+}

@@ -10,12 +10,12 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          "border border-primary/25 bg-linear-to-b from-primary/10 to-primary/20 text-primary shadow-sm hover:-translate-y-px hover:border-primary/40 hover:from-primary/15 hover:to-primary/25 dark:border-primary/35 dark:from-primary/16 dark:to-primary/26",
+          "border border-primary/25 bg-linear-to-b from-primary/10 to-primary/20 text-primary shadow-sm hover:-translate-y-px hover:border-primary/40 hover:from-primary/15 hover:to-primary/25 dark:border-white/10 dark:bg-[#1c1c1d] dark:bg-none dark:text-[#f5f5f5] dark:hover:bg-[#2f2f30] dark:hover:border-white/15",
         secondary:
-          "border border-border/70 bg-card/75 text-card-foreground shadow-sm hover:-translate-y-px hover:bg-accent/80 dark:bg-card/70",
+          "border border-border/70 bg-card/75 text-card-foreground shadow-sm hover:-translate-y-px hover:bg-accent/80 dark:bg-[#1c1c1d] dark:text-[#f5f5f5] dark:hover:bg-[#2f2f30] dark:border-white/10",
         outline:
-          "border border-border/70 bg-background/65 text-foreground shadow-sm hover:-translate-y-px hover:bg-accent/75 dark:bg-background/35",
-        ghost: "text-foreground hover:bg-accent/70",
+          "border border-border/70 bg-background/65 text-foreground shadow-sm hover:-translate-y-px hover:bg-accent/75 dark:bg-[#1c1c1d] dark:text-[#f5f5f5] dark:hover:bg-[#2f2f30] dark:border-white/10",
+        ghost: "text-foreground hover:bg-accent/70 dark:text-[#f5f5f5] dark:hover:bg-[#2f2f30]",
         link: "h-auto rounded-none border-0 bg-transparent p-0 text-primary shadow-none hover:underline",
         success:
           "border border-emerald-500/30 bg-linear-to-b from-emerald-50 to-emerald-100 text-emerald-700 shadow-sm hover:-translate-y-px hover:border-emerald-500/45 hover:from-emerald-100 hover:to-emerald-200 dark:border-emerald-400/30 dark:from-emerald-950/45 dark:to-emerald-900/55 dark:text-emerald-300",

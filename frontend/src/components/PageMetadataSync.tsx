@@ -2,10 +2,10 @@
 
 import { useEffect, useMemo } from "react";
 
-import { getLocalizedNavaiDocs, type NavaiDocSlug } from "@/i18n/docs-catalog";
-import { useI18n } from "@/i18n/provider";
+import type { NavaiDocSlug } from "@/lib/i18n/messages";
+import { useI18n } from "@/lib/i18n/provider";
+import { NAVAI_PANEL_HREF } from "@/lib/auth-redirect";
 import { stripLeadingDecorativeText } from "@/lib/decorative-text";
-import { getLocalizedWordpressPage } from "@/i18n/wordpress-page";
 import { normalizePathname, usePathname } from "@/platform/navigation";
 
 const SITE_URL = "https://navai.luxisoft.com";
@@ -43,11 +43,10 @@ function resolvePageMetadata(options: {
   homeTagline: string;
   docsLabel: string;
   implementationLabel: string;
-  wordpressLabel: string;
   implementationTitle: string;
   implementationDescription: string;
-  wordpressTitle: string;
-  wordpressDescription: string;
+  panelTitle: string;
+  panelDescription: string;
   docsDescription: string;
   docsEntries: Partial<Record<NavaiDocSlug, { title: string; summary: string }>>;
 }) {
@@ -56,27 +55,25 @@ function resolvePageMetadata(options: {
     homeTagline,
     docsLabel,
     implementationLabel,
-    wordpressLabel,
     implementationTitle,
     implementationDescription,
-    wordpressTitle,
-    wordpressDescription,
+    panelTitle,
+    panelDescription,
     docsDescription,
     docsEntries,
   } = options;
   const resolvedHomeTagline = stripLeadingDecorativeText(homeTagline);
   const resolvedDocsLabel = stripLeadingDecorativeText(docsLabel);
   const resolvedImplementationLabel = stripLeadingDecorativeText(implementationLabel);
-  const resolvedWordpressLabel = stripLeadingDecorativeText(wordpressLabel);
   const resolvedImplementationTitle = stripLeadingDecorativeText(implementationTitle);
   const resolvedImplementationDescription = stripLeadingDecorativeText(implementationDescription);
-  const resolvedWordpressTitle = stripLeadingDecorativeText(wordpressTitle);
-  const resolvedWordpressDescription = stripLeadingDecorativeText(wordpressDescription);
+  const resolvedPanelTitle = stripLeadingDecorativeText(panelTitle);
+  const resolvedPanelDescription = stripLeadingDecorativeText(panelDescription);
   const resolvedDocsDescription = stripLeadingDecorativeText(docsDescription);
 
   if (pathname === "/") {
     const title = `NAVAI | ${resolvedHomeTagline}`;
-    const description = `${resolvedHomeTagline}. ${resolvedDocsLabel} | ${resolvedImplementationLabel} | ${resolvedWordpressLabel}.`;
+    const description = `${resolvedHomeTagline}. ${resolvedDocsLabel} | ${resolvedImplementationLabel}.`;
     return {
       title,
       description,
@@ -92,11 +89,11 @@ function resolvePageMetadata(options: {
     } satisfies PageMetadata;
   }
 
-  if (pathname === "/wordpress") {
+  if (pathname === NAVAI_PANEL_HREF) {
     return {
-      title: `NAVAI | ${resolvedWordpressTitle}`,
-      description: resolvedWordpressDescription,
-      canonicalUrl: new URL("/wordpress", SITE_URL).toString(),
+      title: `NAVAI | ${resolvedPanelTitle}`,
+      description: resolvedPanelDescription,
+      canonicalUrl: new URL(NAVAI_PANEL_HREF, SITE_URL).toString(),
     } satisfies PageMetadata;
   }
 
@@ -126,10 +123,9 @@ export default function PageMetadataSync() {
     }
 
     const runtimePathname = normalizePathname(window.location.pathname);
-    return normalizedPathname === "/" && runtimePathname !== "/" ? runtimePathname : normalizedPathname;
+      return normalizedPathname === "/" && runtimePathname !== "/" ? runtimePathname : normalizedPathname;
   }, [normalizedPathname]);
-  const wordpressPage = useMemo(() => getLocalizedWordpressPage(language), [language]);
-  const localizedDocs = useMemo(() => getLocalizedNavaiDocs(language), [language]);
+  const localizedDocs = messages.docsCatalog;
 
   const pageMetadata = useMemo(
     () =>
@@ -138,11 +134,10 @@ export default function PageMetadataSync() {
         homeTagline: messages.home.tagline,
         docsLabel: messages.common.documentation,
         implementationLabel: messages.common.requestImplementation,
-        wordpressLabel: wordpressPage.navigationLabel,
         implementationTitle: messages.implementationPage.title,
         implementationDescription: messages.implementationPage.description,
-        wordpressTitle: wordpressPage.title,
-        wordpressDescription: wordpressPage.description,
+        panelTitle: messages.panelPage.title,
+        panelDescription: messages.panelPage.description,
         docsDescription: messages.docsPage.description,
         docsEntries: localizedDocs.entries,
       }),
@@ -153,10 +148,9 @@ export default function PageMetadataSync() {
       messages.common.requestImplementation,
       messages.implementationPage.title,
       messages.implementationPage.description,
+      messages.panelPage.title,
+      messages.panelPage.description,
       messages.docsPage.description,
-      wordpressPage.navigationLabel,
-      wordpressPage.title,
-      wordpressPage.description,
       localizedDocs.entries,
     ]
   );
@@ -171,12 +165,8 @@ export default function PageMetadataSync() {
         name: stripLeadingDecorativeText(messages.common.requestImplementation),
         url: new URL("/request-implementation", SITE_URL).toString(),
       },
-      {
-        name: stripLeadingDecorativeText(wordpressPage.navigationLabel),
-        url: new URL("/wordpress", SITE_URL).toString(),
-      },
     ],
-    [messages.common.documentation, messages.common.requestImplementation, wordpressPage.navigationLabel]
+    [messages.common.documentation, messages.common.requestImplementation]
   );
 
   const structuredDataJson = useMemo(() => {

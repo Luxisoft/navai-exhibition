@@ -6,7 +6,7 @@ import type {
 } from "@navai/voice-frontend";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { useI18n } from "@/i18n/provider";
+import { useI18n } from "@/lib/i18n/provider";
 import {
   getNavaiVoiceSnapshot,
   stopNavaiVoiceSession,

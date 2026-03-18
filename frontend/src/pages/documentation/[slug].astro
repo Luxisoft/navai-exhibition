@@ -21,7 +21,7 @@ export function getStaticPaths() {
 const { slug } = Astro.params;
 const doc = slug ? await getNavaiDocPageBySlug(slug) : null;
 const groupedDocs = getNavaiDocsGrouped();
-const sourceHref = doc ? getNavaiDocSourceUrl(doc.sourcePath) : "";
+const sourceHref = doc ? getNavaiDocSourceUrl(doc.slug, doc.sourcePath) : "";
 const pageTitle = doc ? `NAVAI | Documentación: ${doc.title}` : "NAVAI | Página no encontrada";
 const pageDescription = doc
   ? doc.summary

@@ -1,26 +1,41 @@
 'use client';
 
+import LibrariesGuide from "@/components/LibrariesGuide";
 import { Children, isValidElement, type ReactNode } from "react";
 import ReactMarkdown from "react-markdown";
 import rehypeRaw from "rehype-raw";
 import remarkGfm from "remark-gfm";
 
 import DocsCodeEditor, { extractCodeLanguageFromClassName } from "@/components/DocsCodeEditor";
+import HomeUseCasesCarousel, { type HomeUseCaseCard } from "@/components/HomeUseCasesCarousel";
+import InstallationApiGuide from "@/components/InstallationApiGuide";
+import LegalDocsGuide from "@/components/LegalDocsGuide";
 import localizedMarkdownRaw from "@/content/navai-readmes/localized-markdown.json";
-import type { LanguageCode } from "@/i18n/messages";
-import { useI18n } from "@/i18n/provider";
+import { resolveReadmeImageSrc, resolveReadmeLinkHref } from "@/lib/doc-readme";
+import type { LanguageCode } from "@/lib/i18n/messages";
+import { useI18n } from "@/lib/i18n/provider";
+import { isInteractiveLibrariesGuideSlug, supportsInteractiveLibrariesGuide } from "@/lib/libraries-guide";
+import { isInteractiveLegalGuideSlug, supportsInteractiveLegalGuide } from "@/lib/legal-docs-guide";
 import { stripLeadingDecorativeMarkdownText, stripLeadingDecorativeText } from "@/lib/decorative-text";
 import { buildStableHeadingId, cleanHeadingText } from "@/lib/heading-id";
+import {
+  isInteractiveInstallationGuideSlug,
+  supportsInteractiveInstallationGuide,
+} from "@/lib/installation-api-guide";
+import { normalizeMarkdownBlockFormatting } from "@/lib/markdown-normalization";
 
 type NavaiDocSlug =
   | "home"
   | "installation-api"
   | "installation-web"
   | "installation-mobile"
-  | "installation-wordpress"
-  | "playground-api"
-  | "playground-web"
-  | "playground-mobile"
+  | "legal-ai-evaluation-terms"
+  | "legal-data-processing-policy"
+  | "legal-data-and-ai-authorization"
+  | "legal-privacy-policy"
+  | "legal-checkout-flow"
+  | "legal-compliance-checklist"
+  | "legal-privacy-notice"
   | "playground-stores"
   | "voice-backend"
   | "voice-frontend"
@@ -35,32 +50,6 @@ type NavaiDocPage = {
 type NavaiDocMarkdownProps = {
   doc: NavaiDocPage;
 };
-
-const GITHUB_BLOB_BASE = "https://github.com/Luxisoft/navai/blob/main";
-const GITHUB_RAW_BASE = "https://raw.githubusercontent.com/Luxisoft/navai/main";
-const WORDPRESS_INSTALL_DOC_HREF = "/documentation/installation-wordpress";
-const WORDPRESS_INSTALL_LABEL_BY_LANGUAGE: Record<LanguageCode, string> = {
-  en: "WordPress Plugin",
-  es: "Plugin para wordpress",
-  fr: "Plugin WordPress",
-  pt: "Plugin para WordPress",
-  zh: "WordPress 插件",
-  ja: "WordPress プラグイン",
-  ru: "Плагин WordPress",
-  ko: "워드프레스 플러그인",
-  hi: "WordPress प्लगइन",
-};
-
-const README_PATH_TO_SLUG = new Map<string, NavaiDocSlug>([
-  ["README.md", "home"],
-  ["README.es.md", "installation-api"],
-  ["apps/playground-api/README.md", "playground-api"],
-  ["apps/playground-web/README.md", "playground-web"],
-  ["apps/playground-mobile/README.md", "playground-mobile"],
-  ["packages/voice-backend/README.md", "voice-backend"],
-  ["packages/voice-frontend/README.md", "voice-frontend"],
-  ["packages/voice-mobile/README.md", "voice-mobile"],
-]);
 
 const HOME_USE_CASES_HEADING_ICON = "🚀";
 const HOME_REMOVED_HEADING_ICONS = ["📦", "🧩", "📱"];
@@ -82,55 +71,6 @@ type LocalizedMarkdownMap = Partial<
 >;
 
 const LOCALIZED_MARKDOWN = localizedMarkdownRaw as LocalizedMarkdownMap;
-
-function normalizeRepoPath(value: string) {
-  return value.replace(/\\/g, "/").replace(/^\.?\//, "");
-}
-
-function canonicalizeReadmePath(value: string) {
-  return value.replace(/README\.(en|es)\.md$/i, "README.md");
-}
-
-function resolveReadmeLinkHref(href: string, sourcePath: string) {
-  if (
-    href.startsWith("http://") ||
-    href.startsWith("https://") ||
-    href.startsWith("/") ||
-    href.startsWith("mailto:") ||
-    href.startsWith("tel:") ||
-    href.startsWith("#")
-  ) {
-    return href;
-  }
-
-  const [rawPath, rawHash] = href.split("#");
-  const sourceDir = sourcePath.includes("/") ? sourcePath.slice(0, sourcePath.lastIndexOf("/")) : ".";
-  const joined = rawPath.startsWith("/")
-    ? rawPath.slice(1)
-    : normalizeRepoPath(`${sourceDir}/${rawPath}`);
-  const resolvedPath = normalizeRepoPath(joined);
-  const canonicalPath = canonicalizeReadmePath(resolvedPath);
-  const maybeSlug = README_PATH_TO_SLUG.get(canonicalPath);
-  const hash = rawHash ? `#${rawHash}` : "";
-
-  if (maybeSlug) {
-    return `/documentation/${maybeSlug}${hash}`;
-  }
-
-  return `${GITHUB_BLOB_BASE}/${encodeURI(resolvedPath)}${hash}`;
-}
-
-function resolveReadmeImageSrc(src: string, sourcePath: string) {
-  if (src.startsWith("http://") || src.startsWith("https://") || src.startsWith("data:")) {
-    return src;
-  }
-
-  const sourceDir = sourcePath.includes("/") ? sourcePath.slice(0, sourcePath.lastIndexOf("/")) : ".";
-  const joined = src.startsWith("/") ? src.slice(1) : normalizeRepoPath(`${sourceDir}/${src}`);
-  const resolvedPath = normalizeRepoPath(joined);
-
-  return `${GITHUB_RAW_BASE}/${encodeURI(resolvedPath)}`;
-}
 
 function extractNodeText(node: ReactNode): string {
   if (typeof node === "string" || typeof node === "number") {
@@ -163,6 +103,10 @@ function cleanInlineMarkdown(value: string) {
 
 function normalizeUseCaseText(value: string) {
   return value.replace(/\s+/g, " ").trim();
+}
+
+function normalizeHeadingText(value: string) {
+  return stripLeadingDecorativeText(cleanHeadingText(value));
 }
 
 function normalizeUseCaseKeywordText(value: string) {
@@ -226,7 +170,7 @@ function renderMarkdownHeadingLineAsHtml(headingLine: string, lineNumber: number
 
   const [, hashes, rawTitle] = headingMatch;
   const depth = Math.min(6, Math.max(2, hashes.length));
-  const title = cleanHeadingText(rawTitle);
+  const title = normalizeHeadingText(rawTitle);
   const id = buildStableHeadingId({
     title,
     line: lineNumber,
@@ -254,7 +198,7 @@ function splitUseCaseTitleAndDescription(bulletContent: string) {
 }
 
 function parseHomeUseCaseCards(bodyLines: string[]) {
-  const cards: Array<{ title: string; description: string; icon: string }> = [];
+  const cards: HomeUseCaseCard[] = [];
 
   for (const rawLine of bodyLines) {
     const line = rawLine.trim();
@@ -282,32 +226,56 @@ function parseHomeUseCaseCards(bodyLines: string[]) {
   return cards;
 }
 
+function serializeHomeUseCaseCards(cards: HomeUseCaseCard[]) {
+  return encodeURIComponent(JSON.stringify(cards));
+}
+
+function parseSerializedHomeUseCaseCards(value: string | undefined) {
+  if (!value) {
+    return [];
+  }
+
+  try {
+    const parsedValue = JSON.parse(decodeURIComponent(value));
+    if (!Array.isArray(parsedValue)) {
+      return [];
+    }
+
+    return parsedValue.flatMap((item) => {
+      if (
+        !item ||
+        typeof item !== "object" ||
+        typeof item.title !== "string" ||
+        typeof item.description !== "string" ||
+        typeof item.icon !== "string"
+      ) {
+        return [];
+      }
+
+      return [
+        {
+          title: item.title,
+          description: item.description,
+          icon: item.icon,
+        },
+      ];
+    });
+  } catch {
+    return [];
+  }
+}
+
 function renderHomeUseCaseCardsSection(headingLine: string, bodyLines: string[]) {
   const cards = parseHomeUseCaseCards(bodyLines);
   if (cards.length === 0) {
     return [headingLine, ...bodyLines];
   }
 
-  const sectionLines: string[] = [headingLine, "", '<div class="docs-use-case-grid">'];
-
-  for (const card of cards) {
-    sectionLines.push(
-      '  <article class="docs-use-case-card">',
-      '    <div class="docs-use-case-card-head">',
-      `      <span class="docs-use-case-card-icon" aria-hidden="true">${card.icon}</span>`,
-      `      <h4>${escapeHtml(card.title)}</h4>`,
-      "    </div>"
-    );
-
-    if (card.description) {
-      sectionLines.push(`    <p>${escapeHtml(card.description)}</p>`);
-    }
-
-    sectionLines.push("  </article>");
-  }
-
-  sectionLines.push("</div>");
-  return sectionLines;
+  return [
+    headingLine,
+    "",
+    `<div class="docs-use-case-carousel" data-cards="${escapeHtml(serializeHomeUseCaseCards(cards))}"></div>`,
+  ];
 }
 
 function transformHomeMarkdown(markdown: string) {
@@ -386,39 +354,37 @@ function compactHomeIntroParagraph(markdown: string, language: LanguageCode) {
   return updatedLines.join("\n").replace(/\n{3,}/g, "\n\n");
 }
 
-function normalizeMarkdownBlockFormatting(markdown: string) {
-  return markdown
-    .replace(/\r\n/g, "\n")
-    .replace(/```(?=#{2,6}\s)/g, "```\n")
-    .replace(/([^\n])```([a-zA-Z0-9_+-]+)/g, "$1\n```$2");
-}
-
-function stripMarkdownHeadingMarkers(markdown: string) {
-  const lines = markdown.split(/\r?\n/);
-  let insideCodeFence = false;
-
-  const cleanedLines = lines.map((line) => {
-    if (/^\s*```/.test(line)) {
-      insideCodeFence = !insideCodeFence;
-      return line;
-    }
-
-    if (insideCodeFence) {
-      return line;
-    }
-
-    return line.replace(/^(\s*)#{2,6}\s+/, "$1");
-  });
-
-  return cleanedLines.join("\n");
-}
-
 function normalizeHomeHeroTitle(value: string) {
   return stripLeadingDecorativeText(cleanHeadingText(value)).replace(/^NAVAI\s*(?:[:\-—–]\s*)?/iu, "").trim();
 }
 
 export default function NavaiDocMarkdown({ doc }: NavaiDocMarkdownProps) {
   const { language, messages } = useI18n();
+
+  if (isInteractiveInstallationGuideSlug(doc.slug) && supportsInteractiveInstallationGuide(language)) {
+    return (
+      <div className="docs-markdown-body">
+        <InstallationApiGuide slug={doc.slug} />
+      </div>
+    );
+  }
+
+  if (isInteractiveLibrariesGuideSlug(doc.slug) && supportsInteractiveLibrariesGuide(language)) {
+    return (
+      <div className="docs-markdown-body">
+        <LibrariesGuide slug={doc.slug} />
+      </div>
+    );
+  }
+
+  if (isInteractiveLegalGuideSlug(doc.slug) && supportsInteractiveLegalGuide(language)) {
+    return (
+      <div className="docs-markdown-body">
+        <LegalDocsGuide slug={doc.slug} />
+      </div>
+    );
+  }
+
   const localizedMarkdown = LOCALIZED_MARKDOWN[doc.slug]?.[language as Exclude<LanguageCode, "en">];
   const rawMarkdownContent = localizedMarkdown ?? doc.markdown;
   const compactedHomeIntroMarkdown =
@@ -427,14 +393,11 @@ export default function NavaiDocMarkdown({ doc }: NavaiDocMarkdownProps) {
   const homeAdjustedMarkdown =
     doc.slug === "home" ? transformHomeMarkdown(normalizedMarkdownContent) : normalizedMarkdownContent;
   const sanitizedMarkdownContent = stripLeadingDecorativeMarkdownText(homeAdjustedMarkdown);
-  const markdownContent = stripMarkdownHeadingMarkers(sanitizedMarkdownContent);
-  const wordpressInstallLabel = WORDPRESS_INSTALL_LABEL_BY_LANGUAGE[language] ?? WORDPRESS_INSTALL_LABEL_BY_LANGUAGE.en;
-
+  const markdownContent = sanitizedMarkdownContent;
   const installLinksByHref: Record<string, string> = {
     "/documentation/installation-api": messages.common.docsInstallApi,
     "/documentation/installation-web": messages.common.docsInstallWeb,
     "/documentation/installation-mobile": messages.common.docsInstallMobile,
-    [WORDPRESS_INSTALL_DOC_HREF]: wordpressInstallLabel,
   };
 
   return (
@@ -443,7 +406,21 @@ export default function NavaiDocMarkdown({ doc }: NavaiDocMarkdownProps) {
         remarkPlugins={[remarkGfm]}
         rehypePlugins={[rehypeRaw]}
         components={{
-          div: ({ children, className }) => {
+          div: ({ children, className, ...props }) => {
+            const divProps = props as {
+              "data-cards"?: string;
+              dataCards?: string;
+            };
+            const isUseCaseCarouselContainer =
+              doc.slug === "home" &&
+              typeof className === "string" &&
+              className.split(/\s+/).includes("docs-use-case-carousel");
+
+            if (isUseCaseCarouselContainer) {
+              const cards = parseSerializedHomeUseCaseCards(divProps["data-cards"] ?? divProps.dataCards);
+              return <HomeUseCasesCarousel cards={cards} />;
+            }
+
             const isInstallLinksContainer =
               doc.slug === "home" &&
               typeof className === "string" &&
@@ -452,25 +429,7 @@ export default function NavaiDocMarkdown({ doc }: NavaiDocMarkdownProps) {
             if (!isInstallLinksContainer) {
               return <div className={className}>{children}</div>;
             }
-
-            const childNodes = Children.toArray(children);
-            const hasWordPressLink = childNodes.some(
-              (child) =>
-                isValidElement<{ href?: string }>(child) &&
-                typeof child.props.href === "string" &&
-                child.props.href === WORDPRESS_INSTALL_DOC_HREF
-            );
-
-            return (
-              <div className={className}>
-                {children}
-                {!hasWordPressLink ? (
-                  <a className="docs-install-link" href={WORDPRESS_INSTALL_DOC_HREF}>
-                    {wordpressInstallLabel}
-                  </a>
-                ) : null}
-              </div>
-            );
+            return <div className={className}>{children}</div>;
           },
           pre: ({ children }) => {
             const childNodes = Children.toArray(children);
@@ -492,8 +451,9 @@ export default function NavaiDocMarkdown({ doc }: NavaiDocMarkdownProps) {
             );
           },
           h2: ({ children, node }) => {
+            const title = normalizeHeadingText(extractNodeText(children));
             const id = buildStableHeadingId({
-              title: cleanHeadingText(extractNodeText(children)),
+              title,
               offset: node?.position?.start?.offset ?? null,
               line: node?.position?.start?.line ?? null,
               column: node?.position?.start?.column ?? null,
@@ -508,8 +468,9 @@ export default function NavaiDocMarkdown({ doc }: NavaiDocMarkdownProps) {
             return <h1 className={className}>{normalizeHomeHeroTitle(extractNodeText(children))}</h1>;
           },
           h3: ({ children, node }) => {
+            const title = normalizeHeadingText(extractNodeText(children));
             const id = buildStableHeadingId({
-              title: cleanHeadingText(extractNodeText(children)),
+              title,
               offset: node?.position?.start?.offset ?? null,
               line: node?.position?.start?.line ?? null,
               column: node?.position?.start?.column ?? null,

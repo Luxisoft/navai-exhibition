@@ -44,6 +44,7 @@ export async function postRealtimeClientSecret(request: Request, response: Respo
     return response.json({
       value: secret.value,
       expires_at: secret.expires_at,
+      speech: secret.speech,
     });
   } catch (error) {
     const message =

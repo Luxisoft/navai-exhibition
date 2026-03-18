@@ -1,0 +1,14 @@
+---
+import "@/styles/docs.css";
+
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import PanelEntryPackagesPage from "../../../react/PanelEntryPackagesPage";
+---
+
+<BaseLayout
+  path="/panel/entry-packages"
+  title="NAVAI | Paquetes de entradas"
+  description="Gestion administrativa de paquetes de entradas y precios dinamicos."
+>
+  <PanelEntryPackagesPage client:load />
+</BaseLayout>

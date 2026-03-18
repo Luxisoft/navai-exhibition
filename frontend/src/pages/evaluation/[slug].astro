@@ -1,0 +1,24 @@
+---
+import "@/styles/docs.css";
+
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import PublicExperiencePage from "../../react/PublicExperiencePage";
+import { listPublicWorkspaceExperienceSlugs } from "../../../../backend/src/lib/navai-panel-workspace-sqlite";
+
+const { slug = "" } = Astro.params;
+
+export async function getStaticPaths() {
+  const slugs = await listPublicWorkspaceExperienceSlugs("evaluation");
+  return slugs.map((value) => ({
+    params: { slug: value },
+  }));
+}
+---
+
+<BaseLayout
+  path={`/evaluation/${slug}`}
+  title="NAVAI | Evaluacion compartida"
+  description="Experiencia publica de evaluacion conversacional con NAVAI."
+>
+  <PublicExperiencePage kind="evaluation" slug={slug} client:load />
+</BaseLayout>

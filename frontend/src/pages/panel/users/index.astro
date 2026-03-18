@@ -1,0 +1,14 @@
+---
+import "@/styles/docs.css";
+
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import PanelUsersPage from "../../../react/PanelUsersPage";
+---
+
+<BaseLayout
+  path="/panel/users"
+  title="NAVAI | Usuarios y roles"
+  description="Gestion de usuarios, roles y permisos del panel de NAVAI."
+>
+  <PanelUsersPage client:load />
+</BaseLayout>

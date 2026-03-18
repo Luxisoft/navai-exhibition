@@ -1,0 +1,14 @@
+---
+import "@/styles/docs.css";
+
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import PublicExperiencePage from "../../react/PublicExperiencePage";
+---
+
+<BaseLayout
+  path="/surveys"
+  title="NAVAI | Encuesta compartida"
+  description="Experiencia publica de encuesta conversacional con NAVAI."
+>
+  <PublicExperiencePage kind="survey" client:load />
+</BaseLayout>

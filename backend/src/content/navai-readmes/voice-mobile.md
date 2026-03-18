@@ -370,5 +370,4 @@ These can be provided by `registerNavaiExpressRoutes` from `@navai/voice-backend
 - English version: `README.en.md`
 - Backend package: `../voice-backend/README.md`
 - Frontend package: `../voice-frontend/README.md`
-- Playground Mobile: `../../apps/playground-mobile/README.md`
-- Playground API: `../../apps/playground-api/README.md`
+

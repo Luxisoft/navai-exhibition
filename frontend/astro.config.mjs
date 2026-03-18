@@ -22,26 +22,51 @@ export default defineConfig({
     inlineStylesheets: "always",
   },
   vite: {
+    cacheDir: path.resolve(projectRoot, "node_modules/.vite/frontend"),
     plugins: [tailwindcss()],
     optimizeDeps: {
+      force: true,
       // Keep a stable dep cache across dev restarts to prevent "Outdated Optimize Dep" 504s.
       include: [
         "@hcaptcha/react-hcaptcha",
         "@navai/voice-frontend",
         "@openai/agents/realtime",
+        "@radix-ui/react-dialog",
+        "@radix-ui/react-dropdown-menu",
+        "@radix-ui/react-label",
+        "@radix-ui/react-separator",
+        "@radix-ui/react-tabs",
+        "@tanstack/react-table",
+        "embla-carousel-auto-height",
+        "embla-carousel-autoplay",
+        "embla-carousel-react",
+        "react",
+        "react-dom",
+        "react/jsx-dev-runtime",
+        "react/jsx-runtime",
         "react-markdown",
         "rehype-raw",
         "remark-gfm",
       ],
     },
     resolve: {
+      dedupe: ["react", "react-dom", "react/jsx-runtime", "react/jsx-dev-runtime"],
       alias: {
         "@": frontendSrc,
       },
     },
     server: {
+      host: "0.0.0.0",
+      port: 4321,
+      strictPort: true,
       fs: {
         allow: [projectRoot],
+      },
+      hmr: {
+        host: "localhost",
+        port: 4321,
+        clientPort: 4321,
+        protocol: "ws",
       },
     },
   },

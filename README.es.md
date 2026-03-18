@@ -25,6 +25,63 @@ Este repositorio está separado en:
 - `frontend/README.md`: setup frontend, variables de entorno y comandos.
 - `backend/README.md`: setup backend, variables de entorno, endpoints y comandos.
 
+## Estructura multiagente de NAVAI
+
+El proyecto ahora usa esta estructura:
+
+```text
+frontend/src/ai/
+  main/
+  evaluations/
+  surveys/
+  public-experience/
+
+backend/src/ai/
+  main/
+  evaluations/
+  surveys/
+```
+
+Solo el primer nivel debajo de `src/ai/` define el agente. Las subcarpetas internas son opcionales y solo sirven para organizar.
+
+- `main`: agente principal para navegación, orquestación y delegación.
+- `evaluations`: especialista para evaluaciones.
+- `surveys`: especialista para encuestas.
+- `public-experience`: runtime público para enlaces compartidos de encuestas y evaluaciones.
+
+En realtime web, el agente principal delega a los especialistas usando `handoffs`.
+
+## Variables clave
+
+- Frontend: `NAVAI_FUNCTIONS_FOLDERS=src/ai`
+- Frontend: `NAVAI_AGENTS_FOLDERS=main,evaluations,surveys,public-experience`
+- Frontend rutas: `NAVAI_ROUTES_FILE=src/ai/main/routes.ts`
+- Backend: `NAVAI_FUNCTIONS_FOLDERS=backend/src/ai`
+- Backend: `NAVAI_AGENTS_FOLDERS=main,evaluations,surveys`
+
+## Cómo agregar un nuevo agente
+
+1. Crear `src/ai/<agente>/`.
+2. Añadir `agent.config.ts`.
+3. Colocar las funciones dentro de esa carpeta.
+4. Agregar el nombre a `NAVAI_AGENTS_FOLDERS`.
+5. Regenerar loaders y validar el runtime.
+
+## Cómo probar el flujo multiagente
+
+```bash
+npm run generate:module-loaders
+npm run dev:frontend
+npm run dev:backend
+npm run check:backend-functions
+```
+
+Luego verificar:
+
+- Solicitudes generales quedan en `main`.
+- Solicitudes de evaluaciones se delegan a `evaluations`.
+- Solicitudes de encuestas se delegan a `surveys`.
+
 ## Inicio rápido
 
 1. Instalar dependencias

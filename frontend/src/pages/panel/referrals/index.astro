@@ -1,0 +1,14 @@
+---
+import "@/styles/docs.css";
+
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import PanelReferralsPage from "../../../react/PanelReferralsPage";
+---
+
+<BaseLayout
+  path="/panel/referrals"
+  title="NAVAI | Referidos"
+  description="Gestiona enlaces de invitacion, QR y trazabilidad de entradas por referidos."
+>
+  <PanelReferralsPage client:load />
+</BaseLayout>

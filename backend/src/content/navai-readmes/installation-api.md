@@ -1,74 +1,171 @@
-# 🛠️ Instalacion API (@navai/voice-backend)
+# Instalacion API (@navai/voice-backend)
 
-🧩 Guia de instalacion basada en `README.es.md` del repositorio principal de NAVAI para la parte backend.
+Guia corta para levantar una API NAVAI desde cero y validar que responde bien al primer intento.
 
-## ✅ Requisitos
-
-- Node.js 20+
-- npm 10+
-- API key de OpenAI en entorno backend
-
-## 📦 1) Instalar dependencias
+## Paso 1 Crear el proyecto
 
 ```bash
-npm install @navai/voice-backend express dotenv cors
+mkdir navai-api-demo
+cd navai-api-demo
+npm init -y
+npm pkg set type=module
+npm pkg set scripts.dev="node --watch src/server.js"
+npm pkg set scripts.start="node src/server.js"
+mkdir src
+mkdir src/ai
+mkdir src/ai/functions-modules
 ```
 
-## ⚙️ 2) Variables de entorno minimas
+## Paso 2 Instalar dependencias
+
+```bash
+npm install express cors dotenv @navai/voice-backend
+```
+
+## Paso 3 Configurar variables
 
 ```env
+PORT=3000
+CORS_ORIGIN=http://localhost:4321
 OPENAI_API_KEY=sk-...
 OPENAI_REALTIME_MODEL=gpt-realtime
 OPENAI_REALTIME_VOICE=marin
-OPENAI_REALTIME_INSTRUCTIONS=Eres una asistente util para navegacion.
+OPENAI_REALTIME_INSTRUCTIONS=Eres una asistente util para navegacion por interfaces y ejecucion de funciones.
 OPENAI_REALTIME_LANGUAGE=Spanish
-OPENAI_REALTIME_VOICE_ACCENT=neutral Latin American Spanish
-OPENAI_REALTIME_VOICE_TONE=friendly and professional
 OPENAI_REALTIME_CLIENT_SECRET_TTL=600
 NAVAI_FUNCTIONS_FOLDERS=src/ai/functions-modules
 NAVAI_ALLOW_FRONTEND_API_KEY=false
 ```
 
-## 🧭 3) Registrar rutas de NAVAI en Express
+## Paso 4 Crear una funcion backend
 
-```ts
-import express from "express";
+```javascript
+export async function getCompanySummary(payload = {}) {
+  const company = String(payload.company || "NAVAI Demo").trim();
+
+  return {
+    ok: true,
+    company,
+    summary: `${company} ya responde desde una tool backend de NAVAI.`,
+    nextStep: "Conectar tu frontend o app movil al backend.",
+  };
+}
+```
+
+## Paso 5 Crear el servidor NAVAI
+
+```javascript
 import cors from "cors";
 import dotenv from "dotenv";
-import {
-  createNavaiBackendRouter,
-  registerNavaiRealtimeRoutes,
-} from "@navai/voice-backend";
+import express from "express";
+import { registerNavaiExpressRoutes } from "@navai/voice-backend";
 
 dotenv.config();
 
 const app = express();
-app.use(express.json());
-app.use(cors({ origin: true, credentials: true }));
+const port = Number(process.env.PORT || 3000);
+const allowedOrigins = (process.env.CORS_ORIGIN || "http://localhost:4321")
+  .split(",")
+  .map((value) => value.trim())
+  .filter(Boolean);
 
-registerNavaiRealtimeRoutes(app, {
-  openAiApiKey: process.env.OPENAI_API_KEY,
-  routes: {
-    clientSecretPath: "/navai/realtime/client-secret",
-    listFunctionsPath: "/navai/functions",
-    executeFunctionPath: "/navai/functions/execute",
-  },
-  functions: { folders: process.env.NAVAI_FUNCTIONS_FOLDERS },
+app.use(express.json());
+app.use(
+  cors({
+    origin: allowedOrigins,
+    credentials: true,
+  })
+);
+
+app.get("/health", (_req, res) => {
+  res.json({
+    ok: true,
+    service: "navai-api-demo",
+    endpoints: [
+      "/navai/realtime/client-secret",
+      "/navai/functions",
+      "/navai/functions/execute",
+    ],
+  });
 });
 
-app.listen(3000);
+registerNavaiExpressRoutes(app, {
+  backendOptions: {
+    openaiApiKey: process.env.OPENAI_API_KEY,
+    defaultModel: process.env.OPENAI_REALTIME_MODEL || "gpt-realtime",
+    defaultVoice: process.env.OPENAI_REALTIME_VOICE || "marin",
+    defaultInstructions:
+      process.env.OPENAI_REALTIME_INSTRUCTIONS ||
+      "Eres una asistente util para navegacion por interfaces y ejecucion de funciones.",
+    defaultLanguage: process.env.OPENAI_REALTIME_LANGUAGE || "Spanish",
+    clientSecretTtlSeconds: Number(process.env.OPENAI_REALTIME_CLIENT_SECRET_TTL || 600),
+    allowApiKeyFromRequest: process.env.NAVAI_ALLOW_FRONTEND_API_KEY === "true",
+  },
+  functionsFolders: process.env.NAVAI_FUNCTIONS_FOLDERS || "src/ai/functions-modules",
+});
+
+app.listen(port, () => {
+  console.log(`NAVAI API lista en http://localhost:${port}`);
+});
 ```
 
-## 🌐 4) Endpoints que debe exponer la API
-
-- `POST /navai/realtime/client-secret`
-- `GET /navai/functions`
-- `POST /navai/functions/execute`
-
-## 🧪 5) Prueba rapida
+## Paso 6 Probar la API
 
 ```bash
-curl -X POST http://localhost:3000/navai/realtime/client-secret -H "Content-Type: application/json" -d "{}"
+npm run start
 ```
 
-🔐 Si backend ya tiene `OPENAI_API_KEY`, esa key tiene prioridad sobre cualquier `apiKey` enviada desde frontend.
+```bash
+curl http://localhost:3000/health
+```
+
+```bash
+curl -X POST http://localhost:3000/navai/realtime/client-secret \
+  -H "Content-Type: application/json" \
+  -d "{}"
+```
+
+```bash
+curl http://localhost:3000/navai/functions
+```
+
+```bash
+curl -X POST http://localhost:3000/navai/functions/execute \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"function_name\": \"get_company_summary\",
+    \"payload\": { \"company\": \"NAVAI Demo\" }
+  }"
+```
+
+## Paso 7 Conectar Web o Mobile
+
+- usar `/navai/realtime/client-secret` para `client_secret`
+- usar `/navai/functions` para discovery
+- usar `/navai/functions/execute` para tools remotos
+- habilitar `CORS_ORIGIN` para el origen frontend
+
+## Variantes rapidas por stack
+
+### Node.js + Express
+
+Ruta recomendada para la primera integracion.
+
+### Express + TypeScript
+
+```bash
+npm install express cors dotenv @navai/voice-backend
+npm install -D typescript tsx @types/express @types/node
+```
+
+### NestJS con adapter Express
+
+Monte un sub-app Express en `/navai` y use rutas relativas:
+
+```typescript
+registerNavaiExpressRoutes(navai, {
+  clientSecretPath: "/realtime/client-secret",
+  functionsListPath: "/functions",
+  functionsExecutePath: "/functions/execute",
+});
+```

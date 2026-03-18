@@ -81,7 +81,7 @@ async function loadEcommerceSuiteDeps(): Promise<EcommerceSuiteDeps | null> {
       "backend",
       "src",
       "ai",
-      "functions-modules",
+      "main",
       "ecommerce",
       "ecommerce-demo.js"
     ),
@@ -89,7 +89,7 @@ async function loadEcommerceSuiteDeps(): Promise<EcommerceSuiteDeps | null> {
       projectRoot,
       "src",
       "ai",
-      "functions-modules",
+      "main",
       "ecommerce",
       "ecommerce-demo.js"
     ),

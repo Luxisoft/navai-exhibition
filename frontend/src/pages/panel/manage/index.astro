@@ -1,0 +1,14 @@
+---
+import "@/styles/docs.css";
+
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import NavaiPanelPage from "../../../react/NavaiPanelPage";
+---
+
+<BaseLayout
+  path="/panel/manage"
+  title="NAVAI | Panel"
+  description="Gestion del panel de dominios, funciones y parametros de NAVAI."
+>
+  <NavaiPanelPage client:load />
+</BaseLayout>

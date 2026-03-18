@@ -1,34 +1,46 @@
 'use client';
 
-import { NavaiVoiceOrbDock } from "@navai/voice-frontend";
 import Link from "@/platform/link";
 import Image from "@/platform/image";
 import { normalizePathname, usePathname } from "@/platform/navigation";
-import { Github, Menu, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 
 import DocsCodeEditor, { inferCodeLanguageFromContent } from "@/components/DocsCodeEditor";
+import { RightSidebarSkeleton, SidebarNavSkeleton } from "@/components/AppShellSkeletons";
+import FirebaseGoogleAuthButton from "@/components/FirebaseGoogleAuthButton";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
+import NavaiVoiceOrbDockClient from "@/components/NavaiVoiceOrbDockClient";
+import PwaInstallButton from "@/components/PwaInstallButton";
 import ThemeSwitcher from "@/components/ThemeSwitcher";
 import { Button } from "@/components/ui/button";
-import type { LocalizedPlan, LocalizedSection } from "@/i18n/messages";
-import { useI18n } from "@/i18n/provider";
+import { NAVAI_PANEL_HREF, REQUEST_IMPLEMENTATION_HREF } from "@/lib/auth-redirect";
+import { useFirebaseAuth } from "@/lib/firebase-auth";
+import type { LocalizedPlan, LocalizedSection } from "@/lib/i18n/messages";
+import { useI18n } from "@/lib/i18n/provider";
 import { stripLeadingDecorativeText } from "@/lib/decorative-text";
+import { resolveActiveHeadingIdFromScroll } from "@/lib/docs-scroll-spy";
 import { useNavaiMiniVoiceOrbDockProps } from "@/lib/navai-voice-orb";
-import { getLocalizedWordpressPage } from "@/i18n/wordpress-page";
 
-type TopNavSection = "documentation" | "request-implementation" | "wordpress";
+type TopNavSection = "documentation" | "request-implementation" | "navai-panel";
 
 const CONTACT_COMMAND_EVENT = "navai:implementation-contact-command";
 
 type KnowledgeTemplateProps = {
-  badge: string;
+  badge?: string;
   title: string;
   description: string;
   sidebarTitle: string;
   sections: LocalizedSection[];
   sourceLabel: string;
   sourceHref: string;
+  sidebarPageLinks?: Array<{ href: string; label: string }>;
+  sidebarPageGroups?: Array<{
+    id: string;
+    label?: string;
+    links: Array<{ href: string; label: string }>;
+  }>;
+  showRightSidebarSourceLink?: boolean;
   plansTitle?: string;
   plans?: LocalizedPlan[];
   ctaLabel?: string;
@@ -37,7 +49,11 @@ type KnowledgeTemplateProps = {
   contactSectionTitle?: string;
   contactSectionDescription?: string;
   contactForm?: ReactNode;
+  customSectionsContent?: ReactNode;
   activeTopNav?: TopNavSection;
+  rightSidebarContent?: ReactNode;
+  showRightSidebarToc?: boolean;
+  shellClassName?: string;
 };
 
 export default function KnowledgeTemplate({
@@ -48,6 +64,9 @@ export default function KnowledgeTemplate({
   sections,
   sourceLabel,
   sourceHref,
+  sidebarPageLinks,
+  sidebarPageGroups,
+  showRightSidebarSourceLink = true,
   plansTitle,
   plans,
   ctaLabel,
@@ -56,13 +75,20 @@ export default function KnowledgeTemplate({
   contactSectionTitle,
   contactSectionDescription,
   contactForm,
+  customSectionsContent,
   activeTopNav,
+  rightSidebarContent,
+  showRightSidebarToc = true,
+  shellClassName,
 }: KnowledgeTemplateProps) {
-  const { language, messages } = useI18n();
+  const { messages } = useI18n();
+  const { isInitializing, user } = useFirebaseAuth();
   const pathname = usePathname();
   const normalizedPathname = normalizePathname(pathname);
-  const wordpressPage = getLocalizedWordpressPage(language);
-  const displayBadge = useMemo(() => stripLeadingDecorativeText(badge), [badge]);
+  const displayBadge = useMemo(
+    () => (badge ? stripLeadingDecorativeText(badge) : ""),
+    [badge]
+  );
   const displayTitle = useMemo(() => stripLeadingDecorativeText(title), [title]);
   const displayDescription = useMemo(() => stripLeadingDecorativeText(description), [description]);
   const displaySidebarTitle = useMemo(() => stripLeadingDecorativeText(sidebarTitle), [sidebarTitle]);
@@ -95,28 +121,64 @@ export default function KnowledgeTemplate({
 
   const pageLinks = [
     { href: "/documentation/home", label: messages.common.documentation },
-    { href: "/request-implementation", label: messages.common.requestImplementation },
-    { href: "/wordpress", label: wordpressPage.navigationLabel },
+    user
+      ? { href: NAVAI_PANEL_HREF, label: messages.common.navaiPanel }
+      : { href: REQUEST_IMPLEMENTATION_HREF, label: messages.common.requestImplementation },
   ];
+  const topbarLinks = useMemo(
+    () => [
+      { href: "/documentation/home", label: messages.common.documentation },
+      { href: NAVAI_PANEL_HREF, label: messages.common.navaiPanel },
+    ],
+    [messages.common.documentation, messages.common.navaiPanel]
+  );
+  const resolvedSidebarPageLinks = sidebarPageLinks ?? pageLinks;
+  const resolvedSidebarGroups = useMemo(
+    () =>
+      sidebarPageGroups && sidebarPageGroups.length > 0
+        ? sidebarPageGroups
+        : [
+            {
+              id: "default",
+              links: resolvedSidebarPageLinks,
+            },
+          ],
+    [resolvedSidebarPageLinks, sidebarPageGroups]
+  );
   const resolvePageLinkSection = (href: string): TopNavSection => {
     const normalizedHref = normalizePathname(href);
-    if (normalizedHref === "/documentation/home") {
+    if (normalizedHref === "/documentation/home" || normalizedHref.startsWith("/documentation/")) {
       return "documentation";
     }
-    if (normalizedHref === "/request-implementation") {
-      return "request-implementation";
+    if (normalizedHref === NAVAI_PANEL_HREF || normalizedHref.startsWith(`${NAVAI_PANEL_HREF}/`)) {
+      return "navai-panel";
     }
-    return "wordpress";
+    return "request-implementation";
   };
-  const isPageLinkActive = (href: string) => {
+  const isTopbarLinkActive = (href: string) => {
     if (activeTopNav) {
-      return resolvePageLinkSection(href) === activeTopNav;
+      return resolvePageLinkSection(href) === resolvePageLinkSection(normalizedPathname);
     }
 
     const normalizedHref = normalizePathname(href);
     if (normalizedHref === "/documentation/home") {
       return normalizedPathname.startsWith("/documentation");
     }
+    if (normalizedHref === NAVAI_PANEL_HREF) {
+      return normalizedPathname === NAVAI_PANEL_HREF || normalizedPathname.startsWith(`${NAVAI_PANEL_HREF}/`);
+    }
+    return normalizedPathname === normalizedHref;
+  };
+  const isTopbarLinkDisabled = (href: string) =>
+    showChromeSkeletons && normalizePathname(href) === NAVAI_PANEL_HREF;
+
+  const isSidebarLinkActive = (href: string) => {
+    const [pathPart, hashPart = ""] = href.split("#");
+    if (hashPart) {
+      return normalizePathname(pathPart) === normalizedPathname && activeHash === `#${hashPart}`;
+    }
+
+    const normalizedHref = normalizePathname(href);
     return normalizedPathname === normalizedHref;
   };
 
@@ -144,11 +206,33 @@ export default function KnowledgeTemplate({
   const tocIds = useMemo(() => tocItems.map((item) => item.id), [tocItems]);
   const tocIdSet = useMemo(() => new Set(tocIds), [tocIds]);
   const [activeTocId, setActiveTocId] = useState<string>(tocIds[0] ?? "");
+  const [activeHash, setActiveHash] = useState("");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isMobileViewport, setIsMobileViewport] = useState(false);
   const topbarMiniDockProps = useNavaiMiniVoiceOrbDockProps({
     className: "navai-mini-dock--in-topbar-mobile",
   });
+  const hasSidebarToc = displaySidebarTitle.length > 0 && tocItems.length > 0;
+  const showChromeSkeletons = isInitializing;
+  const hasRightSidebar = Boolean(
+    showRightSidebarToc || rightSidebarContent || showRightSidebarSourceLink,
+  );
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const syncHash = () => {
+      setActiveHash(window.location.hash || "");
+    };
+
+    syncHash();
+    window.addEventListener("hashchange", syncHash);
+
+    return () => {
+      window.removeEventListener("hashchange", syncHash);
+    };
+  }, []);
 
   useEffect(() => {
     if (tocIds.length === 0) {
@@ -185,24 +269,7 @@ export default function KnowledgeTemplate({
         return;
       }
 
-      const maxScrollY = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
-      const isNearBottom = window.scrollY >= maxScrollY - 8;
-
-      let nextActiveId = sectionElements[0].id;
-      if (isNearBottom) {
-        nextActiveId = sectionElements[sectionElements.length - 1].id;
-      } else {
-        const markerOffset = Math.min(220, Math.max(120, Math.round(window.innerHeight * 0.28)));
-        const markerY = window.scrollY + markerOffset;
-        for (const element of sectionElements) {
-          if (element.offsetTop <= markerY) {
-            nextActiveId = element.id;
-          } else {
-            break;
-          }
-        }
-      }
-
+      const nextActiveId = resolveActiveHeadingIdFromScroll(sectionElements, window, document);
       setActiveTocId((current) => (current === nextActiveId ? current : nextActiveId));
     };
 
@@ -230,6 +297,7 @@ export default function KnowledgeTemplate({
     syncActiveSection();
     window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("hashchange", onHashChange);
+    window.addEventListener("resize", syncActiveSection);
 
     return () => {
       if (rafId) {
@@ -237,6 +305,7 @@ export default function KnowledgeTemplate({
       }
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("hashchange", onHashChange);
+      window.removeEventListener("resize", syncActiveSection);
     };
   }, [normalizedPathname, tocIds, tocIdSet]);
 
@@ -260,26 +329,6 @@ export default function KnowledgeTemplate({
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [isMobileMenuOpen]);
-
-  useEffect(() => {
-    const mediaQuery = window.matchMedia("(max-width: 768px)");
-    setIsMobileViewport(mediaQuery.matches);
-
-    const handleViewportChange = (event: MediaQueryListEvent) => {
-      setIsMobileViewport(event.matches);
-      if (!event.matches) {
-        setIsMobileMenuOpen(false);
-      }
-    };
-
-    if (typeof mediaQuery.addEventListener === "function") {
-      mediaQuery.addEventListener("change", handleViewportChange);
-      return () => mediaQuery.removeEventListener("change", handleViewportChange);
-    }
-
-    mediaQuery.addListener(handleViewportChange);
-    return () => mediaQuery.removeListener(handleViewportChange);
-  }, []);
 
   const handleTocClick = useCallback(
     (sectionId: string) => {
@@ -307,13 +356,22 @@ export default function KnowledgeTemplate({
           </Link>
 
           <nav className="docs-top-tabs">
-            {pageLinks.map((item) => {
-              const isActive = isPageLinkActive(item.href);
+            {topbarLinks.map((item) => {
+              const isActive = isTopbarLinkActive(item.href);
               return (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`docs-top-tab${isActive ? " is-active" : ""}`}
+                  className={`docs-top-tab${isActive ? " is-active" : ""}${
+                    isTopbarLinkDisabled(item.href) ? " is-disabled" : ""
+                  }`}
+                  aria-disabled={isTopbarLinkDisabled(item.href) ? true : undefined}
+                  tabIndex={isTopbarLinkDisabled(item.href) ? -1 : undefined}
+                  onClick={(event) => {
+                    if (isTopbarLinkDisabled(item.href)) {
+                      event.preventDefault();
+                    }
+                  }}
                 >
                   {item.label}
                 </Link>
@@ -339,25 +397,23 @@ export default function KnowledgeTemplate({
             )}
           </button>
 
-          {isMobileViewport ? (
-            <div className="docs-topbar-mini-orb">
-              <NavaiVoiceOrbDock {...topbarMiniDockProps} />
-            </div>
-          ) : null}
+          <div className="docs-topbar-mini-orb">
+            <NavaiVoiceOrbDockClient {...topbarMiniDockProps} />
+          </div>
 
-          <a
-            href={sourceHref}
-            target="_blank"
-            rel="noreferrer noopener"
-            className="docs-source-btn"
-            aria-label={messages.common.githubRepository}
-            title={messages.common.githubRepository}
-          >
-            <Github className="docs-source-icon" aria-hidden="true" />
-          </a>
-          <div className="docs-topbar-controls">
-            <LanguageSwitcher compact selectId="knowledge-lang-select" />
-            <ThemeSwitcher />
+          <div className={`docs-topbar-controls${showChromeSkeletons ? " is-loading" : ""}`}>
+            <FirebaseGoogleAuthButton compact showUserMenu />
+            <PwaInstallButton compact disabled={showChromeSkeletons} />
+            {!user ? (
+              <>
+                <LanguageSwitcher
+                  compact
+                  selectId="knowledge-lang-select"
+                  disabled={showChromeSkeletons}
+                />
+                <ThemeSwitcher disabled={showChromeSkeletons} />
+              </>
+            ) : null}
           </div>
         </div>
       </header>
@@ -383,14 +439,24 @@ export default function KnowledgeTemplate({
 
           <div className="docs-mobile-menu-stack">
             <nav className="docs-top-tabs docs-mobile-top-tabs docs-mobile-menu-main-links" aria-label={messages.common.docsNavigation}>
-              {pageLinks.map((item) => {
-                const isActive = isPageLinkActive(item.href);
+              {topbarLinks.map((item) => {
+                const isActive = isTopbarLinkActive(item.href);
                 return (
                   <Link
                     key={`mobile-${item.href}`}
                     href={item.href}
-                    className={`docs-top-tab${isActive ? " is-active" : ""}`}
-                    onClick={() => setIsMobileMenuOpen(false)}
+                    className={`docs-top-tab${isActive ? " is-active" : ""}${
+                      isTopbarLinkDisabled(item.href) ? " is-disabled" : ""
+                    }`}
+                    aria-disabled={isTopbarLinkDisabled(item.href) ? true : undefined}
+                    tabIndex={isTopbarLinkDisabled(item.href) ? -1 : undefined}
+                    onClick={(event) => {
+                      if (isTopbarLinkDisabled(item.href)) {
+                        event.preventDefault();
+                        return;
+                      }
+                      setIsMobileMenuOpen(false);
+                    }}
                   >
                     {item.label}
                   </Link>
@@ -398,23 +464,25 @@ export default function KnowledgeTemplate({
               })}
             </nav>
 
-            <div className="docs-mobile-menu-separator" aria-hidden="true" />
+            {hasSidebarToc ? <div className="docs-mobile-menu-separator" aria-hidden="true" /> : null}
 
-            <nav className="docs-mobile-menu-submenus" aria-label={displaySidebarTitle}>
-              {tocItems.map((item) => (
-                <a
-                  key={`mobile-drawer-${item.id}`}
-                  href={`#${item.id}`}
-                  className={`docs-nav-item docs-mobile-submenu-link${activeTocId === item.id ? " is-active" : ""}`}
-                  onClick={() => {
-                    handleTocClick(item.id);
-                    setIsMobileMenuOpen(false);
-                  }}
-                >
-                  {item.label}
-                </a>
-              ))}
-            </nav>
+            {hasSidebarToc ? (
+              <nav className="docs-mobile-menu-submenus" aria-label={displaySidebarTitle}>
+                {tocItems.map((item) => (
+                  <a
+                    key={`mobile-drawer-${item.id}`}
+                    href={`#${item.id}`}
+                    className={`docs-nav-item docs-mobile-submenu-link${activeTocId === item.id ? " is-active" : ""}`}
+                    onClick={() => {
+                      handleTocClick(item.id);
+                      setIsMobileMenuOpen(false);
+                    }}
+                  >
+                    {item.label}
+                  </a>
+                ))}
+              </nav>
+            ) : null}
           </div>
 
           <div className="docs-mobile-menu-separator docs-mobile-menu-separator--footer" aria-hidden="true" />
@@ -430,148 +498,204 @@ export default function KnowledgeTemplate({
               <X className="docs-source-icon" aria-hidden="true" />
             </button>
 
-            <div className="docs-mobile-menu-controls">
-              <LanguageSwitcher compact selectId="knowledge-lang-select-mobile" />
-              <ThemeSwitcher />
+            <div className={`docs-mobile-menu-controls${showChromeSkeletons ? " is-loading" : ""}`}>
+              <FirebaseGoogleAuthButton compact />
+              <PwaInstallButton compact disabled={showChromeSkeletons} />
+              <LanguageSwitcher
+                compact
+                selectId="knowledge-lang-select-mobile"
+                disabled={showChromeSkeletons}
+              />
+              <ThemeSwitcher disabled={showChromeSkeletons} />
             </div>
           </div>
         </div>
       </div>
 
-      <div className="docs-shell">
+      <div
+        className={`docs-shell${hasRightSidebar ? "" : " docs-shell--without-rightbar"}${
+          shellClassName ? ` ${shellClassName}` : ""
+        }`}
+      >
         <aside className="docs-sidebar">
-          <p className="docs-nav-title">{messages.common.docsNavigation}</p>
-          <div className="docs-nav-list">
-            {pageLinks.map((item) => {
-              const isActive = isPageLinkActive(item.href);
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`docs-nav-item${isActive ? " is-active" : ""}`}
-                >
-                  {item.label}
-                </Link>
-              );
-            })}
-          </div>
+          {showChromeSkeletons ? (
+            <SidebarNavSkeleton withToc={hasSidebarToc} />
+          ) : (
+            <>
+              <p className="docs-nav-title">{messages.common.docsNavigation}</p>
+              <div className="docs-nav-groups">
+                {resolvedSidebarGroups.map((group, groupIndex) => (
+                  <div key={group.id} className="docs-nav-group">
+                    {groupIndex > 0 ? (
+                      <div className="docs-nav-separator" aria-hidden="true" />
+                    ) : null}
+                    {group.label ? (
+                      <p className="docs-nav-group-label">{group.label}</p>
+                    ) : null}
+                    <div className="docs-nav-list">
+                      {group.links.map((item) => {
+                        const isActive = isSidebarLinkActive(item.href);
+                        return (
+                          <div key={item.href} className="docs-nav-entry">
+                            <Link
+                              href={item.href}
+                              className={`docs-nav-item${isActive ? " is-active" : ""}`}
+                            >
+                              {item.label}
+                            </Link>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
 
-          <p className="docs-sidebar-title">{displaySidebarTitle}</p>
-          <nav className="docs-toc">
-            {tocItems.map((item) => (
-              <a
-                key={item.id}
-                href={`#${item.id}`}
-                className={`docs-toc-link${activeTocId === item.id ? " is-active" : ""}`}
-                onClick={() => handleTocClick(item.id)}
-              >
-                {item.label}
-              </a>
-            ))}
-          </nav>
+              {hasSidebarToc ? <p className="docs-sidebar-title">{displaySidebarTitle}</p> : null}
+              {hasSidebarToc ? (
+                <nav className="docs-toc">
+                  {tocItems.map((item) => (
+                    <a
+                      key={item.id}
+                      href={`#${item.id}`}
+                      className={`docs-toc-link${activeTocId === item.id ? " is-active" : ""}`}
+                      onClick={() => handleTocClick(item.id)}
+                    >
+                      {item.label}
+                    </a>
+                  ))}
+                </nav>
+              ) : null}
+            </>
+          )}
         </aside>
 
         <article className="docs-main">
-          <nav className="docs-mobile-toc" aria-label={messages.common.docsOnThisPage}>
-            {tocItems.map((item) => (
-              <a
-                key={`mobile-toc-${item.id}`}
-                href={`#${item.id}`}
-                className={`docs-mobile-toc-link${activeTocId === item.id ? " is-active" : ""}`}
-                onClick={() => handleTocClick(item.id)}
-              >
-                {item.label}
-              </a>
-            ))}
-          </nav>
+          {tocItems.length > 0 ? (
+            <nav className="docs-mobile-toc" aria-label={messages.common.docsOnThisPage}>
+              {tocItems.map((item) => (
+                <a
+                  key={`mobile-toc-${item.id}`}
+                  href={`#${item.id}`}
+                  className={`docs-mobile-toc-link${activeTocId === item.id ? " is-active" : ""}`}
+                  onClick={() => handleTocClick(item.id)}
+                >
+                  {item.label}
+                </a>
+              ))}
+            </nav>
+          ) : null}
 
           <header className="docs-header">
-            <p className="docs-badge">{displayBadge}</p>
+            {displayBadge ? <p className="docs-badge">{displayBadge}</p> : null}
             <h1>{displayTitle}</h1>
             <p>{displayDescription}</p>
           </header>
 
           <div className="docs-sections">
-            {displaySections.map((section) => (
-              <section key={section.id} id={section.id} className="docs-section-block">
-                <h2>{section.title}</h2>
-                <p>{section.description}</p>
+            {customSectionsContent ?? (
+              <>
+                {displaySections.map((section) => (
+                  <section key={section.id} id={section.id} className="docs-section-block">
+                    <h2>{section.title}</h2>
+                    <p>{section.description}</p>
 
-                {section.bullets?.length ? (
-                  <ul>
-                    {section.bullets.map((bullet) => (
-                      <li key={bullet}>{bullet}</li>
-                    ))}
-                  </ul>
-                ) : null}
-
-                {section.code ? (
-                  <DocsCodeEditor
-                    code={section.code}
-                    language={inferCodeLanguageFromContent(section.code)}
-                  />
-                ) : null}
-              </section>
-            ))}
-
-            {plans?.length ? (
-              <section id="plans" className="docs-section-block">
-                <h2>{resolvedPlansHeading}</h2>
-                <div className="plans-grid">
-                  {plans.map((plan) => (
-                    <article key={`${plan.name}-${plan.menuRange}`} className="plan-card">
-                      <p className="plan-name">{plan.name}</p>
-                      <p className="plan-range">{plan.menuRange}</p>
-                      <p className="plan-price">{plan.price}</p>
-                      <p className="plan-time">{plan.timeline}</p>
+                    {section.bullets?.length ? (
                       <ul>
-                        {plan.highlights.map((highlight) => (
-                          <li key={highlight}>{highlight}</li>
+                        {section.bullets.map((bullet) => (
+                          <li key={bullet}>{bullet}</li>
                         ))}
                       </ul>
-                    </article>
-                  ))}
-                </div>
-              </section>
-            ) : null}
+                    ) : null}
 
-            {ctaLabel && ctaHref ? (
-              <div className="docs-cta-wrap">
-                <Button asChild size="lg">
-                  <Link href={ctaHref}>{ctaLabel}</Link>
-                </Button>
-              </div>
-            ) : null}
+                    {section.code ? (
+                      <DocsCodeEditor
+                        code={section.code}
+                        language={inferCodeLanguageFromContent(section.code)}
+                      />
+                    ) : null}
+                  </section>
+                ))}
 
-            {contactForm && contactSectionId && displayContactSectionTitle ? (
-              <section id={contactSectionId} className="docs-section-block">
-                <h2>{displayContactSectionTitle}</h2>
-                {displayContactSectionDescription ? <p>{displayContactSectionDescription}</p> : null}
-                {contactForm}
-              </section>
-            ) : null}
+                {plans?.length ? (
+                  <section id="plans" className="docs-section-block">
+                    <h2>{resolvedPlansHeading}</h2>
+                    <div className="plans-grid">
+                      {plans.map((plan) => (
+                        <article key={`${plan.name}-${plan.menuRange}`} className="plan-card">
+                          <p className="plan-name">{plan.name}</p>
+                          <p className="plan-range">{plan.menuRange}</p>
+                          <p className="plan-price">{plan.price}</p>
+                          <p className="plan-time">{plan.timeline}</p>
+                          <ul>
+                            {plan.highlights.map((highlight) => (
+                              <li key={highlight}>{highlight}</li>
+                            ))}
+                          </ul>
+                        </article>
+                      ))}
+                    </div>
+                  </section>
+                ) : null}
+
+                {ctaLabel && ctaHref ? (
+                  <div className="docs-cta-wrap">
+                    <Button asChild size="lg">
+                      <Link href={ctaHref}>{ctaLabel}</Link>
+                    </Button>
+                  </div>
+                ) : null}
+
+                {contactForm && contactSectionId && displayContactSectionTitle ? (
+                  <section id={contactSectionId} className="docs-section-block">
+                    <h2>{displayContactSectionTitle}</h2>
+                    {displayContactSectionDescription ? <p>{displayContactSectionDescription}</p> : null}
+                    {contactForm}
+                  </section>
+                ) : null}
+              </>
+            )}
           </div>
         </article>
 
-        <aside className="docs-rightbar">
-          <p className="docs-sidebar-title">{messages.common.docsOnThisPage}</p>
-          <nav className="docs-toc">
-            {tocItems.map((item) => (
-              <a
-                key={`${item.id}-right`}
-                href={`#${item.id}`}
-                className={`docs-toc-link${activeTocId === item.id ? " is-active" : ""}`}
-                onClick={() => handleTocClick(item.id)}
-              >
-                {item.label}
-              </a>
-            ))}
-          </nav>
+        {hasRightSidebar ? (
+          <aside className="docs-rightbar">
+            {showChromeSkeletons ? (
+              <RightSidebarSkeleton lines={5} cards={rightSidebarContent ? 2 : 0} />
+            ) : showRightSidebarToc ? (
+              <>
+                <p className="docs-sidebar-title">{messages.common.docsOnThisPage}</p>
+                <nav className="docs-toc">
+                  {tocItems.map((item) => (
+                    <a
+                      key={`${item.id}-right`}
+                      href={`#${item.id}`}
+                      className={`docs-toc-link${activeTocId === item.id ? " is-active" : ""}`}
+                      onClick={() => handleTocClick(item.id)}
+                    >
+                      {item.label}
+                    </a>
+                  ))}
+                </nav>
+              </>
+            ) : null}
 
-          <a className="docs-source-link" href={sourceHref} target="_blank" rel="noreferrer noopener">
-            {sourceLabel}
-          </a>
-        </aside>
+            {rightSidebarContent ? (
+              <div className="docs-rightbar-extra-slot">{rightSidebarContent}</div>
+            ) : null}
+
+            {showRightSidebarSourceLink ? (
+              <a
+                className="docs-source-link"
+                href={sourceHref}
+                target="_blank"
+                rel="noreferrer noopener"
+              >
+                {sourceLabel}
+              </a>
+            ) : null}
+          </aside>
+        ) : null}
       </div>
 
     </section>

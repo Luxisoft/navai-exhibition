@@ -2,9 +2,95 @@ import express, { type NextFunction, type Request, type Response } from "express
 import dotenv from "dotenv";
 import fs from "node:fs";
 import path from "node:path";
+import { createExpressSpeechSynthesizeHandler } from "@navai/voice-backend";
 
 import { getDocsSearch } from "./handlers/docs-search";
+import {
+  getCloudflareImageDetailsHandler,
+  postCloudflareImageDirectUploadHandler,
+  postCloudflareStreamDirectUploadHandler,
+  postCloudflareStreamDownloadHandler,
+} from "./handlers/cloudflare";
 import { getEcommerceDemoSeed } from "./handlers/ecommerce-demo";
+import {
+  getPublicNavaiRouteAccessHandler,
+  getNavaiPanelActorHandler,
+  getNavaiPanelManagedUsersHandler,
+  getNavaiPanelRolePermissionsHandler,
+  getNavaiPanelRouteAccessHandler,
+  putNavaiPanelManagedUserRoleHandler,
+  putNavaiPanelRolePermissionsHandler,
+  putNavaiPanelRouteAccessHandler,
+} from "./handlers/navai-panel-access";
+import {
+  deleteNavaiPanelDomainHandler,
+  getNavaiPanelDomain,
+  getNavaiPanelDomains,
+  postNavaiPanelDomain,
+  putNavaiPanelDomain,
+} from "./handlers/navai-panel-domains";
+import {
+  deleteNavaiPanelEvaluationHandler,
+  deleteNavaiPanelEvaluationAgentHandler,
+  deleteNavaiPanelSurveyHandler,
+  deleteNavaiPanelSurveyAgentHandler,
+  getNavaiEntryBillingHandler,
+  getNavaiEntryPackagesAdminHandler,
+  getNavaiPointsCashoutRequestsHandler,
+  getNavaiPointsWalletHandler,
+  getNavaiReferralProgramHandler,
+  getNavaiPanelDashboardSummaryHandler,
+  getNavaiPanelEvaluationAgentsHandler,
+  getNavaiPanelEvaluationAgentSettingsHandler,
+  getNavaiPanelEvaluationsHandler,
+  getNavaiPanelEvaluationResponsesHandler,
+  getNavaiPanelUserProfileHandler,
+  getNavaiPanelUserVerificationHandler,
+  getNavaiPanelPendingUserVerificationsHandler,
+  getNavaiPanelSupportTicketsHandler,
+  getPublicNavaiExperienceAccessHandler,
+  getPublicNavaiExperienceCommentsHandler,
+  getPublicNavaiExperienceTopHandler,
+  getNavaiPanelSurveyAgentsHandler,
+  getNavaiPanelSurveyAgentSettingsHandler,
+  getNavaiPanelSurveysHandler,
+  getNavaiPanelSurveyResponsesHandler,
+  getPublicNavaiUserProfileHandler,
+  postNavaiEntryOrderConfirmHandler,
+  postNavaiEntryOrderHandler,
+  postNavaiPointsCashoutRequestHandler,
+  postNavaiPanelEvaluationResponseGradeHandler,
+  postNavaiPanelUserAccountDeletionHandler,
+  postNavaiPanelSurveyResponseGradeHandler,
+  postNavaiEntryWompiWebhookHandler,
+  getPublicNavaiEvaluationHandler,
+  getPublicNavaiSurveyHandler,
+  postNavaiPanelEvaluationAgentHandler,
+  postNavaiPanelEvaluationHandler,
+  postNavaiPanelSurveyAgentHandler,
+  postNavaiPanelSurveyHandler,
+  postNavaiPanelSupportMessageHandler,
+  postNavaiPanelSupportTicketHandler,
+  postPublicNavaiExperienceCommentHandler,
+  postPublicNavaiConversationHandler,
+  postPublicNavaiConversationProgressHandler,
+  postPublicNavaiEvaluationLaunchHandler,
+  postPublicNavaiSurveyLaunchHandler,
+  putNavaiPanelUserProfileHandler,
+  putNavaiPointsCashoutPaymentSettingsHandler,
+  putNavaiPointsCashoutRequestReviewHandler,
+  putNavaiPanelUserVerificationHandler,
+  putNavaiPanelUserVerificationReviewHandler,
+  putPublicNavaiExperienceCommentHandler,
+  putNavaiPanelEvaluationAgentHandler,
+  putNavaiPanelEvaluationAgentSettingsHandler,
+  putNavaiPanelEvaluationHandler,
+  putNavaiPanelSurveyAgentHandler,
+  putNavaiPanelSurveyAgentSettingsHandler,
+  putNavaiPanelSurveyHandler,
+  putNavaiEntryPackageAdminHandler,
+  deletePublicNavaiExperienceCommentHandler,
+} from "./handlers/navai-panel-workspace";
 import {
   getNavaiFunctions,
   postNavaiExecuteFunction,
@@ -15,6 +101,9 @@ import {
   createNavaiAbuseProtection,
   NAVAI_BROWSER_CLIENT_ID_HEADER,
 } from "./lib/navai-abuse-protection";
+import { getHCaptchaSiteKeyFromEnv } from "./lib/hcaptcha";
+import { getNavaiVoiceOptionsFromEnv } from "./lib/navai-backend-runtime";
+import { startNavaiAccountDeletionScheduler } from "./lib/navai-account-deletion-scheduler";
 
 import { resolveProjectRoot } from "./lib/project-root";
 
@@ -147,15 +236,168 @@ app.get("/api/backend-capabilities", (_request, response) => {
 });
 
 app.get("/api/hcaptcha/site-key", (_request, response) => {
-  const siteKey = process.env.PUBLIC_HCAPTCHA_SITE_KEY ?? process.env.HCAPTCHA_SITE_KEY ?? "";
+  const siteKey = getHCaptchaSiteKeyFromEnv();
   response.json({ siteKey });
 });
 
+app.post("/api/cloudflare/images/direct-upload", withAsync(postCloudflareImageDirectUploadHandler));
+app.get("/api/cloudflare/images/:id", withAsync(getCloudflareImageDetailsHandler));
+app.post("/api/cloudflare/stream/direct-upload", withAsync(postCloudflareStreamDirectUploadHandler));
+app.post("/api/cloudflare/stream/:uid/downloads", withAsync(postCloudflareStreamDownloadHandler));
 app.post("/api/quote", withAsync(postQuote));
 app.get("/api/docs-search", withAsync(getDocsSearch));
 app.get("/api/ecommerce-demo/seed", withAsync(getEcommerceDemoSeed));
+app.get("/api/navai-panel/domains", withAsync(getNavaiPanelDomains));
+app.get("/api/navai-panel/domains/:id", withAsync(getNavaiPanelDomain));
+app.post("/api/navai-panel/domains", withAsync(postNavaiPanelDomain));
+app.put("/api/navai-panel/domains/:id", withAsync(putNavaiPanelDomain));
+app.delete("/api/navai-panel/domains/:id", withAsync(deleteNavaiPanelDomainHandler));
+app.get("/api/navai-panel/auth/me", withAsync(getNavaiPanelActorHandler));
+app.get("/api/navai-route-access", withAsync(getPublicNavaiRouteAccessHandler));
+app.get("/api/navai-panel/admin/users", withAsync(getNavaiPanelManagedUsersHandler));
+app.get("/api/navai-panel/admin/roles", withAsync(getNavaiPanelRolePermissionsHandler));
+app.get("/api/navai-panel/admin/routes", withAsync(getNavaiPanelRouteAccessHandler));
+app.get(
+  "/api/navai-panel/admin/verifications/pending",
+  withAsync(getNavaiPanelPendingUserVerificationsHandler)
+);
+app.put("/api/navai-panel/admin/users/:uid/role", withAsync(putNavaiPanelManagedUserRoleHandler));
+app.put("/api/navai-panel/admin/roles/:role", withAsync(putNavaiPanelRolePermissionsHandler));
+app.put(
+  "/api/navai-panel/admin/routes/:routeId",
+  withAsync(putNavaiPanelRouteAccessHandler)
+);
+app.put(
+  "/api/navai-panel/admin/verifications/:userId",
+  withAsync(putNavaiPanelUserVerificationReviewHandler)
+);
+app.get(
+  "/api/navai-panel/admin/entries/packages",
+  withAsync(getNavaiEntryPackagesAdminHandler)
+);
+app.put(
+  "/api/navai-panel/admin/entries/packages/:key",
+  withAsync(putNavaiEntryPackageAdminHandler)
+);
+app.get("/api/navai-panel/dashboard-summary", withAsync(getNavaiPanelDashboardSummaryHandler));
+app.get("/api/navai-panel/profile", withAsync(getNavaiPanelUserProfileHandler));
+app.put("/api/navai-panel/profile", withAsync(putNavaiPanelUserProfileHandler));
+app.post(
+  "/api/navai-panel/profile/delete-request",
+  withAsync(postNavaiPanelUserAccountDeletionHandler)
+);
+app.get("/api/navai-panel/profile/verification", withAsync(getNavaiPanelUserVerificationHandler));
+app.put("/api/navai-panel/profile/verification", withAsync(putNavaiPanelUserVerificationHandler));
+app.get("/api/navai-panel/billing/entries", withAsync(getNavaiEntryBillingHandler));
+app.get("/api/navai-panel/points/wallet", withAsync(getNavaiPointsWalletHandler));
+app.put(
+  "/api/navai-panel/points/cashout/settings",
+  withAsync(putNavaiPointsCashoutPaymentSettingsHandler)
+);
+app.post(
+  "/api/navai-panel/points/cashout/requests",
+  withAsync(postNavaiPointsCashoutRequestHandler)
+);
+app.get(
+  "/api/navai-panel/admin/points/cashout/requests",
+  withAsync(getNavaiPointsCashoutRequestsHandler)
+);
+app.put(
+  "/api/navai-panel/admin/points/cashout/requests/:id",
+  withAsync(putNavaiPointsCashoutRequestReviewHandler)
+);
+app.get("/api/navai-panel/referrals", withAsync(getNavaiReferralProgramHandler));
+app.post("/api/navai-panel/billing/entries/orders", withAsync(postNavaiEntryOrderHandler));
+app.post(
+  "/api/navai-panel/billing/entries/confirm",
+  withAsync(postNavaiEntryOrderConfirmHandler)
+);
+app.get("/api/navai-panel/evaluations", withAsync(getNavaiPanelEvaluationsHandler));
+app.get("/api/navai-panel/evaluations/:id/responses", withAsync(getNavaiPanelEvaluationResponsesHandler));
+app.post(
+  "/api/navai-panel/evaluations/:id/responses/:conversationId/grade",
+  withAsync(postNavaiPanelEvaluationResponseGradeHandler)
+);
+app.get("/api/navai-panel/evaluations/agents", withAsync(getNavaiPanelEvaluationAgentsHandler));
+app.get(
+  "/api/navai-panel/evaluations/settings",
+  withAsync(getNavaiPanelEvaluationAgentSettingsHandler)
+);
+app.post("/api/navai-panel/evaluations/agents", withAsync(postNavaiPanelEvaluationAgentHandler));
+app.post("/api/navai-panel/evaluations", withAsync(postNavaiPanelEvaluationHandler));
+app.put("/api/navai-panel/evaluations/agents/:id", withAsync(putNavaiPanelEvaluationAgentHandler));
+app.put(
+  "/api/navai-panel/evaluations/settings",
+  withAsync(putNavaiPanelEvaluationAgentSettingsHandler)
+);
+app.put("/api/navai-panel/evaluations/:id", withAsync(putNavaiPanelEvaluationHandler));
+app.delete(
+  "/api/navai-panel/evaluations/agents/:id",
+  withAsync(deleteNavaiPanelEvaluationAgentHandler)
+);
+app.delete("/api/navai-panel/evaluations/:id", withAsync(deleteNavaiPanelEvaluationHandler));
+app.get("/api/navai-panel/surveys", withAsync(getNavaiPanelSurveysHandler));
+app.get("/api/navai-panel/surveys/:id/responses", withAsync(getNavaiPanelSurveyResponsesHandler));
+app.post(
+  "/api/navai-panel/surveys/:id/responses/:conversationId/grade",
+  withAsync(postNavaiPanelSurveyResponseGradeHandler)
+);
+app.get("/api/navai-panel/surveys/agents", withAsync(getNavaiPanelSurveyAgentsHandler));
+app.get("/api/navai-panel/surveys/settings", withAsync(getNavaiPanelSurveyAgentSettingsHandler));
+app.post("/api/navai-panel/surveys/agents", withAsync(postNavaiPanelSurveyAgentHandler));
+app.post("/api/navai-panel/surveys", withAsync(postNavaiPanelSurveyHandler));
+app.put("/api/navai-panel/surveys/agents/:id", withAsync(putNavaiPanelSurveyAgentHandler));
+app.put("/api/navai-panel/surveys/settings", withAsync(putNavaiPanelSurveyAgentSettingsHandler));
+app.put("/api/navai-panel/surveys/:id", withAsync(putNavaiPanelSurveyHandler));
+app.delete("/api/navai-panel/surveys/agents/:id", withAsync(deleteNavaiPanelSurveyAgentHandler));
+app.delete("/api/navai-panel/surveys/:id", withAsync(deleteNavaiPanelSurveyHandler));
+app.get("/api/navai-panel/support/tickets", withAsync(getNavaiPanelSupportTicketsHandler));
+app.post("/api/navai-panel/support/tickets", withAsync(postNavaiPanelSupportTicketHandler));
+app.post(
+  "/api/navai-panel/support/tickets/:id/messages",
+  withAsync(postNavaiPanelSupportMessageHandler)
+);
+app.get("/api/navai-public/evaluations/:slug", withAsync(getPublicNavaiEvaluationHandler));
+app.post(
+  "/api/navai-public/evaluations/:slug/launch",
+  withAsync(postPublicNavaiEvaluationLaunchHandler)
+);
+app.get("/api/navai-public/surveys/:slug", withAsync(getPublicNavaiSurveyHandler));
+app.post("/api/navai-public/surveys/:slug/launch", withAsync(postPublicNavaiSurveyLaunchHandler));
+app.get("/api/navai-public/:kind/:slug/access", withAsync(getPublicNavaiExperienceAccessHandler));
+app.get("/api/navai-public/:kind/:slug/top", withAsync(getPublicNavaiExperienceTopHandler));
+app.get(
+  "/api/navai-public/:kind/:slug/comments",
+  withAsync(getPublicNavaiExperienceCommentsHandler)
+);
+app.post(
+  "/api/navai-public/:kind/:slug/comments",
+  withAsync(postPublicNavaiExperienceCommentHandler)
+);
+app.put(
+  "/api/navai-public/comments/:id",
+  withAsync(putPublicNavaiExperienceCommentHandler)
+);
+app.delete(
+  "/api/navai-public/comments/:id",
+  withAsync(deletePublicNavaiExperienceCommentHandler)
+);
+app.get(
+  "/api/navai-public/users/:userId/profile",
+  withAsync(getPublicNavaiUserProfileHandler)
+);
+app.post("/api/navai-public/:kind/:slug/conversations", withAsync(postPublicNavaiConversationHandler));
+app.post(
+  "/api/navai-public/conversations/:id/progress",
+  withAsync(postPublicNavaiConversationProgressHandler)
+);
+app.post("/api/payments/wompi/webhook", withAsync(postNavaiEntryWompiWebhookHandler));
 
 app.post("/navai/realtime/client-secret", withAsync(postRealtimeClientSecret));
+app.post(
+  "/navai/speech/synthesize",
+  createExpressSpeechSynthesizeHandler(getNavaiVoiceOptionsFromEnv())
+);
 app.get("/navai/functions", withAsync(getNavaiFunctions));
 app.post("/navai/functions/execute", withAsync(postNavaiExecuteFunction));
 
@@ -201,6 +443,8 @@ const port = Number.parseInt(portRaw, 10);
 if (!Number.isFinite(port) || port <= 0) {
   throw new Error(`Invalid PORT value: '${portRaw}'.`);
 }
+
+startNavaiAccountDeletionScheduler();
 
 app.listen(port, () => {
   console.log(`NAVAI backend running on http://localhost:${port}`);

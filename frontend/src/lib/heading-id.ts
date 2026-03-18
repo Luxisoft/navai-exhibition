@@ -26,23 +26,10 @@ type BuildHeadingIdInput = {
 
 export function buildStableHeadingId({
   title,
-  offset,
-  line,
-  column,
+  offset: _offset,
+  line: _line,
+  column: _column,
 }: BuildHeadingIdInput) {
-  if (
-    typeof line === "number" &&
-    Number.isFinite(line) &&
-    typeof column === "number" &&
-    Number.isFinite(column)
-  ) {
-    return `h-l${line}-c${column}`;
-  }
-
-  if (typeof offset === "number" && Number.isFinite(offset)) {
-    return `h-o${offset}`;
-  }
-
   const slug = slugifyHeading(cleanHeadingText(title));
   return slug || "section";
 }

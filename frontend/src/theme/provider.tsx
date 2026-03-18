@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import {
   createContext,
@@ -54,8 +54,9 @@ function readThemeFromDocument(): ThemeMode | null {
 
   const root = document.documentElement;
   const fromDataAttr = root.dataset.theme;
-  if (isThemeMode(fromDataAttr ?? null)) {
-    return fromDataAttr;
+  const dataTheme = fromDataAttr ?? null;
+  if (isThemeMode(dataTheme)) {
+    return dataTheme;
   }
 
   if (root.classList.contains("dark")) {
@@ -81,7 +82,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     if (typeof window !== "undefined") {
       window.localStorage.setItem(THEME_STORAGE_KEY, runtimeTheme);
     }
-    setThemeState((current) => (current === runtimeTheme ? current : runtimeTheme));
+    setThemeState((current) =>
+      current === runtimeTheme ? current : runtimeTheme,
+    );
     setIsReady(true);
   }, []);
 
@@ -113,7 +116,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     };
   }, [isReady, setTheme, theme, toggleTheme]);
 
-  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
+  return (
+    <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>
+  );
 }
 
 export function useTheme() {

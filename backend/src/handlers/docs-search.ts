@@ -62,30 +62,6 @@ const NAVAI_DOCS: NavaiDocMeta[] = [
     fileName: "installation-mobile.md",
   },
   {
-    slug: "installation-wordpress",
-    title: "Installation WordPress",
-    summary: "WordPress plugin setup and NAVAI endpoint requirements.",
-    fileName: "installation-wordpress.md",
-  },
-  {
-    slug: "playground-api",
-    title: "Playground API",
-    summary: "Express demo backend with realtime client secret and function execution.",
-    fileName: "playground-api.md",
-  },
-  {
-    slug: "playground-web",
-    title: "Playground Web",
-    summary: "Reference React frontend for voice navigation and function loading.",
-    fileName: "playground-web.md",
-  },
-  {
-    slug: "playground-mobile",
-    title: "Playground Mobile",
-    summary: "React Native/Expo reference with VoiceNavigator and backend integration.",
-    fileName: "playground-mobile.md",
-  },
-  {
     slug: "voice-backend",
     title: "@navai/voice-backend",
     summary: "Backend contract for realtime routes, function loading and environment rules.",
@@ -255,11 +231,11 @@ async function getDocsCache() {
 function buildImplementationSearchEntries(query: string, tokens: string[]) {
   const title = "Request Implementation";
   const description =
-    "Implementation services, technical scope, plans, contact form and WhatsApp contact.";
+    "Implementation services, technical scope, pricing model, and WhatsApp contact.";
   const sections = [
-    { id: "scope", title: "Technical Scope", description: "Architecture and integration planning." },
-    { id: "plans", title: "Plans", description: "Pricing ranges, delivery timeline and included scope." },
-    { id: "contact", title: "Contact", description: "Quote request form and support channels." },
+    { id: "what-you-get", title: "Technical Scope", description: "Architecture and integration planning." },
+    { id: "pricing-note", title: "Pricing Model", description: "Pricing criteria based on route count, complexity and tools." },
+    { id: "contacto", title: "Contact", description: "WhatsApp channel to coordinate implementation with Luxisoft." },
   ];
   const entries: RankedSearchResult[] = [];
   const pageBody = normalizeText(`${title} ${description} ${sections.map((s) => s.description).join(" ")}`);
@@ -283,45 +259,6 @@ function buildImplementationSearchEntries(query: string, tokens: string[]) {
       id: `impl-${section.id}`,
       href: `/request-implementation#${section.id}`,
       scope: "implementation",
-      title: section.title,
-      snippet: makeSnippet(section.description, query),
-      score: scoreMatch(normalizeText(section.title), sectionText, query, tokens),
-    });
-  }
-
-  return entries;
-}
-
-function buildWordpressSearchEntries(query: string, tokens: string[]) {
-  const title = "WordPress Integration";
-  const description =
-    "WordPress plugin integration, shortcode usage and required NAVAI backend endpoints.";
-  const sections = [
-    { id: "installation", title: "Installation", description: "Install, activate and configure plugin settings." },
-    { id: "shortcode", title: "Shortcode", description: "Use shortcode parameters for model, language and behavior." },
-    { id: "backend", title: "Backend Endpoints", description: "Configure /navai routes and connectivity checks." },
-  ];
-  const entries: RankedSearchResult[] = [];
-  const pageBody = normalizeText(`${title} ${description} ${sections.map((s) => s.description).join(" ")}`);
-
-  if (containsAllTokens(pageBody, tokens)) {
-    entries.push({
-      id: "wordpress-page",
-      href: "/wordpress",
-      scope: "documentation",
-      title,
-      snippet: makeSnippet(description, query),
-      score: scoreMatch(normalizeText(title), pageBody, query, tokens),
-    });
-  }
-
-  for (const section of sections) {
-    const sectionText = normalizeText(`${section.title} ${section.description}`);
-    if (!containsAllTokens(sectionText, tokens)) continue;
-    entries.push({
-      id: `wordpress-${section.id}`,
-      href: `/wordpress#${section.id}`,
-      scope: "documentation",
       title: section.title,
       snippet: makeSnippet(section.description, query),
       score: scoreMatch(normalizeText(section.title), sectionText, query, tokens),
@@ -391,7 +328,6 @@ export async function getDocsSearch(request: Request, response: Response) {
   }
 
   ranked.push(...buildImplementationSearchEntries(queryRaw, tokens));
-  ranked.push(...buildWordpressSearchEntries(queryRaw, tokens));
 
   const results = dedupeResults(ranked)
     .sort((a, b) => b.score - a.score)

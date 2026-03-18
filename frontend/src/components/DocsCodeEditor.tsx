@@ -1,6 +1,7 @@
-'use client';
+"use client";
 
 import { Check, Copy } from "lucide-react";
+import type { LanguageFn } from "highlight.js";
 import hljs from "highlight.js/lib/core";
 import bash from "highlight.js/lib/languages/bash";
 import cpp from "highlight.js/lib/languages/cpp";
@@ -23,6 +24,8 @@ import typescript from "highlight.js/lib/languages/typescript";
 import xml from "highlight.js/lib/languages/xml";
 import yaml from "highlight.js/lib/languages/yaml";
 import { useEffect, useMemo, useState } from "react";
+
+import { useI18n } from "@/lib/i18n/provider";
 
 type DocsCodeEditorProps = {
   code: string;
@@ -51,7 +54,7 @@ const LANGUAGE_ALIASES: Record<string, string> = {
 };
 const LANGUAGE_TOKEN_PATTERN = /^[a-z0-9_+-]+$/i;
 
-function registerHighlightLanguage(name: string, syntax: (hljsApi: typeof hljs) => unknown) {
+function registerHighlightLanguage(name: string, syntax: LanguageFn) {
   if (!hljs.getLanguage(name)) {
     hljs.registerLanguage(name, syntax);
   }
@@ -92,7 +95,10 @@ export function normalizeCodeLanguage(language?: string | null) {
     return null;
   }
 
-  const normalized = language.trim().toLowerCase().replace(/^language-/, "");
+  const normalized = language
+    .trim()
+    .toLowerCase()
+    .replace(/^language-/, "");
   if (!normalized) {
     return null;
   }
@@ -123,7 +129,11 @@ export function inferCodeLanguageFromContent(code: string) {
     return "plaintext";
   }
 
-  if (/^\s*(npm|pnpm|yarn|bun|npx|pnpx|git|curl|wget|docker|kubectl|cd|ls|cp|mv|rm|mkdir|cat|echo)\b/mu.test(trimmed)) {
+  if (
+    /^\s*(npm|pnpm|yarn|bun|npx|pnpx|git|curl|wget|docker|kubectl|cd|ls|cp|mv|rm|mkdir|cat|echo)\b/mu.test(
+      trimmed,
+    )
+  ) {
     return "bash";
   }
 
@@ -180,11 +190,12 @@ function splitHighlightedHtmlByLine(html: string) {
   let cursor = 0;
   let currentLine = "";
 
-  const closeActiveTags = () => activeTags
-    .slice()
-    .reverse()
-    .map((tag) => tag.close)
-    .join("");
+  const closeActiveTags = () =>
+    activeTags
+      .slice()
+      .reverse()
+      .map((tag) => tag.close)
+      .join("");
   const reopenActiveTags = () => activeTags.map((tag) => tag.open).join("");
 
   const pushLine = () => {
@@ -280,18 +291,24 @@ function copyWithFallback(code: string) {
 export default function DocsCodeEditor({
   code,
   language,
-  copyLabel = "Copiar",
-  copiedLabel = "Copiado",
+  copyLabel,
+  copiedLabel,
 }: DocsCodeEditorProps) {
+  const { messages } = useI18n();
   const [copied, setCopied] = useState(false);
-  const normalizedCode = useMemo(() => code.replace(/\r\n/g, "\n").replace(/\n$/, ""), [code]);
+  const normalizedCode = useMemo(
+    () => code.replace(/\r\n/g, "\n").replace(/\n$/, ""),
+    [code],
+  );
   const resolvedLanguage = useMemo(
-    () => normalizeCodeLanguage(language) ?? inferCodeLanguageFromContent(normalizedCode),
-    [language, normalizedCode]
+    () =>
+      normalizeCodeLanguage(language) ??
+      inferCodeLanguageFromContent(normalizedCode),
+    [language, normalizedCode],
   );
   const highlightedHtml = useMemo(
     () => safeHighlightCode(normalizedCode, resolvedLanguage),
-    [normalizedCode, resolvedLanguage]
+    [normalizedCode, resolvedLanguage],
   );
   const lineHtml = useMemo(() => {
     return splitHighlightedHtmlByLine(highlightedHtml);
@@ -306,6 +323,8 @@ export default function DocsCodeEditor({
     const uppercaseLanguage = normalized.toUpperCase().trim();
     return uppercaseLanguage.includes("#") ? "CODE" : uppercaseLanguage;
   }, [resolvedLanguage]);
+  const resolvedCopyLabel = copyLabel ?? messages.common.copyAction;
+  const resolvedCopiedLabel = copiedLabel ?? messages.common.copiedAction;
 
   useEffect(() => {
     if (!copied) {
@@ -346,22 +365,37 @@ export default function DocsCodeEditor({
             type="button"
             className={`docs-code-editor-copy${copied ? " is-copied" : ""}`}
             onClick={handleCopy}
-            aria-label={copied ? copiedLabel : copyLabel}
-            title={copied ? copiedLabel : copyLabel}
+            aria-label={copied ? resolvedCopiedLabel : resolvedCopyLabel}
+            title={copied ? resolvedCopiedLabel : resolvedCopyLabel}
           >
-            {copied ? <Check aria-hidden="true" /> : <Copy aria-hidden="true" />}
-            <span>{copied ? copiedLabel : copyLabel}</span>
+            {copied ? (
+              <Check aria-hidden="true" />
+            ) : (
+              <Copy aria-hidden="true" />
+            )}
+            <span>{copied ? resolvedCopiedLabel : resolvedCopyLabel}</span>
           </button>
         </div>
 
         <pre className="docs-code-editor-pre">
-          <code className={`hljs${resolvedLanguage ? ` language-${resolvedLanguage}` : ""}`}>
+          <code
+            className={`hljs${resolvedLanguage ? ` language-${resolvedLanguage}` : ""}`}
+          >
             {lineHtml.map((htmlLine, index) => (
-              <span key={`code-line-${index + 1}`} className="docs-code-editor-line">
-                <span className="docs-code-editor-line-number" aria-hidden="true">
+              <span
+                key={`code-line-${index + 1}`}
+                className="docs-code-editor-line"
+              >
+                <span
+                  className="docs-code-editor-line-number"
+                  aria-hidden="true"
+                >
                   {index + 1}
                 </span>
-                <span className="docs-code-editor-line-content" dangerouslySetInnerHTML={{ __html: htmlLine }} />
+                <span
+                  className="docs-code-editor-line-content"
+                  dangerouslySetInnerHTML={{ __html: htmlLine }}
+                />
               </span>
             ))}
           </code>

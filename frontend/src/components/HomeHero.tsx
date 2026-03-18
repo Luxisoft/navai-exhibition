@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import { NavaiVoiceHeroOrb } from "@navai/voice-frontend";
 import Link from "@/platform/link";
@@ -6,7 +6,10 @@ import Image from "@/platform/image";
 import dynamic from "@/platform/dynamic";
 import { useEffect, useState } from "react";
 
-import { useI18n } from "@/i18n/provider";
+import { HomeVoiceSkeleton } from "@/components/AppShellSkeletons";
+import { NAVAI_PANEL_HREF, REQUEST_IMPLEMENTATION_HREF } from "@/lib/auth-redirect";
+import { useFirebaseAuth } from "@/lib/firebase-auth";
+import { useI18n } from "@/lib/i18n/provider";
 import bannerAvif1x from "@/assets/navai_banner.avif";
 import bannerAvif15x from "@/assets/navai_banner@1_5x.avif";
 import bannerWebp1x from "@/assets/navai_banner.webp";
@@ -25,18 +28,27 @@ function parsePublicDelayMs(value: unknown, fallback: number) {
   if (!Number.isFinite(parsedValue)) {
     return fallback;
   }
-  return Math.min(ORB_AUTOPLAY_DELAY_MS_MAX, Math.max(ORB_AUTOPLAY_DELAY_MS_MIN, parsedValue));
+  return Math.min(
+    ORB_AUTOPLAY_DELAY_MS_MAX,
+    Math.max(ORB_AUTOPLAY_DELAY_MS_MIN, parsedValue),
+  );
 }
 
 function resolveOrbAutoplayDelayMs() {
-  return parsePublicDelayMs(import.meta.env.PUBLIC_ORB_AUTOPLAY_DELAY_MS, ORB_AUTOPLAY_DELAY_MS_DEFAULT);
+  return parsePublicDelayMs(
+    import.meta.env.PUBLIC_ORB_AUTOPLAY_DELAY_MS,
+    ORB_AUTOPLAY_DELAY_MS_DEFAULT,
+  );
 }
 
 const ORB_AUTOPLAY_DELAY_MS = resolveOrbAutoplayDelayMs();
-const ORB_REVEAL_DELAY_MS = parsePublicDelayMs(import.meta.env.PUBLIC_ORB_REVEAL_DELAY_MS, ORB_REVEAL_DELAY_MS_DEFAULT);
+const ORB_REVEAL_DELAY_MS = parsePublicDelayMs(
+  import.meta.env.PUBLIC_ORB_REVEAL_DELAY_MS,
+  ORB_REVEAL_DELAY_MS_DEFAULT,
+);
 const VOICE_PANEL_REVEAL_DELAY_MS = parsePublicDelayMs(
   import.meta.env.PUBLIC_VOICE_PANEL_REVEAL_DELAY_MS,
-  VOICE_PANEL_REVEAL_DELAY_MS_DEFAULT
+  VOICE_PANEL_REVEAL_DELAY_MS_DEFAULT,
 );
 const VOICE_PANEL_READY_IMMEDIATELY = VOICE_PANEL_REVEAL_DELAY_MS === 0;
 const bannerAvif1xSrc = resolveAssetSrc(bannerAvif1x);
@@ -50,9 +62,13 @@ const NavaiMicButton = dynamic(() => import("@/components/NavaiMicButton"), {
 
 export default function HomeHero() {
   const { messages } = useI18n();
+  const { hasSessionHint, isInitializing, user } = useFirebaseAuth();
   const { theme } = useTheme();
   const voiceOrbAgent = useNavaiVoiceOrbAgent();
-  const [isVoicePanelReady, setIsVoicePanelReady] = useState(VOICE_PANEL_READY_IMMEDIATELY);
+  const [isVoicePanelReady, setIsVoicePanelReady] = useState(
+    VOICE_PANEL_READY_IMMEDIATELY,
+  );
+  const shouldShowPanelAction = hasSessionHint || Boolean(user);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -75,11 +91,20 @@ export default function HomeHero() {
       revealVoicePanel();
     };
 
-    window.addEventListener("pointerdown", onUserIntent, { passive: true, once: true });
-    window.addEventListener("touchstart", onUserIntent, { passive: true, once: true });
+    window.addEventListener("pointerdown", onUserIntent, {
+      passive: true,
+      once: true,
+    });
+    window.addEventListener("touchstart", onUserIntent, {
+      passive: true,
+      once: true,
+    });
     window.addEventListener("keydown", onUserIntent, { once: true });
 
-    const timeoutId = window.setTimeout(revealVoicePanel, VOICE_PANEL_REVEAL_DELAY_MS);
+    const timeoutId = window.setTimeout(
+      revealVoicePanel,
+      VOICE_PANEL_REVEAL_DELAY_MS,
+    );
     return () => {
       window.removeEventListener("pointerdown", onUserIntent);
       window.removeEventListener("touchstart", onUserIntent);
@@ -106,7 +131,7 @@ export default function HomeHero() {
         {isVoicePanelReady ? (
           <NavaiMicButton />
         ) : (
-          <div className="home-voice-placeholder" aria-hidden="true" />
+          <HomeVoiceSkeleton />
         )}
       </div>
 
@@ -134,15 +159,28 @@ export default function HomeHero() {
         <p>{messages.home.tagline}</p>
 
         <div className="home-actions">
-          <Link href="/documentation/home" className="home-btn home-btn-primary">
+          <Link
+            href="/documentation/home"
+            className="home-btn home-btn-primary"
+          >
             {messages.home.documentationButton}
           </Link>
-          <Link href="/request-implementation" className="home-btn home-btn-ghost">
-            {messages.home.implementationButton}
-          </Link>
-          <Link href="/wordpress" className="home-btn home-btn-ghost">
-            {"Wordpress"}
-          </Link>
+          {isInitializing ? (
+            <span className="home-btn home-btn-ghost is-disabled" aria-disabled="true">
+              {shouldShowPanelAction
+                ? messages.common.navaiPanel
+                : messages.home.implementationButton}
+            </span>
+          ) : (
+            <Link
+              href={shouldShowPanelAction ? NAVAI_PANEL_HREF : REQUEST_IMPLEMENTATION_HREF}
+              className="home-btn home-btn-ghost"
+            >
+              {shouldShowPanelAction
+                ? messages.common.navaiPanel
+                : messages.home.implementationButton}
+            </Link>
+          )}
         </div>
       </div>
     </>

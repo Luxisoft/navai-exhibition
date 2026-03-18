@@ -1,0 +1,14 @@
+---
+import "@/styles/docs.css";
+
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import PanelPointsPage from "../../../react/PanelPointsPage";
+---
+
+<BaseLayout
+  path="/panel/points"
+  title="NAVAI | Canje de PT"
+  description="Solicita canjes de puntos PT a dinero real y revisa su estado."
+>
+  <PanelPointsPage client:load />
+</BaseLayout>

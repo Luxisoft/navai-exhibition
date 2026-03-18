@@ -10,7 +10,6 @@ export function GET() {
   const staticRoutes = [
     { path: "/", changefreq: "weekly", priority: "1.0" },
     { path: "/request-implementation", changefreq: "monthly", priority: "0.7" },
-    { path: "/wordpress", changefreq: "monthly", priority: "0.7" },
   ];
 
   const docsRoutes = NAVAI_DOCS.filter((doc) => doc.slug !== "playground-stores").map((doc) => ({

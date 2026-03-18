@@ -2,13 +2,13 @@
 
 import { Moon, Sun } from "lucide-react";
 
-import { useI18n } from "@/i18n/provider";
+import { useI18n } from "@/lib/i18n/provider";
 import { useTheme } from "@/theme/provider";
 
-export default function ThemeSwitcher() {
+export default function ThemeSwitcher({ disabled = false }: { disabled?: boolean }) {
   const { messages } = useI18n();
   const { theme, toggleTheme, isReady } = useTheme();
-  const canToggle = isReady;
+  const canToggle = isReady && !disabled;
   const isDarkTheme = theme === "dark";
   const nextThemeLabel = isDarkTheme ? messages.common.themeLight : messages.common.themeDark;
   const buttonLabel = canToggle

@@ -23,8 +23,8 @@ const homeHydrationMode = requestedHydrationMode === "load" || requestedHydratio
 
 <BaseLayout
   path="/"
-  title="NAVAI | IA de voz para Documentación, Implementación y Wordpress"
-  description="NAVAI permite navegar por voz y ejecutar funciones en tiempo real. Explora Documentación, Pedir implementación e integración Wordpress."
+  title="NAVAI | IA de voz para Documentación e Implementación"
+  description="NAVAI permite navegar por voz y ejecutar funciones en tiempo real. Explora Documentación y Realizar implementación."
 >
   {
     homeHydrationMode === "load" ? <HomePage client:load /> : <HomePage client:idle />

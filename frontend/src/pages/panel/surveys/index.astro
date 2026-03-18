@@ -1,0 +1,14 @@
+---
+import "@/styles/docs.css";
+
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import PanelInsightsPage from "../../../react/PanelInsightsPage";
+---
+
+<BaseLayout
+  path="/panel/surveys"
+  title="NAVAI | Encuestas"
+  description="Vista de encuestas del panel de NAVAI."
+>
+  <PanelInsightsPage mode="surveys" client:load />
+</BaseLayout>

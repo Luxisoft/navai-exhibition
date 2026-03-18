@@ -1,13 +1,11 @@
 ---
 import "@/styles/globals.css";
 import { ClientRouter } from "astro:transitions";
-import { getLocalizedNavaiDocs } from "@/i18n/docs-catalog";
 import {
   LANGUAGE_OPTIONS,
   loadMessagesForLanguage,
   type LanguageCode,
-} from "@/i18n/messages";
-import { getLocalizedWordpressPage } from "@/i18n/wordpress-page";
+} from "@/lib/i18n/messages";
 
 type BaseLayoutProps = {
   title?: string;
@@ -29,9 +27,6 @@ type SeoLanguageCopy = {
   implementationTitle: string;
   implementationDescription: string;
   docsDescription: string;
-  wordpressNavigationLabel: string;
-  wordpressTitle: string;
-  wordpressDescription: string;
   docsEntries: Record<string, { title: string; summary: string }>;
 };
 
@@ -142,6 +137,59 @@ const HCAPTCHA_SITEKEY_INIT_SCRIPT = `
 })();
 `;
 
+const PWA_INIT_SCRIPT = `
+(() => {
+  if (typeof window === "undefined" || !("serviceWorker" in navigator)) {
+    return;
+  }
+
+  const isProduction = ${JSON.stringify(import.meta.env.PROD)};
+  const clearNavaiPwaCaches = async () => {
+    if (typeof caches === "undefined") {
+      return;
+    }
+
+    const cacheKeys = await caches.keys();
+    await Promise.all(
+      cacheKeys
+        .filter((key) => key.startsWith("navai-pwa-"))
+        .map((key) => caches.delete(key))
+    );
+  };
+
+  if (!isProduction) {
+    const cleanupDevServiceWorkers = async () => {
+      try {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(registrations.map((registration) => registration.unregister()));
+        await clearNavaiPwaCaches();
+      } catch {}
+    };
+
+    if (document.readyState === "complete") {
+      void cleanupDevServiceWorkers();
+      return;
+    }
+
+    window.addEventListener("load", () => {
+      void cleanupDevServiceWorkers();
+    }, { once: true });
+    return;
+  }
+
+  const registerServiceWorker = () => {
+    navigator.serviceWorker.register("/sw.js").catch(() => undefined);
+  };
+
+  if (document.readyState === "complete") {
+    registerServiceWorker();
+    return;
+  }
+
+  window.addEventListener("load", registerServiceWorker, { once: true });
+})();
+`;
+
 const GOOGLE_ANALYTICS_LAZY_INIT_SCRIPT = `
 (() => {
   const tagId = ${JSON.stringify(GOOGLE_TAG_ID)};
@@ -175,8 +223,7 @@ const seoCopyByLanguage = {} as Record<LanguageCode, SeoLanguageCopy>;
 
 for (const language of SUPPORTED_LANGUAGES) {
   const messages = await loadMessagesForLanguage(language);
-  const localizedDocs = getLocalizedNavaiDocs(language);
-  const wordpressPage = getLocalizedWordpressPage(language);
+  const localizedDocs = messages.docsCatalog;
   const docsEntries: Record<string, { title: string; summary: string }> = {};
 
   for (const [slug, entry] of Object.entries(localizedDocs.entries)) {
@@ -196,9 +243,6 @@ for (const language of SUPPORTED_LANGUAGES) {
     implementationTitle: messages.implementationPage.title,
     implementationDescription: messages.implementationPage.description,
     docsDescription: messages.docsPage.description,
-    wordpressNavigationLabel: wordpressPage.navigationLabel,
-    wordpressTitle: wordpressPage.title,
-    wordpressDescription: wordpressPage.description,
     docsEntries,
   };
 }
@@ -241,18 +285,12 @@ const SEO_LANGUAGE_INIT_SCRIPT = `
         seo.docsLabel +
         " | " +
         seo.implementationLabel +
-        " | " +
-        seo.wordpressNavigationLabel +
         ".";
       canonicalUrl = new URL("/", siteUrl).toString();
     } else if (pathname === "/request-implementation") {
       title = "NAVAI | " + seo.implementationTitle;
       description = seo.implementationDescription;
       canonicalUrl = new URL("/request-implementation", siteUrl).toString();
-    } else if (pathname === "/wordpress") {
-      title = "NAVAI | " + seo.wordpressTitle;
-      description = seo.wordpressDescription;
-      canonicalUrl = new URL("/wordpress", siteUrl).toString();
     } else if (pathname === "/documentation" || pathname.startsWith("/documentation/")) {
       const rawSlug =
         pathname === "/documentation" ? "home" : pathname.slice("/documentation/".length).trim() || "home";
@@ -298,7 +336,6 @@ const SEO_LANGUAGE_INIT_SCRIPT = `
     const navItems = [
       { name: seo.docsLabel, url: new URL("/documentation/home", siteUrl).toString() },
       { name: seo.implementationLabel, url: new URL("/request-implementation", siteUrl).toString() },
-      { name: seo.wordpressNavigationLabel, url: new URL("/wordpress", siteUrl).toString() },
     ];
 
     const structuredDataEntries = [
@@ -363,8 +400,7 @@ const SEO_LANGUAGE_INIT_SCRIPT = `
 
 const PRIMARY_NAV_ITEMS = [
   { name: "Documentación", url: new URL("/documentation/home", SITE_URL).toString() },
-  { name: "Pedir implementación", url: new URL("/request-implementation", SITE_URL).toString() },
-  { name: "Wordpress", url: new URL("/wordpress", SITE_URL).toString() },
+  { name: "Realizar implementación", url: new URL("/request-implementation", SITE_URL).toString() },
 ];
 
 const defaultStructuredData: Array<Record<string, unknown>> = [
@@ -431,14 +467,20 @@ const structuredDataJson = JSON.stringify(structuredDataEntries);
 <html lang="es">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <script is:inline set:html={THEME_INIT_SCRIPT}></script>
     <title>{title}</title>
     <meta name="description" content={description} />
     <meta name="robots" content="index,follow" />
+    <meta name="theme-color" content="#0f0f10" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="NAVAI" />
     <link rel="canonical" href={canonicalUrl} />
     <link rel="icon" href="/navai_logo.webp" type="image/webp" />
-    <link rel="apple-touch-icon" href="/navai_logo.webp" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="NAVAI" />
@@ -469,6 +511,7 @@ const structuredDataJson = JSON.stringify(structuredDataEntries);
     <script is:inline set:html={LANGUAGE_INIT_SCRIPT}></script>
     <script is:inline set:html={SEO_LANGUAGE_INIT_SCRIPT}></script>
     <script is:inline set:html={HCAPTCHA_SITEKEY_INIT_SCRIPT}></script>
+    <script is:inline set:html={PWA_INIT_SCRIPT}></script>
     <ClientRouter />
 
     {

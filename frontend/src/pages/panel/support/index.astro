@@ -1,0 +1,14 @@
+---
+import "@/styles/docs.css";
+
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import PanelSupportPage from "../../../react/PanelSupportPage";
+---
+
+<BaseLayout
+  path="/panel/support"
+  title="NAVAI | Soporte"
+  description="Soporte y tickets del panel de NAVAI."
+>
+  <PanelSupportPage client:load />
+</BaseLayout>

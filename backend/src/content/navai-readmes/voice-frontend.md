@@ -309,5 +309,4 @@ const voice = useWebVoiceAgent({
 - English version: `README.en.md`
 - Backend package: `../voice-backend/README.md`
 - Mobile package: `../voice-mobile/README.md`
-- Playground Web: `../../apps/playground-web/README.md`
-- Playground API: `../../apps/playground-api/README.md`
+

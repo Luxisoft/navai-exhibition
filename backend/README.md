@@ -56,7 +56,8 @@ Copy-Item backend/.env.example backend/.env
 | `NAVAI_SECURITY_MAX_FUNCTION_LISTS_PER_WINDOW` | No | `120` | Maximo de consultas a `/navai/functions` por identidad y ventana. |
 | `NAVAI_SECURITY_MAX_FUNCTION_EXECUTIONS_PER_WINDOW` | No | `150` | Maximo de ejecuciones `/navai/functions/execute` por identidad y ventana. |
 | `NAVAI_SECURITY_MIN_CLIENT_SECRET_INTERVAL_SECONDS` | No | `8` | Tiempo minimo entre emisiones consecutivas de `client_secret` por identidad. |
-| `NAVAI_FUNCTIONS_FOLDERS` | Si | `backend/src/ai/functions-modules` | Carpetas backend para auto-cargar tools. |
+| `NAVAI_FUNCTIONS_FOLDERS` | Si | `backend/src/ai` | Raiz de agentes NAVAI del backend. |
+| `NAVAI_AGENTS_FOLDERS` | No | `main,evaluations,surveys` | Agentes detectados desde el primer nivel de `backend/src/ai/`. |
 | `NAVAI_FUNCTIONS_BASE_DIR` | No | vacio | Base dir opcional para resolver loaders. |
 | `PUBLIC_HCAPTCHA_SITE_KEY` | No | vacio | Site key publica (fallback para frontend/API). |
 | `HCAPTCHA_SITE_KEY` | No | vacio | Site key publica alternativa. |
@@ -110,8 +111,33 @@ El backend ahora aplica una capa de seguridad en memoria sobre `/navai/*` para r
 
 Limitacion importante: en esta arquitectura el browser se conecta directo a OpenAI Realtime despues de recibir `client_secret`. Eso significa que este backend puede frenar reconexiones, bursts y abuso de emision de sesiones, pero no medir ni cortar con precision los tokens consumidos dentro de una sesion ya abierta. Para imponer presupuesto exacto por token o duracion real necesitas un relay/proxy server-side entre cliente y OpenAI.
 
-## Estructura de funciones
+## Estructura multiagente
 
-- Funciones backend: `backend/src/ai/functions-modules/**`
-- Las funciones frontend deben quedarse en `frontend/src/ai/functions-modules/**`
-- No mezclar imports cruzados frontend/backend para funciones de runtime
+La estructura backend usa primer nivel por agente:
+
+```text
+backend/src/ai/
+  main/
+    agent.config.ts
+    ...
+  evaluations/
+    agent.config.ts
+    ...
+  surveys/
+    agent.config.ts
+    ...
+```
+
+Solo el primer nivel debajo de `backend/src/ai/` define el agente. Las subcarpetas internas son solo organizacion.
+
+- `main`: runtime general y funciones compartidas.
+- `evaluations`: funciones backend especializadas de evaluaciones.
+- `surveys`: funciones backend especializadas de encuestas.
+
+## Como agregar un nuevo agente
+
+1. Crear `backend/src/ai/<nuevo-agente>/`.
+2. Añadir `agent.config.ts`.
+3. Colocar las funciones del agente dentro de esa carpeta.
+4. Agregar el nombre a `NAVAI_AGENTS_FOLDERS`.
+5. Ejecutar `npm run check:backend-functions`.

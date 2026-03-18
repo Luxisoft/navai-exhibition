@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import Image from "@/platform/image";
 import Link from "@/platform/link";
@@ -13,6 +13,9 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { NAVAI_PANEL_HREF, REQUEST_IMPLEMENTATION_HREF } from "@/lib/auth-redirect";
+import { useFirebaseAuth } from "@/lib/firebase-auth";
+import { useI18n } from "@/lib/i18n/provider";
 import { cn } from "@/lib/utils";
 
 type StatusNavLink = {
@@ -33,19 +36,24 @@ type StatusPageCardProps = {
   actionButton?: StatusActionButton;
 };
 
-const DEFAULT_NAV_LINKS: StatusNavLink[] = [
-  { href: "/", label: "Inicio" },
-  { href: "/documentation/home", label: "Documentacion" },
-  { href: "/request-implementation", label: "Pedir implementacion" },
-];
-
 export default function StatusPageCard({
   code,
   title,
   description,
-  navLinks = DEFAULT_NAV_LINKS,
+  navLinks,
   actionButton,
 }: StatusPageCardProps) {
+  const { messages } = useI18n();
+  const { user } = useFirebaseAuth();
+  const resolvedNavLinks = navLinks ?? [
+    { href: "/", label: messages.common.home },
+    { href: "/documentation/home", label: messages.common.documentation },
+    {
+      href: user ? NAVAI_PANEL_HREF : REQUEST_IMPLEMENTATION_HREF,
+      label: user ? messages.common.navaiPanel : messages.common.requestImplementation,
+    },
+  ];
+
   return (
     <section className="grid min-h-[calc(100svh-2rem)] place-items-center bg-[radial-gradient(80rem_35rem_at_50%_-10%,rgba(37,99,235,0.16),transparent_58%),radial-gradient(50rem_30rem_at_90%_110%,rgba(14,165,233,0.1),transparent_55%),#020617] p-5">
       <Card className="grid w-full max-w-[760px] gap-5 border-white/14 bg-slate-950/76 p-0 text-center text-slate-50 shadow-[0_20px_60px_rgba(2,6,23,0.45)] backdrop-blur-xl">
@@ -91,8 +99,11 @@ export default function StatusPageCard({
 
         <CardFooter className="flex-col gap-4 px-5 pb-6 pt-0 sm:px-8">
           <Separator className="bg-white/10" />
-          <nav className="grid w-full gap-2 sm:grid-cols-2" aria-label="Navegacion de recuperacion">
-            {navLinks.map((link) => {
+          <nav
+            className="grid w-full gap-2 sm:grid-cols-2"
+            aria-label={messages.common.statusRecoveryNavigation}
+          >
+            {resolvedNavLinks.map((link) => {
               const isPrimary = link.href === "/";
 
               return (
@@ -105,7 +116,7 @@ export default function StatusPageCard({
                     "w-full",
                     isPrimary
                       ? "border-sky-200/30 bg-linear-to-b from-sky-500/22 to-blue-500/22 text-slate-50 hover:border-sky-200/45 hover:from-sky-500/30 hover:to-blue-500/30 dark:text-slate-50"
-                      : "border-white/12 bg-white/5 text-slate-100 hover:border-white/22 hover:bg-white/10 dark:border-white/12 dark:bg-white/5 dark:text-slate-100"
+                      : "border-white/12 bg-white/5 text-slate-100 hover:border-white/22 hover:bg-white/10 dark:border-white/12 dark:bg-white/5 dark:text-slate-100",
                   )}
                 >
                   <Link href={link.href}>{link.label}</Link>
@@ -118,4 +129,3 @@ export default function StatusPageCard({
     </section>
   );
 }
-

@@ -2,15 +2,20 @@
 
 import { useCallback, type ChangeEvent } from "react";
 
-import { useI18n } from "@/i18n/provider";
-import type { LanguageCode } from "@/i18n/messages";
+import { useI18n } from "@/lib/i18n/provider";
+import type { LanguageCode } from "@/lib/i18n/messages";
 
 type LanguageSwitcherProps = {
   compact?: boolean;
   selectId?: string;
+  disabled?: boolean;
 };
 
-export default function LanguageSwitcher({ compact = false, selectId }: LanguageSwitcherProps) {
+export default function LanguageSwitcher({
+  compact = false,
+  selectId,
+  disabled = false,
+}: LanguageSwitcherProps) {
   const { language, setLanguage, options, messages } = useI18n();
   const resolvedSelectId = selectId ?? "lang-select";
   const wrapperClassName = compact ? "lang-switcher is-compact" : "lang-switcher";
@@ -35,6 +40,7 @@ export default function LanguageSwitcher({ compact = false, selectId }: Language
         onChange={handleChange}
         className="lang-switcher-select"
         aria-label={messages.common.languageLabel}
+        disabled={disabled}
       >
         {options.map((option) => (
           <option key={option.code} value={option.code}>

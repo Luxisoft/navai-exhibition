@@ -305,6 +305,4 @@ Common errors:
 - Spanish version: `README.es.md`
 - Frontend package: `../voice-frontend/README.md`
 - Mobile package: `../voice-mobile/README.md`
-- Playground API: `../../apps/playground-api/README.md`
-- Playground Web: `../../apps/playground-web/README.md`
-- Playground Mobile: `../../apps/playground-mobile/README.md`
+

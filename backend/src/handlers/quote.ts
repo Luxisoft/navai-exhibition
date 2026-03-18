@@ -2,6 +2,12 @@ import nodemailer from "nodemailer";
 import type { Request, Response } from "express";
 import { z } from "zod";
 
+import {
+  getHCaptchaSecretKeyFromEnv,
+  getHCaptchaSiteKeyFromEnv,
+  resolveRequestClientIp,
+  verifyHCaptchaToken,
+} from "../lib/hcaptcha";
 import { LUXISOFT_QUOTE_EMAIL } from "../lib/luxisoft-contact";
 
 const quoteSchema = z.object({
@@ -23,60 +29,20 @@ function getBooleanEnv(value: string | undefined, fallback = false) {
   return normalized === "true" || normalized === "1" || normalized === "yes";
 }
 
-async function verifyHCaptchaToken(
-  token: string,
-  remoteIp: string | null,
-  siteKey: string,
-  siteSecret: string
-) {
-  const formBody = new URLSearchParams();
-  formBody.set("secret", siteSecret);
-  formBody.set("response", token);
-  if (remoteIp) {
-    formBody.set("remoteip", remoteIp);
-  }
-  if (siteKey) {
-    formBody.set("sitekey", siteKey);
-  }
-
-  const response = await fetch("https://hcaptcha.com/siteverify", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: formBody,
-    cache: "no-store",
-  });
-
-  if (!response.ok) {
-    return { success: false, errorCodes: ["captcha_service_unavailable"] as string[] };
-  }
-
-  const data = (await response.json()) as { success?: boolean; "error-codes"?: string[] };
-  return {
-    success: Boolean(data.success),
-    errorCodes: data["error-codes"] ?? [],
-  };
-}
-
 export async function postQuote(request: Request, response: Response) {
   const parsed = quoteSchema.safeParse(request.body);
   if (!parsed.success) {
     return response.status(400).json({ ok: false, error: "invalid_payload" });
   }
 
-  const siteKey = process.env.HCAPTCHA_SITE_KEY ?? process.env.PUBLIC_HCAPTCHA_SITE_KEY ?? "";
-  const siteSecret = process.env.HCAPTCHA_SITE_SECRET_KEY ?? "";
+  const siteKey = getHCaptchaSiteKeyFromEnv();
+  const siteSecret = getHCaptchaSecretKeyFromEnv();
 
   if (!siteSecret) {
     return response.status(500).json({ ok: false, error: "captcha_not_configured" });
   }
 
-  const forwardedFor = request.headers["x-forwarded-for"];
-  const remoteIp =
-    typeof forwardedFor === "string"
-      ? forwardedFor.split(",")[0]?.trim() ?? null
-      : Array.isArray(forwardedFor)
-        ? forwardedFor[0]?.split(",")[0]?.trim() ?? null
-        : request.ip ?? null;
+  const remoteIp = resolveRequestClientIp(request);
 
   const captchaCheck = await verifyHCaptchaToken(
     parsed.data.hcaptchaToken,

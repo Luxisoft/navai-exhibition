@@ -1,0 +1,14 @@
+---
+import "@/styles/docs.css";
+
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import PanelWithdrawalsPage from "../../../react/PanelWithdrawalsPage";
+---
+
+<BaseLayout
+  path="/panel/withdrawals"
+  title="NAVAI | Solicitudes de retiro"
+  description="Gestion administrativa de solicitudes de retiro por canje de puntos."
+>
+  <PanelWithdrawalsPage client:load />
+</BaseLayout>

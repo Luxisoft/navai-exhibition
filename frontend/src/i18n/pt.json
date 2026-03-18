@@ -1,0 +1,1649 @@
+{
+  "common": {
+    "languageLabel": "Idioma",
+    "themeLabel": "Tema",
+    "themeDark": "Escuro",
+    "themeLight": "Claro",
+    "byLuxisoft": "Por LUXISOFT",
+    "homeLinkAria": "Ir para a página inicial da NAVAI",
+    "bannerAlt": "NAVAI",
+    "githubRepository": "Repositório GitHub",
+    "docsNavigation": "Navegação",
+    "docsOnThisPage": "Nesta página",
+    "docsOpenReadmeGithub": "Abrir README no GitHub",
+    "docsSidebarTitle": "Documentação",
+    "docsGroupHome": "Início",
+    "docsGroupInstallation": "Instalação",
+    "docsGroupLibraries": "Bibliotecas",
+    "plansLabel": "Planos",
+    "searchDocsAria": "Pesquisar na documentação",
+    "searchDocsPlaceholder": "Pesquisar docs...",
+    "searchDocsEmpty": "Digite para pesquisar em documentação e implementação.",
+    "searchDocsSearching": "Pesquisando...",
+    "searchDocsNoResults": "Nenhum resultado encontrado.",
+    "searchDocsDocumentation": "Documentação",
+    "searchDocsImplementation": "Implementação",
+    "documentation": "Documentação",
+    "requestImplementation": "Realizar implementa??o",
+    "sourceRepository": "Repositório de origem",
+    "home": "Início",
+    "docsInstallApi": "Instalação API",
+    "docsInstallWeb": "Instalação Web",
+    "docsInstallMobile": "Instalação Mobile",
+    "copyAction": "Copiar",
+    "copiedAction": "Copiado",
+    "docsGroupExamples": "Exemplos",
+    "statusRecoveryNavigation": "Navegação de recuperação",
+    "notFoundTitle": "Página não encontrada",
+    "notFoundDescription": "A rota que você tentou abrir não existe ou foi movida.",
+    "authSignInWithGoogle": "Entrar com Google",
+    "authSigningIn": "Entrando...",
+    "authSignOut": "Sair",
+    "authUnavailable": "Configure o Firebase para habilitar a entrada com Google.",
+    "installApp": "Instalar app",
+    "installAppInstructionsTitle": "Instalar NAVAI",
+    "installAppInstructionsDescription": "Salve o NAVAI no seu dispositivo para abri-lo como um app pela area de trabalho ou tela inicial.",
+    "installAppInstructionsStepShare": "No iPhone ou iPad, toque em Compartilhar no Safari.",
+    "installAppInstructionsStepAdd": "Depois escolha Adicionar a Tela de Inicio.",
+    "navaiPanel": "Panel"
+  },
+  "home": {
+    "documentationButton": "Documentação",
+    "implementationButton": "Realizar implementa??o",
+    "tagline": "IA de voz em tempo real para navegação de UI e execução de funções"
+  },
+  "mic": {
+    "ariaStart": "Iniciar sessão de voz NAVAI",
+    "ariaStop": "Parar sessão de voz NAVAI",
+    "connecting": "Conectando sessão de voz...",
+    "active": "Sessão de voz ativa",
+    "activeDetail": "Sessão de voz ativa. Fale agora ou toque para parar.",
+    "stopped": "Sessão de voz encerrada.",
+    "missingKey": "Defina OPENAI_API_KEY no backend ou informe uma chave de API da OpenAI.",
+    "frontendKeyDisabled": "O backend não permite chaves de API pelo frontend. Ative NAVAI_ALLOW_FRONTEND_API_KEY=true.",
+    "clientSecretRejected": "A OpenAI rejeitou o client_secret. Verifique a chave da API e o modelo realtime.",
+    "genericError": "Não foi possível iniciar a sessão de voz.",
+    "backendChecking": "Verificando conexão com o backend...",
+    "backendOffline": "Sem conexão com a internet. Verifique sua rede.",
+    "backendUnreachable": "Não foi possível conectar ao backend do NAVAI.",
+    "backendOfflineStartBlocked": "Sem conexão com a internet. Reconecte a rede para iniciar o NAVAI.",
+    "backendUnavailableStartBlocked": "Não há uma conexão válida com o backend. Verifique API URL, CORS e backend.",
+    "teleprompterLines": [
+      "Diga: 'Leve-me para Documentação' para abrir guias de instalação e bibliotecas.",
+      "Diga: 'Ir para Realizar implementa??o' para ver o servi?o e as etapas de ativa??o.",
+      "Pergunte: 'O que esta página faz?' para receber contexto da tela atual.",
+      "Use rolagem por voz: 'Desça até o final' ou 'Volte ao topo'.",
+      "Peça ações específicas: 'Busque voice-frontend na documentação'."
+    ]
+  },
+  "docsPage": {
+    "badge": "📘 Documentação do Produto",
+    "title": "📚 Documentos de tempo de execução do NAVAI Voice",
+    "description": "🧠 Resumo técnico do repositório oficial Luxisoft/NAVAI.",
+    "sidebarTitle": "Nesta página",
+    "sections": [
+      {
+        "id": "overview",
+        "title": "O que a NAVAI oferece",
+        "description": "NAVAI é um tempo de execução de voz que permite que um agente de IA navegue na interface do aplicativo e execute funções de front-end/backend permitidas em tempo real.",
+        "bullets": [
+          "Pacotes principais: @navai/voice-backend, @navai/voice-frontend, @navai/voice-mobile.",
+          "O back-end fornece client_secret efêmero seguro para OpenAI Realtime.",
+          "O tempo de execução do frontend resolve rotas e executa chamadas de ferramentas seguras."
+        ]
+      },
+      {
+        "id": "http-contract",
+        "title": "Contrato HTTP de back-end",
+        "description": "Rotas oficiais de integração de back-end:",
+        "bullets": [
+          "POST /navai/realtime/client-secret",
+          "GET /navai/functions",
+          "POST /navai/functions/execute",
+          "Se o backend tiver OPENAI_API_KEY, a chave do servidor sempre terá prioridade sobre a solicitação apiKey."
+        ]
+      },
+      {
+        "id": "runtime-flow",
+        "title": "Fluxo em tempo real",
+        "description": "Sequência de tempo de execução documentada usada por integrações de playground:",
+        "bullets": [
+          "1) O cliente solicita segredo efêmero do back-end.",
+          "2) O cliente busca o registro da função de back-end.",
+          "3) O agente é construído com ferramentas navigation_to + execute_app_function.",
+          "4) RealtimeSession conecta e executa chamadas de navegação/função."
+        ]
+      },
+      {
+        "id": "env",
+        "title": "Principais variáveis ​​de ambiente",
+        "description": "Variáveis ​​mais relevantes dos documentos oficiais:",
+        "bullets": [
+          "OPENAI_API_KEY, OPENAI_REALTIME_MODEL, OPENAI_REALTIME_VOICE",
+          "OPENAI_REALTIME_INSTRUCTIONS, OPENAI_REALTIME_LANGUAGE",
+          "NAVAI_FUNCTIONS_FOLDERS, NAVAI_API_URL, NAVAI_ALLOW_FRONTEND_API_KEY"
+        ]
+      },
+      {
+        "id": "quickstart",
+        "title": "Comandos de início rápido",
+        "description": "Comandos de configuração de referência extraídos dos guias do repositório.",
+        "code": "npm install @navai/voice-backend @navai/voice-frontend @openai/agents zod\nnpx navai-setup-voice-frontend\nnavai-generate-web-loaders"
+      },
+      {
+        "id": "sources",
+        "title": "Links de fontes oficiais",
+        "description": "Fontes primárias usadas para esta página:",
+        "bullets": [
+          "https://github.com/Luxisoft/navai",
+          "packages/voice-backend/README.md",
+          "packages/voice-frontend/README.md",
+          "packages/voice-mobile/README.md"
+        ]
+      }
+    ]
+  },
+  "implementationPage": {
+    "badge": "💼 Serviços Profissionais",
+    "title": "Realizar implementa??o do NAVAI",
+    "description": "Implementamos navega??o por voz e execu??o de fun??es no seu site/app com configura??o pronta para produ??o.",
+    "sidebarTitle": "Rota de implementa??o",
+    "sections": [
+      {
+        "id": "what-you-get",
+        "title": "O que est? inclu?do?",
+        "description": "Escopo de entrega para cada implementa??o:",
+        "bullets": [
+          "Integra??o do contrato backend do NAVAI e do runtime do frontend.",
+          "Mapeamento de rotas e sin?nimos para a estrutura do seu aplicativo.",
+          "Valida??o, checklist de controle de qualidade e suporte de entrada em produ??o."
+        ]
+      },
+      {
+        "id": "process",
+        "title": "Processo de entrega",
+        "description": "Processo t?pico de implementa??o:",
+        "bullets": [
+          "Chamada de descoberta + invent?rio de rotas/fun??es.",
+          "Implementa??o t?cnica em ambiente de homologa??o.",
+          "Testes de aceita??o e lan?amento em produ??o."
+        ]
+      },
+      {
+        "id": "pricing-note",
+        "title": "Modelo de pre?os",
+        "description": "O pre?o ? baseado na quantidade de menus/rotas, na complexidade da l?gica de navega??o e na profundidade de execu??o exigida pela ferramenta."
+      }
+    ],
+    "plansTitle": "📦 Planos de implementação",
+    "plans": [
+      {
+        "name": "Starter",
+        "menuRange": "1-5 menus / seções",
+        "price": "USD 1,200",
+        "timeline": "5-7 dias úteis",
+        "highlights": [
+          "Navegação por voz para rotas principais",
+          "Configuração do contrato backend (3 endpoints NAVAI)",
+          "Ajuste básico de intenções + handoff de QA"
+        ]
+      },
+      {
+        "name": "Growth",
+        "menuRange": "6-15 menus / seções",
+        "price": "USD 2,900",
+        "timeline": "2-3 semanas",
+        "highlights": [
+          "Mapa de rotas expandido e maior cobertura de sinônimos",
+          "Ponte de execução de tools frontend + backend",
+          "Eventos de observabilidade + checklist de produção"
+        ]
+      },
+      {
+        "name": "Scale",
+        "menuRange": "16-35 menus / seções",
+        "price": "USD 5,800",
+        "timeline": "4-6 semanas",
+        "highlights": [
+          "Árvores de navegação complexas e estratégia de fallback",
+          "Padrões de roteamento por perfil",
+          "Reforço de carga e confiabilidade"
+        ]
+      },
+      {
+        "name": "Enterprise",
+        "menuRange": "Mais de 36 menus / vários aplicativos",
+        "price": "A partir de USD 9,500",
+        "timeline": "Roadmap personalizado",
+        "highlights": [
+          "Arquitetura multi-superfície (web/mobile/backend)",
+          "Plano dedicado de rollout + enablement",
+          "Opções de SLA e suporte de longo prazo"
+        ]
+      }
+    ],
+    "whatsappButtonLabel": "Contato por WhatsApp",
+    "whatsappPrefill": "Ol? Luxisoft, quero realizar a implementa??o r?pida do NAVAI no meu site ou aplicativo.",
+    "contactSectionTitle": "Contato por WhatsApp",
+    "contactSectionDescription": "Escreva no WhatsApp para coordenar a implementa??o r?pida do NAVAI com a equipe da Luxisoft.",
+    "contactNameLabel": "Nome completo",
+    "contactEmailLabel": "Email de trabalho",
+    "contactCompanyLabel": "Empresa (opcional)",
+    "contactWhatsappLabel": "Número de WhatsApp (opcional)",
+    "contactMessageLabel": "Detalhes do projeto",
+    "contactNameRequiredMessage": "O nome é obrigatório.",
+    "contactEmailRequiredMessage": "O email é obrigatório.",
+    "contactEmailInvalidMessage": "Email inválido.",
+    "contactMessageRequiredMessage": "Os detalhes do projeto são obrigatórios.",
+    "contactCaptchaRequiredMessage": "Complete o hCaptcha antes de enviar.",
+    "contactCaptchaNotReadyMessage": "O hCaptcha ainda não está pronto. Tente novamente em alguns segundos.",
+    "contactCaptchaConfigMessage": "A chave do hCaptcha não está configurada.",
+    "contactCaptchaGenericErrorMessage": "A verificação do hCaptcha falhou.",
+    "contactSendingLabel": "Enviando...",
+    "contactSuccessMessage": "Sua solicitação foi enviada com sucesso.",
+    "contactErrorMessage": "Não foi possível enviar sua solicitação. Tente novamente.",
+    "contactSubmitLabel": "📤 Enviar solicitação de orçamento",
+    "contactDisclaimer": "🔒 Sua solicitação é enviada com segurança para quote@luxisoft.com.",
+    "ctaLabel": "🧾 Solicitar proposta",
+    "ctaHref": "mailto:quote@luxisoft.com?subject=NAVAI%20Implementation%20Request",
+    "useInMyAppButtonLabel": "Usar no meu app web/m?vel"
+  },
+  "docsCatalog": {
+    "groupLabels": {
+      "home": "Início",
+      "installation": "Instalação",
+      "libraries": "Bibliotecas",
+      "examples": "Exemplos",
+      "legal": "Legal"
+    },
+    "entries": {
+      "home": {
+        "title": "Início",
+        "summary": "Visão geral do projeto, cobertura de frameworks, plataformas suportadas e arquitetura base."
+      },
+      "installation-api": {
+        "title": "API",
+        "summary": "Guia backend rapida do zero com @navai/voice-backend, endpoints funcionais e validacoes da primeira integracao."
+      },
+      "installation-web": {
+        "title": "Web",
+        "summary": "Configuração frontend com @navai/voice-frontend, variáveis NAVAI e estrutura base de navegação."
+      },
+      "installation-mobile": {
+        "title": "Mobile",
+        "summary": "Configuração mobile com @navai/voice-mobile, variáveis NAVAI e geração de module loaders."
+      },
+      "voice-backend": {
+        "title": "@navai/voice-backend",
+        "summary": "Contrato backend oficial: rotas realtime, carga dinâmica de funções e regras de ambiente."
+      },
+      "voice-frontend": {
+        "title": "@navai/voice-frontend",
+        "summary": "Runtime web oficial para agentes de voz com navegação, tools locais e ponte backend."
+      },
+      "voice-mobile": {
+        "title": "@navai/voice-mobile",
+        "summary": "Runtime mobile oficial para React Native com transporte WebRTC e orquestração de sessão."
+      },
+      "playground-stores": {
+        "title": "Lojas",
+        "summary": "Demo ecommerce interativa com dados seed em SQLite somente leitura, CRUD em localStorage, compras simuladas e relatorios NAVAI."
+      },
+      "legal-ai-evaluation-terms": {
+        "title": "Termos da avaliacao com IA",
+        "summary": "Condicoes contratuais para a avaliacao online assistida por IA, incluindo acesso, pagamento, regras e protecao ao consumidor."
+      },
+      "legal-data-processing-policy": {
+        "title": "Politica de tratamento de dados",
+        "summary": "Regras sobre coleta, uso, protecao, conservacao e atendimento de solicitacoes sobre dados pessoais dentro do servico."
+      },
+      "legal-data-and-ai-authorization": {
+        "title": "Autorizacao de dados e IA",
+        "summary": "Texto de autorizacao para tratamento de dados, uso de IA, audio e exercicio dos direitos do titular."
+      },
+      "legal-privacy-policy": {
+        "title": "Politica de privacidade",
+        "summary": "Politica do site e da plataforma sobre escopo, uso de IA, compartilhamento, cookies, seguranca e direitos do usuario."
+      },
+      "legal-checkout-flow": {
+        "title": "Fluxo legal do checkout",
+        "summary": "Guia operacional para resumo da compra, checkboxes obrigatorios, inicio imediato do servico, avisos legais e suporte."
+      },
+      "legal-compliance-checklist": {
+        "title": "Checklist juridico",
+        "summary": "Checklist de implementacao para publicacao web, checkout, protecao de dados, tributacao, IA e premios futuros."
+      },
+      "legal-privacy-notice": {
+        "title": "Aviso de privacidade",
+        "summary": "Aviso curto para mostrar na coleta de dados quando a politica completa nao puder ser exibida imediatamente."
+      }
+    }
+  },
+  "installationApiGuide": {
+    "sections": [
+      {
+        "id": "paso-1-crear-proyecto",
+        "title": "Etapa 1 Criar o projeto",
+        "description": "Crie um serviço Express mínimo, ative ESM e prepare a pasta que o NAVAI vai escanear para carregar funções backend.",
+        "bullets": [
+          "Use Node.js 20 ou mais recente.",
+          "Essa estrutura já funciona para demos locais, VPS e contêineres."
+        ],
+        "codeBlocks": [
+          {
+            "label": "Terminal",
+            "language": "bash",
+            "code": "mkdir navai-api-demo\ncd navai-api-demo\nnpm init -y\nnpm pkg set type=module\nnpm pkg set scripts.dev=\"node --watch src/server.js\"\nnpm pkg set scripts.start=\"node src/server.js\"\nmkdir src\nmkdir src/ai\nmkdir src/ai/functions-modules"
+          }
+        ]
+      },
+      {
+        "id": "paso-2-instalar-dependencias",
+        "title": "Etapa 2 Instalar dependências",
+        "description": "Instale os quatro pacotes necessários para expor o contrato HTTP do NAVAI logo na primeira tentativa.",
+        "codeBlocks": [
+          {
+            "label": "Terminal",
+            "language": "bash",
+            "code": "npm install express cors dotenv @navai/voice-backend"
+          }
+        ]
+      },
+      {
+        "id": "paso-3-configurar-variables",
+        "title": "Etapa 3 Configurar variáveis de ambiente",
+        "description": "Crie um arquivo `.env` com os valores mínimos para OpenAI Realtime e a pasta em que o NAVAI vai carregar as funções backend.",
+        "codeBlocks": [
+          {
+            "label": ".env",
+            "language": "ini",
+            "code": "PORT=3000\nCORS_ORIGIN=http://localhost:4321\nOPENAI_API_KEY=sk-...\nOPENAI_REALTIME_MODEL=gpt-realtime\nOPENAI_REALTIME_VOICE=marin\nOPENAI_REALTIME_INSTRUCTIONS=You are a helpful assistant for UI navigation and function execution.\nOPENAI_REALTIME_LANGUAGE=English\nOPENAI_REALTIME_CLIENT_SECRET_TTL=600\nNAVAI_FUNCTIONS_FOLDERS=src/ai/functions-modules\nNAVAI_ALLOW_FRONTEND_API_KEY=false"
+          }
+        ]
+      },
+      {
+        "id": "paso-4-crear-funciones-backend",
+        "title": "Etapa 4 Criar uma função backend",
+        "description": "Adicione primeiro um export chamável para que `GET /navai/functions` e `POST /navai/functions/execute` comprovem que o backend está realmente pronto.",
+        "bullets": [
+          "O NAVAI converte `getCompanySummary` para `get_company_summary` automaticamente.",
+          "A função pode retornar JSON simples e não precisa de wrappers extras."
+        ],
+        "codeBlocks": [
+          {
+            "label": "src/ai/functions-modules/getCompanySummary.js",
+            "language": "javascript",
+            "code": "export async function getCompanySummary(payload = {}) {\n  const company = String(payload.company || \"NAVAI Demo\").trim();\n\n  return {\n    ok: true,\n    company,\n    summary: `${company} already responds from a NAVAI backend tool.`,\n    nextStep: \"Connect your frontend or mobile app to the backend.\",\n  };\n}"
+          }
+        ]
+      },
+      {
+        "id": "paso-5-crear-servidor-navai",
+        "title": "Etapa 5 Criar o servidor NAVAI",
+        "description": "Monte primeiro a rota de saúde e depois registre as rotas NAVAI na mesma app Express usando as variáveis configuradas acima.",
+        "bullets": [
+          "Isso expõe todo o contrato NAVAI na mesma API.",
+          "Você pode manter suas próprias rotas de negócio na mesma app Express."
+        ],
+        "codeBlocks": [
+          {
+            "label": "src/server.js",
+            "language": "javascript",
+            "code": "import cors from \"cors\";\nimport dotenv from \"dotenv\";\nimport express from \"express\";\nimport { registerNavaiExpressRoutes } from \"@navai/voice-backend\";\n\ndotenv.config();\n\nconst app = express();\nconst port = Number(process.env.PORT || 3000);\nconst allowedOrigins = (process.env.CORS_ORIGIN || \"http://localhost:4321\")\n  .split(\",\")\n  .map((value) => value.trim())\n  .filter(Boolean);\n\napp.use(express.json());\napp.use(\n  cors({\n    origin: allowedOrigins,\n    credentials: true,\n  })\n);\n\napp.get(\"/health\", (_req, res) => {\n  res.json({\n    ok: true,\n    service: \"navai-api-demo\",\n    endpoints: [\n      \"/navai/realtime/client-secret\",\n      \"/navai/functions\",\n      \"/navai/functions/execute\",\n    ],\n  });\n});\n\nregisterNavaiExpressRoutes(app, {\n  backendOptions: {\n    openaiApiKey: process.env.OPENAI_API_KEY,\n    defaultModel: process.env.OPENAI_REALTIME_MODEL || \"gpt-realtime\",\n    defaultVoice: process.env.OPENAI_REALTIME_VOICE || \"marin\",\n    defaultInstructions:\n      process.env.OPENAI_REALTIME_INSTRUCTIONS ||\n      \"You are a helpful assistant for UI navigation and function execution.\",\n    defaultLanguage: process.env.OPENAI_REALTIME_LANGUAGE || \"English\",\n    clientSecretTtlSeconds: Number(process.env.OPENAI_REALTIME_CLIENT_SECRET_TTL || 600),\n    allowApiKeyFromRequest: process.env.NAVAI_ALLOW_FRONTEND_API_KEY === \"true\",\n  },\n  functionsFolders: process.env.NAVAI_FUNCTIONS_FOLDERS || \"src/ai/functions-modules\",\n});\n\napp.listen(port, () => {\n  console.log(`NAVAI API ready at http://localhost:${port}`);\n});"
+          }
+        ]
+      },
+      {
+        "id": "paso-6-probar-api",
+        "title": "Etapa 6 Testar a API",
+        "description": "Execute estas verificações em ordem. Se todas responderem bem, o backend está pronto para Web, Mobile, Astro, Vue, Laravel ou qualquer cliente que consuma o contrato HTTP.",
+        "bullets": [
+          "Inicie o servidor uma vez antes de usar `curl`.",
+          "Se `client-secret` falhar, revise primeiro `OPENAI_API_KEY`."
+        ],
+        "codeBlocks": [
+          {
+            "label": "Iniciar o servidor",
+            "language": "bash",
+            "code": "npm run dev"
+          },
+          {
+            "label": "Verificar saúde",
+            "language": "bash",
+            "code": "curl http://localhost:3000/health"
+          },
+          {
+            "label": "Client secret Realtime",
+            "language": "bash",
+            "code": "curl -X POST http://localhost:3000/navai/realtime/client-secret \\\n  -H \"Content-Type: application/json\" \\\n  -d \"{}\""
+          },
+          {
+            "label": "Listar funções backend",
+            "language": "bash",
+            "code": "curl http://localhost:3000/navai/functions"
+          },
+          {
+            "label": "Executar uma função backend",
+            "language": "bash",
+            "code": "curl -X POST http://localhost:3000/navai/functions/execute \\\n  -H \"Content-Type: application/json\" \\\n  -d \"{\n    \\\"function_name\\\": \\\"get_company_summary\\\",\n    \\\"payload\\\": { \\\"company\\\": \\\"NAVAI Demo\\\" }\n  }\""
+          }
+        ]
+      },
+      {
+        "id": "paso-7-conectar-web-o-mobile",
+        "title": "Etapa 7 Conectar Web ou Mobile",
+        "description": "Com a API ativa, o cliente só precisa da URL base do backend e dos três endpoints NAVAI já expostos pelo Express.",
+        "bullets": [
+          "Web e Mobile solicitam `client_secret` em `/navai/realtime/client-secret`.",
+          "Eles descobrem ferramentas em `/navai/functions` e executam ferramentas remotas em `/navai/functions/execute`.",
+          "Se seu frontend roda em outra origem, adicione-a em `CORS_ORIGIN` antes de testar a sessão de voz."
+        ]
+      }
+    ],
+    "tabsSection": {
+      "id": "variantes-rapidas-por-stack",
+      "title": "Escolha sua stack base",
+      "description": "Escolha o caminho que mais combina com seu backend. Cada etapa abaixo é atualizada conforme a stack selecionada para que você siga um único fluxo, desde a criação do projeto até a primeira requisição NAVAI.",
+      "bullets": [
+        "Use Node.js + Express se quiser a rota mais rápida para a primeira implantação.",
+        "Troque de aba antes de copiar os arquivos para manter comandos e nomes alinhados."
+      ],
+      "tabs": [
+        {
+          "value": "node",
+          "label": "Node.js",
+          "title": "Node.js + Express",
+          "description": "Caminho mais rápido para criar uma API NAVAI limpa do zero usando JavaScript puro e sem etapa de build.",
+          "bullets": [
+            "Recomendado para a primeira integração bem-sucedida.",
+            "Funciona bem quando o NAVAI vai rodar como um serviço backend dedicado."
+          ],
+          "sections": [
+            {
+              "id": "paso-1-crear-proyecto",
+              "title": "Etapa 1 Criar o projeto",
+              "description": "Crie um serviço Express mínimo, ative ESM e prepare a pasta que o NAVAI vai escanear para carregar funções backend.",
+              "bullets": [
+                "Use Node.js 20 ou mais recente.",
+                "Essa estrutura já funciona para demos locais, VPS e contêineres."
+              ],
+              "codeBlocks": [
+                {
+                  "label": "Terminal",
+                  "language": "bash",
+                  "code": "mkdir navai-api-demo\ncd navai-api-demo\nnpm init -y\nnpm pkg set type=module\nnpm pkg set scripts.dev=\"node --watch src/server.js\"\nnpm pkg set scripts.start=\"node src/server.js\"\nmkdir src\nmkdir src/ai\nmkdir src/ai/functions-modules"
+                }
+              ]
+            },
+            {
+              "id": "paso-2-instalar-dependencias",
+              "title": "Etapa 2 Instalar dependências",
+              "description": "Instale os quatro pacotes necessários para expor o contrato HTTP do NAVAI logo na primeira tentativa.",
+              "codeBlocks": [
+                {
+                  "label": "Terminal",
+                  "language": "bash",
+                  "code": "npm install express cors dotenv @navai/voice-backend"
+                }
+              ]
+            },
+            {
+              "id": "paso-3-configurar-variables",
+              "title": "Etapa 3 Configurar variáveis de ambiente",
+              "description": "Crie um arquivo `.env` com os valores mínimos para OpenAI Realtime e a pasta em que o NAVAI vai carregar as funções backend.",
+              "codeBlocks": [
+                {
+                  "label": ".env",
+                  "language": "ini",
+                  "code": "PORT=3000\nCORS_ORIGIN=http://localhost:4321\nOPENAI_API_KEY=sk-...\nOPENAI_REALTIME_MODEL=gpt-realtime\nOPENAI_REALTIME_VOICE=marin\nOPENAI_REALTIME_INSTRUCTIONS=You are a helpful assistant for UI navigation and function execution.\nOPENAI_REALTIME_LANGUAGE=English\nOPENAI_REALTIME_CLIENT_SECRET_TTL=600\nNAVAI_FUNCTIONS_FOLDERS=src/ai/functions-modules\nNAVAI_ALLOW_FRONTEND_API_KEY=false"
+                }
+              ]
+            },
+            {
+              "id": "paso-4-crear-funciones-backend",
+              "title": "Etapa 4 Criar uma função backend",
+              "description": "Adicione primeiro um export chamável para que `GET /navai/functions` e `POST /navai/functions/execute` comprovem que o backend está realmente pronto.",
+              "bullets": [
+                "O NAVAI converte `getCompanySummary` para `get_company_summary` automaticamente.",
+                "A função pode retornar JSON simples e não precisa de wrappers extras."
+              ],
+              "codeBlocks": [
+                {
+                  "label": "src/ai/functions-modules/getCompanySummary.js",
+                  "language": "javascript",
+                  "code": "export async function getCompanySummary(payload = {}) {\n  const company = String(payload.company || \"NAVAI Demo\").trim();\n\n  return {\n    ok: true,\n    company,\n    summary: `${company} already responds from a NAVAI backend tool.`,\n    nextStep: \"Connect your frontend or mobile app to the backend.\",\n  };\n}"
+                }
+              ]
+            },
+            {
+              "id": "paso-5-crear-servidor-navai",
+              "title": "Etapa 5 Criar o servidor NAVAI",
+              "description": "Monte primeiro a rota de saúde e depois registre as rotas NAVAI na mesma app Express usando as variáveis configuradas acima.",
+              "bullets": [
+                "Isso expõe todo o contrato NAVAI na mesma API.",
+                "Você pode manter suas próprias rotas de negócio na mesma app Express."
+              ],
+              "codeBlocks": [
+                {
+                  "label": "src/server.js",
+                  "language": "javascript",
+                  "code": "import cors from \"cors\";\nimport dotenv from \"dotenv\";\nimport express from \"express\";\nimport { registerNavaiExpressRoutes } from \"@navai/voice-backend\";\n\ndotenv.config();\n\nconst app = express();\nconst port = Number(process.env.PORT || 3000);\nconst allowedOrigins = (process.env.CORS_ORIGIN || \"http://localhost:4321\")\n  .split(\",\")\n  .map((value) => value.trim())\n  .filter(Boolean);\n\napp.use(express.json());\napp.use(\n  cors({\n    origin: allowedOrigins,\n    credentials: true,\n  })\n);\n\napp.get(\"/health\", (_req, res) => {\n  res.json({\n    ok: true,\n    service: \"navai-api-demo\",\n    endpoints: [\n      \"/navai/realtime/client-secret\",\n      \"/navai/functions\",\n      \"/navai/functions/execute\",\n    ],\n  });\n});\n\nregisterNavaiExpressRoutes(app, {\n  backendOptions: {\n    openaiApiKey: process.env.OPENAI_API_KEY,\n    defaultModel: process.env.OPENAI_REALTIME_MODEL || \"gpt-realtime\",\n    defaultVoice: process.env.OPENAI_REALTIME_VOICE || \"marin\",\n    defaultInstructions:\n      process.env.OPENAI_REALTIME_INSTRUCTIONS ||\n      \"You are a helpful assistant for UI navigation and function execution.\",\n    defaultLanguage: process.env.OPENAI_REALTIME_LANGUAGE || \"English\",\n    clientSecretTtlSeconds: Number(process.env.OPENAI_REALTIME_CLIENT_SECRET_TTL || 600),\n    allowApiKeyFromRequest: process.env.NAVAI_ALLOW_FRONTEND_API_KEY === \"true\",\n  },\n  functionsFolders: process.env.NAVAI_FUNCTIONS_FOLDERS || \"src/ai/functions-modules\",\n});\n\napp.listen(port, () => {\n  console.log(`NAVAI API ready at http://localhost:${port}`);\n});"
+                }
+              ]
+            },
+            {
+              "id": "paso-6-probar-api",
+              "title": "Etapa 6 Testar a API",
+              "description": "Execute estas verificações em ordem. Se todas responderem bem, o backend está pronto para Web, Mobile, Astro, Vue, Laravel ou qualquer cliente que consuma o contrato HTTP.",
+              "bullets": [
+                "Inicie o servidor uma vez antes de usar `curl`.",
+                "Se `client-secret` falhar, revise primeiro `OPENAI_API_KEY`."
+              ],
+              "codeBlocks": [
+                {
+                  "label": "Iniciar o servidor",
+                  "language": "bash",
+                  "code": "npm run dev"
+                },
+                {
+                  "label": "Verificar saúde",
+                  "language": "bash",
+                  "code": "curl http://localhost:3000/health"
+                },
+                {
+                  "label": "Client secret Realtime",
+                  "language": "bash",
+                  "code": "curl -X POST http://localhost:3000/navai/realtime/client-secret \\\n  -H \"Content-Type: application/json\" \\\n  -d \"{}\""
+                },
+                {
+                  "label": "Listar funções backend",
+                  "language": "bash",
+                  "code": "curl http://localhost:3000/navai/functions"
+                },
+                {
+                  "label": "Executar uma função backend",
+                  "language": "bash",
+                  "code": "curl -X POST http://localhost:3000/navai/functions/execute \\\n  -H \"Content-Type: application/json\" \\\n  -d \"{\n    \\\"function_name\\\": \\\"get_company_summary\\\",\n    \\\"payload\\\": { \\\"company\\\": \\\"NAVAI Demo\\\" }\n  }\""
+                }
+              ]
+            },
+            {
+              "id": "paso-7-conectar-web-o-mobile",
+              "title": "Etapa 7 Conectar Web ou Mobile",
+              "description": "Com a API ativa, o cliente só precisa da URL base do backend e dos três endpoints NAVAI já expostos pelo Express.",
+              "bullets": [
+                "Web e Mobile solicitam `client_secret` em `/navai/realtime/client-secret`.",
+                "Eles descobrem ferramentas em `/navai/functions` e executam ferramentas remotas em `/navai/functions/execute`.",
+                "Se seu frontend roda em outra origem, adicione-a em `CORS_ORIGIN` antes de testar a sessão de voz."
+              ]
+            }
+          ]
+        },
+        {
+          "value": "typescript",
+          "label": "TypeScript",
+          "title": "Express + TypeScript",
+          "description": "A mesma rota rápida, mas com arquivos tipados, `tsx` para desenvolvimento local e saída de build para implantação.",
+          "bullets": [
+            "Recomendado se sua equipe já mantém o backend tipado.",
+            "O contrato NAVAI continua o mesmo; muda apenas a base do projeto."
+          ],
+          "sections": [
+            {
+              "id": "paso-1-crear-proyecto",
+              "title": "Etapa 1 Criar o projeto TypeScript",
+              "description": "Crie o projeto, prepare `src` e adicione um `tsconfig.json` mínimo para rodar localmente com `tsx` e implantar depois a partir de `dist`.",
+              "bullets": [
+                "Use Node.js 20 ou mais recente.",
+                "Esse caminho mantém o setup local rápido e ao mesmo tempo deixa uma build de produção pronta."
+              ],
+              "codeBlocks": [
+                {
+                  "label": "Terminal",
+                  "language": "bash",
+                  "code": "mkdir navai-api-demo\ncd navai-api-demo\nnpm init -y\nnpm pkg set type=module\nnpm pkg set scripts.dev=\"tsx watch src/server.ts\"\nnpm pkg set scripts.build=\"tsc -p tsconfig.json\"\nnpm pkg set scripts.start=\"node dist/server.js\"\nmkdir src\nmkdir src/ai\nmkdir src/ai/functions-modules"
+                },
+                {
+                  "label": "tsconfig.json",
+                  "language": "json",
+                  "code": "{\n  \"compilerOptions\": {\n    \"target\": \"ES2022\",\n    \"module\": \"NodeNext\",\n    \"moduleResolution\": \"NodeNext\",\n    \"rootDir\": \"src\",\n    \"outDir\": \"dist\",\n    \"strict\": true,\n    \"esModuleInterop\": true,\n    \"resolveJsonModule\": true,\n    \"skipLibCheck\": true\n  },\n  \"include\": [\"src/**/*.ts\"]\n}"
+                }
+              ]
+            },
+            {
+              "id": "paso-2-instalar-dependencias",
+              "title": "Etapa 2 Instalar runtime e toolchain TypeScript",
+              "description": "Instale os mesmos pacotes runtime do NAVAI junto com o toolchain mínimo de TypeScript para execução local e saída de build.",
+              "bullets": [
+                "`tsx` permite validar a integração sem compilação manual.",
+                "Você pode manter a mesma estrutura de pastas da rota Node.js."
+              ],
+              "codeBlocks": [
+                {
+                  "label": "Terminal",
+                  "language": "bash",
+                  "code": "npm install express cors dotenv @navai/voice-backend\nnpm install -D typescript tsx @types/cors @types/express @types/node"
+                }
+              ]
+            },
+            {
+              "id": "paso-3-configurar-variables",
+              "title": "Etapa 3 Configurar variáveis de ambiente",
+              "description": "Crie um arquivo `.env` com os mesmos valores mínimos do NAVAI. A rota TypeScript usa o mesmo contrato backend e a mesma pasta de funções.",
+              "bullets": [
+                "`OPENAI_API_KEY` deve permanecer apenas no servidor.",
+                "Mantenha `NAVAI_FUNCTIONS_FOLDERS=src/ai/functions-modules` para que o servidor encontre suas ferramentas."
+              ],
+              "codeBlocks": [
+                {
+                  "label": ".env",
+                  "language": "ini",
+                  "code": "PORT=3000\nCORS_ORIGIN=http://localhost:4321\nOPENAI_API_KEY=sk-...\nOPENAI_REALTIME_MODEL=gpt-realtime\nOPENAI_REALTIME_VOICE=marin\nOPENAI_REALTIME_INSTRUCTIONS=You are a helpful assistant for UI navigation and function execution.\nOPENAI_REALTIME_LANGUAGE=English\nOPENAI_REALTIME_CLIENT_SECRET_TTL=600\nNAVAI_FUNCTIONS_FOLDERS=src/ai/functions-modules\nNAVAI_ALLOW_FRONTEND_API_KEY=false"
+                }
+              ]
+            },
+            {
+              "id": "paso-4-crear-funciones-backend",
+              "title": "Etapa 4 Criar a função backend tipada",
+              "description": "Adicione primeiro uma ferramenta tipada. Isso mantém o formato do payload explícito e oferece a mesma validação rápida da rota JavaScript.",
+              "bullets": [
+                "O NAVAI continua expondo a função como `get_company_summary`.",
+                "Você pode continuar retornando objetos JSON simples."
+              ],
+              "codeBlocks": [
+                {
+                  "label": "src/ai/functions-modules/getCompanySummary.ts",
+                  "language": "typescript",
+                  "code": "type CompanySummaryPayload = {\n  company?: string;\n};\n\nexport async function getCompanySummary(payload: CompanySummaryPayload = {}) {\n  const company = String(payload.company || \"NAVAI Demo\").trim();\n\n  return {\n    ok: true,\n    company,\n    summary: `${company} already responds from a typed NAVAI backend tool.`,\n    nextStep: \"Connect your frontend or mobile app to the backend.\",\n  };\n}"
+                }
+              ]
+            },
+            {
+              "id": "paso-5-crear-servidor-navai",
+              "title": "Etapa 5 Criar `server.ts` com NAVAI",
+              "description": "Monte a rota de saúde e registre o NAVAI na mesma app Express. A versão TypeScript mantém exatamente os mesmos endpoints HTTP da rota Node.js.",
+              "bullets": [
+                "Seu frontend não deve notar nenhuma diferença de contrato.",
+                "Para produção, faça o build uma vez e execute `node dist/server.js`."
+              ],
+              "codeBlocks": [
+                {
+                  "label": "src/server.ts",
+                  "language": "typescript",
+                  "code": "import cors from \"cors\";\nimport dotenv from \"dotenv\";\nimport express from \"express\";\nimport { registerNavaiExpressRoutes } from \"@navai/voice-backend\";\n\ndotenv.config();\n\nconst app = express();\nconst port = Number(process.env.PORT || 3000);\nconst allowedOrigins = (process.env.CORS_ORIGIN || \"http://localhost:4321\")\n  .split(\",\")\n  .map((value) => value.trim())\n  .filter(Boolean);\n\napp.use(express.json());\napp.use(\n  cors({\n    origin: allowedOrigins,\n    credentials: true,\n  })\n);\n\napp.get(\"/health\", (_req, res) => {\n  res.json({\n    ok: true,\n    service: \"navai-api-demo\",\n    endpoints: [\n      \"/navai/realtime/client-secret\",\n      \"/navai/functions\",\n      \"/navai/functions/execute\",\n    ],\n  });\n});\n\nregisterNavaiExpressRoutes(app, {\n  backendOptions: {\n    openaiApiKey: process.env.OPENAI_API_KEY,\n    defaultModel: process.env.OPENAI_REALTIME_MODEL || \"gpt-realtime\",\n    defaultVoice: process.env.OPENAI_REALTIME_VOICE || \"marin\",\n    defaultInstructions:\n      process.env.OPENAI_REALTIME_INSTRUCTIONS ||\n      \"You are a helpful assistant for UI navigation and function execution.\",\n    defaultLanguage: process.env.OPENAI_REALTIME_LANGUAGE || \"English\",\n    clientSecretTtlSeconds: Number(process.env.OPENAI_REALTIME_CLIENT_SECRET_TTL || 600),\n    allowApiKeyFromRequest: process.env.NAVAI_ALLOW_FRONTEND_API_KEY === \"true\",\n  },\n  functionsFolders: process.env.NAVAI_FUNCTIONS_FOLDERS || \"src/ai/functions-modules\",\n});\n\napp.listen(port, () => {\n  console.log(`NAVAI API ready at http://localhost:${port}`);\n});"
+                }
+              ]
+            },
+            {
+              "id": "paso-6-probar-api",
+              "title": "Etapa 6 Iniciar e validar a API",
+              "description": "Inicie o servidor com `tsx` e valide a rota de saúde, o segredo Realtime, a descoberta de ferramentas e a execução de uma ferramenta nessa ordem.",
+              "bullets": [
+                "Para testes locais, `npm run dev` é suficiente.",
+                "Antes de implantar, use `npm run build` e depois `npm run start`."
+              ],
+              "codeBlocks": [
+                {
+                  "label": "Iniciar o servidor",
+                  "language": "bash",
+                  "code": "npm run dev"
+                },
+                {
+                  "label": "Verificar saúde",
+                  "language": "bash",
+                  "code": "curl http://localhost:3000/health"
+                },
+                {
+                  "label": "Client secret Realtime",
+                  "language": "bash",
+                  "code": "curl -X POST http://localhost:3000/navai/realtime/client-secret \\\n  -H \"Content-Type: application/json\" \\\n  -d \"{}\""
+                },
+                {
+                  "label": "Listar funções backend",
+                  "language": "bash",
+                  "code": "curl http://localhost:3000/navai/functions"
+                },
+                {
+                  "label": "Executar uma função backend",
+                  "language": "bash",
+                  "code": "curl -X POST http://localhost:3000/navai/functions/execute \\\n  -H \"Content-Type: application/json\" \\\n  -d \"{\n    \\\"function_name\\\": \\\"get_company_summary\\\",\n    \\\"payload\\\": { \\\"company\\\": \\\"NAVAI Demo\\\" }\n  }\""
+                }
+              ]
+            },
+            {
+              "id": "paso-7-conectar-web-o-mobile",
+              "title": "Etapa 7 Conectar Web ou Mobile",
+              "description": "Quando o backend tipado estiver ativo, a integração do cliente continuará igual porque o contrato HTTP do NAVAI não muda.",
+              "bullets": [
+                "Aponte o cliente para a URL base do seu backend TypeScript.",
+                "Mantenha `/navai/realtime/client-secret`, `/navai/functions` e `/navai/functions/execute` acessíveis para a aplicação.",
+                "Se o frontend roda em outra origem, adicione-a em `CORS_ORIGIN` antes de testar a sessão de voz."
+              ]
+            }
+          ]
+        },
+        {
+          "value": "nestjs",
+          "label": "NestJS",
+          "title": "NestJS + Router NAVAI montado",
+          "description": "Melhor opção quando você já tem um backend Nest e quer expor o NAVAI em `/navai` sem criar outro contrato de API.",
+          "bullets": [
+            "Use esta rota apenas se o NestJS já for a base real do seu backend.",
+            "O NAVAI permanece isolado dentro do próprio router Express montado."
+          ],
+          "sections": [
+            {
+              "id": "paso-1-crear-proyecto",
+              "title": "Etapa 1 Criar o projeto NestJS",
+              "description": "Gere uma nova app Nest e crie a pasta em que o NAVAI vai carregar as funções backend. Assim o exemplo já fica alinhado com um backend Nest real desde o início.",
+              "bullets": [
+                "O comando evita o assistente interativo e deixa o projeto pronto mais rápido.",
+                "Se você já tem uma app Nest, crie apenas `src/ai/functions-modules`."
+              ],
+              "codeBlocks": [
+                {
+                  "label": "Terminal",
+                  "language": "bash",
+                  "code": "npx @nestjs/cli@latest new navai-api-demo --package-manager npm --skip-git\ncd navai-api-demo\nmkdir src/ai\nmkdir src/ai/functions-modules"
+                }
+              ]
+            },
+            {
+              "id": "paso-2-instalar-dependencias",
+              "title": "Etapa 2 Instalar dependências NAVAI",
+              "description": "Instale o pacote backend do NAVAI, dotenv e uma dependência explícita de `express` para declarar formalmente o router montado no projeto.",
+              "bullets": [
+                "Isso mantém a integração explícita mesmo que o Nest já use Express internamente.",
+                "Você não precisa de um segundo servidor HTTP para este exemplo rápido."
+              ],
+              "codeBlocks": [
+                {
+                  "label": "Terminal",
+                  "language": "bash",
+                  "code": "npm install express dotenv @navai/voice-backend\nnpm install -D @types/express"
+                }
+              ]
+            },
+            {
+              "id": "paso-3-configurar-variables",
+              "title": "Etapa 3 Configurar variáveis de ambiente",
+              "description": "Crie um arquivo `.env` com os valores mínimos de Realtime e a pasta que contém suas ferramentas backend do NAVAI.",
+              "bullets": [
+                "As mesmas variáveis funcionam no NestJS porque o contrato NAVAI continua igual.",
+                "Mantenha `NAVAI_ALLOW_FRONTEND_API_KEY=false` a menos que exista uma necessidade interna muito específica."
+              ],
+              "codeBlocks": [
+                {
+                  "label": ".env",
+                  "language": "ini",
+                  "code": "PORT=3000\nCORS_ORIGIN=http://localhost:4321\nOPENAI_API_KEY=sk-...\nOPENAI_REALTIME_MODEL=gpt-realtime\nOPENAI_REALTIME_VOICE=marin\nOPENAI_REALTIME_INSTRUCTIONS=You are a helpful assistant for UI navigation and function execution.\nOPENAI_REALTIME_LANGUAGE=English\nOPENAI_REALTIME_CLIENT_SECRET_TTL=600\nNAVAI_FUNCTIONS_FOLDERS=src/ai/functions-modules\nNAVAI_ALLOW_FRONTEND_API_KEY=false"
+                }
+              ]
+            },
+            {
+              "id": "paso-4-crear-funciones-backend",
+              "title": "Etapa 4 Criar o módulo de função backend",
+              "description": "Adicione uma ferramenta tipada em `src/ai/functions-modules` para que o router NAVAI montado consiga descobri-la e executá-la a partir do NestJS.",
+              "bullets": [
+                "O nome da função exportada continua sendo convertido para `snake_case` no contrato HTTP.",
+                "Comece com uma ferramenta simples antes de adicionar banco de dados ou injeções de serviço ao redor."
+              ],
+              "codeBlocks": [
+                {
+                  "label": "src/ai/functions-modules/getCompanySummary.ts",
+                  "language": "typescript",
+                  "code": "type CompanySummaryPayload = {\n  company?: string;\n};\n\nexport async function getCompanySummary(payload: CompanySummaryPayload = {}) {\n  const company = String(payload.company || \"NAVAI Demo\").trim();\n\n  return {\n    ok: true,\n    company,\n    summary: `${company} already responds from a typed NAVAI backend tool.`,\n    nextStep: \"Connect your frontend or mobile app to the backend.\",\n  };\n}"
+                }
+              ]
+            },
+            {
+              "id": "paso-5-crear-servidor-navai",
+              "title": "Etapa 5 Montar o NAVAI dentro do NestJS",
+              "description": "Atualize `main.ts` para ativar CORS, expor `/health` e montar o router NAVAI em `/navai` dentro da mesma aplicação Nest.",
+              "bullets": [
+                "Seus controllers Nest existentes podem continuar funcionando normalmente.",
+                "Isso mantém uma única URL backend para sua API de negócio e para o NAVAI."
+              ],
+              "codeBlocks": [
+                {
+                  "label": "src/main.ts",
+                  "language": "typescript",
+                  "code": "import * as dotenv from \"dotenv\";\nimport express from \"express\";\nimport { NestFactory } from \"@nestjs/core\";\nimport { registerNavaiExpressRoutes } from \"@navai/voice-backend\";\n\nimport { AppModule } from \"./app.module\";\n\ndotenv.config();\n\nasync function bootstrap() {\n  const app = await NestFactory.create(AppModule);\n  const port = Number(process.env.PORT || 3000);\n  const allowedOrigins = (process.env.CORS_ORIGIN || \"http://localhost:4321\")\n    .split(\",\")\n    .map((value) => value.trim())\n    .filter(Boolean);\n\n  app.enableCors({\n    origin: allowedOrigins,\n    credentials: true,\n  });\n\n  const expressApp = app.getHttpAdapter().getInstance();\n  const navai = express();\n\n  navai.use(express.json());\n\n  registerNavaiExpressRoutes(navai, {\n    backendOptions: {\n      openaiApiKey: process.env.OPENAI_API_KEY,\n      defaultModel: process.env.OPENAI_REALTIME_MODEL || \"gpt-realtime\",\n      defaultVoice: process.env.OPENAI_REALTIME_VOICE || \"marin\",\n      defaultInstructions:\n        process.env.OPENAI_REALTIME_INSTRUCTIONS ||\n        \"You are a helpful assistant for UI navigation and function execution.\",\n      defaultLanguage: process.env.OPENAI_REALTIME_LANGUAGE || \"English\",\n      clientSecretTtlSeconds: Number(process.env.OPENAI_REALTIME_CLIENT_SECRET_TTL || 600),\n      allowApiKeyFromRequest: process.env.NAVAI_ALLOW_FRONTEND_API_KEY === \"true\",\n    },\n    functionsFolders: process.env.NAVAI_FUNCTIONS_FOLDERS || \"src/ai/functions-modules\",\n  });\n\n  expressApp.get(\"/health\", (_req, res) => {\n    res.json({\n      ok: true,\n      service: \"navai-api-demo\",\n      endpoints: [\n        \"/navai/realtime/client-secret\",\n        \"/navai/functions\",\n        \"/navai/functions/execute\",\n      ],\n    });\n  });\n\n  expressApp.use(\"/navai\", navai);\n\n  await app.listen(port);\n  console.log(`NAVAI API ready at http://localhost:${port}`);\n}\n\nbootstrap();"
+                }
+              ]
+            },
+            {
+              "id": "paso-6-probar-api",
+              "title": "Etapa 6 Iniciar e validar as rotas montadas",
+              "description": "Inicie o servidor Nest e valide as mesmas quatro verificações. Se responderem bem, o router montado está pronto para os clientes.",
+              "bullets": [
+                "As verificações são idênticas porque o NAVAI expõe os mesmos endpoints em `/navai`.",
+                "Se `GET /navai/functions` vier vazio, revise primeiro `NAVAI_FUNCTIONS_FOLDERS` e o nome do export do arquivo."
+              ],
+              "codeBlocks": [
+                {
+                  "label": "Iniciar o servidor",
+                  "language": "bash",
+                  "code": "npm run start:dev"
+                },
+                {
+                  "label": "Verificar saúde",
+                  "language": "bash",
+                  "code": "curl http://localhost:3000/health"
+                },
+                {
+                  "label": "Client secret Realtime",
+                  "language": "bash",
+                  "code": "curl -X POST http://localhost:3000/navai/realtime/client-secret \\\n  -H \"Content-Type: application/json\" \\\n  -d \"{}\""
+                },
+                {
+                  "label": "Listar funções backend",
+                  "language": "bash",
+                  "code": "curl http://localhost:3000/navai/functions"
+                },
+                {
+                  "label": "Executar uma função backend",
+                  "language": "bash",
+                  "code": "curl -X POST http://localhost:3000/navai/functions/execute \\\n  -H \"Content-Type: application/json\" \\\n  -d \"{\n    \\\"function_name\\\": \\\"get_company_summary\\\",\n    \\\"payload\\\": { \\\"company\\\": \\\"NAVAI Demo\\\" }\n  }\""
+                }
+              ]
+            },
+            {
+              "id": "paso-7-conectar-web-o-mobile",
+              "title": "Etapa 7 Conectar Web ou Mobile",
+              "description": "Com o NestJS já expondo `/navai`, o frontend só precisa da URL base do mesmo backend e dos endpoints padrão do NAVAI.",
+              "bullets": [
+                "Aponte a aplicação para a URL base do backend Nest.",
+                "Os endpoints NAVAI continuam sendo `/navai/realtime/client-secret`, `/navai/functions` e `/navai/functions/execute`.",
+                "Se o frontend roda em outra origem, mantenha essa origem em `CORS_ORIGIN` antes de testar a sessão."
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "panelPage": {
+    "title": "Pagina Web",
+    "description": "Gerencie dominios, rotas de navegacao, funcoes JavaScript e parametros locais do NAVAI em um painel autenticado.",
+    "sidebarTitle": "Gest?o local",
+    "loadingTitle": "Carregando painel local",
+    "loadingDescription": "Estamos preparando seu painel autenticado do NAVAI.",
+    "domainsEyebrow": "Dom?nios conectados",
+    "domainsSectionTitle": "Dom?nios",
+    "domainsSectionDescription": "Crie, edite e organize os dom?nios que usar?o NAVAI no seu site ou aplicativo m?vel.",
+    "domainCountLabel": "Dom?nios salvos",
+    "domainListTitle": "Lista de dom?nios",
+    "domainListDescription": "Selecione um dom?nio para editar sua configura??o do NAVAI ou crie um novo.",
+    "createDomainButtonLabel": "Novo dom?nio",
+    "emptyDomainsMessage": "Ainda n?o h? dom?nios salvos. Crie o primeiro para come?ar.",
+    "editorEyebrow": "Configura??o NAVAI",
+    "editorSectionTitle": "Editor do dom?nio",
+    "editorSectionDescription": "Gerencie rotas de navegacao, funcoes JavaScript e parametros locais para cada dominio.",
+    "generalTabLabel": "Geral",
+    "routesTabLabel": "Rotas",
+    "functionsTabLabel": "Fun??es",
+    "synonymsTabLabel": "Sin?nimos",
+    "metadataTabLabel": "Metadados",
+    "domainFieldLabel": "Dom?nio",
+    "labelFieldLabel": "Nome vis?vel",
+    "labelFieldPlaceholder": "Portal principal",
+    "descriptionFieldLabel": "Descri??o",
+    "descriptionFieldPlaceholder": "Resumo do dom?nio e comportamento esperado.",
+    "routesFieldLabel": "Rota ou URL",
+    "functionsFieldLabel": "Codigo JavaScript",
+    "synonymsFieldLabel": "Sin?nimos (JSON)",
+    "metadataFieldLabel": "Metadados NAVAI (JSON)",
+    "loadingMessage": "Carregando dom?nios...",
+    "invalidJsonMessage": "Revise o JSON de rotas, fun??es, sin?nimos ou metadados.",
+    "saveButtonLabel": "Salvar alteracoes",
+    "deleteButtonLabel": "Excluir dom?nio",
+    "savingLabel": "Salvando...",
+    "deletingLabel": "Excluindo...",
+    "createSuccessMessage": "Dom?nio criado com sucesso.",
+    "saveSuccessMessage": "Dom?nio atualizado com sucesso.",
+    "deleteSuccessMessage": "Dom?nio exclu?do com sucesso.",
+    "deleteConfirmMessage": "Deseja excluir este dom?nio?",
+    "cancelActionLabel": "Cancelar",
+    "loadErrorMessage": "N?o foi poss?vel carregar o painel local.",
+    "saveErrorMessage": "N?o foi poss?vel salvar o dom?nio.",
+    "deleteErrorMessage": "N?o foi poss?vel excluir o dom?nio.",
+    "parametersTabLabel": "Parametros",
+    "createRouteButtonLabel": "Nova rota",
+    "createFunctionButtonLabel": "Nova funcao",
+    "createParameterButtonLabel": "Novo parametro",
+    "routeUrlFieldLabel": "Rota ou URL",
+    "routeUrlPlaceholder": "/pricing ou https://example.com/pricing",
+    "routeNewTabFieldLabel": "Nova aba",
+    "functionNameFieldLabel": "Nome da funcao",
+    "functionCodeFieldLabel": "Codigo JavaScript",
+    "functionCodePlaceholder": "export async function your_function(payload) {\n  return {\n    ok: true,\n    payload,\n  };\n}",
+    "parameterKeyFieldLabel": "Configuracao",
+    "parameterValueFieldLabel": "Valor",
+    "parameterValuePlaceholder": "0",
+    "routesEmptyMessage": "Ainda nao ha rotas salvas. Adicione a primeira para comecar.",
+    "functionsEmptyMessage": "Ainda nao ha funcoes salvas. Adicione a primeira para comecar.",
+    "parametersEmptyMessage": "Ainda nao ha parametros salvos. Adicione o primeiro para comecar.",
+    "draftUpdatedMessage": "As alteracoes estao prontas. Salve o dominio para persisti-las.",
+    "routeUrlRequiredMessage": "A rota ou URL e obrigatoria.",
+    "functionNameRequiredMessage": "O nome da funcao e obrigatorio.",
+    "functionCodeRequiredMessage": "O codigo JavaScript e obrigatorio.",
+    "parameterKeyRequiredMessage": "A configuracao e obrigatoria.",
+    "routeDeleteConfirmMessage": "Deseja excluir esta rota?",
+    "functionDeleteConfirmMessage": "Deseja excluir esta funcao?",
+    "parameterDeleteConfirmMessage": "Deseja excluir este parametro?",
+    "editorEmptyMessage": "Crie um dominio para configurar rotas, funcoes e parametros.",
+    "actionsColumnLabel": "Acoes",
+    "editActionLabel": "Editar",
+    "deleteActionLabel": "Excluir",
+    "noDescriptionLabel": "Sem descricao",
+    "tableFilterRoutesPlaceholder": "Filtrar rotas...",
+    "tableFilterFunctionsPlaceholder": "Filtrar funcoes...",
+    "tableFilterParametersPlaceholder": "Filtrar parametros...",
+    "tableColumnsButtonLabel": "Colunas",
+    "tableStatisticsButtonLabel": "Estatisticas",
+    "tableStatisticsChartEmptyMessage": "Nao ha dados suficientes para este grafico.",
+    "tableRowsSelectedLabel": "{selected} de {total} linha(s) selecionada(s).",
+    "tablePreviousPageLabel": "Anterior",
+    "tableNextPageLabel": "Proximo",
+    "tablePaginationSummaryLabel": "Mostrando {start}-{end} de {total} resultados | {pageSize} por pagina",
+    "moduleNavTitle": "Module",
+    "evaluationsNavLabel": "Evaluations",
+    "surveysNavLabel": "Surveys",
+    "supportNavLabel": "Support",
+    "supportDescription": "Gerencie tickets abertos e responda rapidamente de um unico lugar.",
+    "dashboardTitle": "Painel de controle",
+    "dashboardDescription": "Review core NAVAI usage KPIs and jump into the operational modules of the panel.",
+    "dashboardSessionsKpiLabel": "Sessions handled today",
+    "dashboardResolutionKpiLabel": "Automated resolution",
+    "dashboardSatisfactionKpiLabel": "Average satisfaction",
+    "dashboardSurveyResponsesKpiLabel": "Survey responses",
+    "dashboardOpenTicketsKpiLabel": "Open tickets",
+    "dashboardGoPanelButtonLabel": "Website",
+    "dashboardGoEvaluationsButtonLabel": "Go to evaluations",
+    "dashboardGoSurveysButtonLabel": "Go to surveys",
+    "dashboardGoSupportButtonLabel": "Go to support",
+    "ownerColumnLabel": "Owner",
+    "statusColumnLabel": "Status",
+    "metricColumnLabel": "Metrics",
+    "tableFilterEvaluationsPlaceholder": "Filter evaluations...",
+    "tableFilterSurveysPlaceholder": "Filter surveys...",
+    "createEvaluationButtonLabel": "New evaluation",
+    "createSurveyButtonLabel": "New survey",
+    "workspaceStatusDraftLabel": "Draft",
+    "workspaceStatusActiveLabel": "Active",
+    "workspaceStatusCompletedLabel": "Completed",
+    "supportTicketsTitle": "Active tickets",
+    "supportConversationTitle": "Conversation",
+    "supportNewTicketButtonLabel": "New ticket",
+    "supportStartTicketButtonLabel": "Start new ticket",
+    "supportSubjectPlaceholder": "Ticket subject",
+    "supportChannelPlaceholder": "Channel",
+    "supportChannelWebOptionLabel": "Web",
+    "supportChannelEmailOptionLabel": "Email",
+    "supportChannelWhatsappOptionLabel": "WhatsApp",
+    "supportCategoryPlaceholder": "Category",
+    "supportCategoryGeneralOptionLabel": "General",
+    "supportCategoryAccessOptionLabel": "Access",
+    "supportCategoryBugOptionLabel": "Bug",
+    "supportCategoryBillingOptionLabel": "Billing",
+    "supportCategoryIntegrationOptionLabel": "Integration",
+    "supportPriorityPlaceholder": "Priority",
+    "supportPriorityLowOptionLabel": "Low",
+    "supportPriorityMediumOptionLabel": "Medium",
+    "supportPriorityHighOptionLabel": "High",
+    "supportPriorityUrgentOptionLabel": "Urgent",
+    "supportStatusPlaceholder": "Status",
+    "supportFilterAllOptionLabel": "All",
+    "supportTicketsFilterPlaceholder": "Filter tickets...",
+    "supportAdminInboxTitle": "Support inbox",
+    "supportAdminInboxDescription": "Review tickets from other users, filter by priority, and open each case to reply.",
+    "supportTicketRequesterColumnLabel": "Requester",
+    "supportTicketSubjectColumnLabel": "Subject",
+    "supportTicketPriorityColumnLabel": "Priority",
+    "supportTicketCategoryColumnLabel": "Category",
+    "supportTicketChannelColumnLabel": "Channel",
+    "supportTicketStatusColumnLabel": "Status",
+    "supportTicketCreatedAtColumnLabel": "Created",
+    "supportTicketUpdatedAtColumnLabel": "Updated",
+    "supportTicketMessagesColumnLabel": "Messages",
+    "supportOpenTicketButtonLabel": "Open ticket",
+    "supportRequesterInfoTitle": "Requester information",
+    "supportRequesterInfoDescription": "Details for the user who opened the ticket.",
+    "supportAttachmentsSectionTitle": "Attachments",
+    "supportAttachmentsEmptyMessage": "There are no uploaded attachments.",
+    "supportUploadAttachmentsButtonLabel": "Upload attachments",
+    "supportOpenAttachmentButtonLabel": "Open file",
+    "supportRemoveAttachmentButtonLabel": "Remove",
+    "supportAttachmentUploadSuccessMessage": "Attachment uploaded successfully.",
+    "supportAttachmentUploadErrorMessage": "Could not upload the attachment.",
+    "supportAttachmentTypeErrorMessage": "You can only upload images or videos.",
+    "supportAttachmentImageSizeErrorMessage": "The image exceeds the allowed size.",
+    "supportAttachmentVideoSizeErrorMessage": "The video exceeds the allowed size.",
+    "supportEmptyTicketsMessage": "There are no available tickets.",
+    "supportSelectTicketMessage": "Select a ticket to review the conversation.",
+    "supportReplyPlaceholder": "Write a reply for the selected ticket...",
+    "supportSendButtonLabel": "Send message",
+    "statisticsNavLabel": "Estatisticas",
+    "emptyEvaluationsMessage": "Todavia no hay evaluaciones publicas. Crea la primera para empezar.",
+    "emptySurveysMessage": "Todavia no hay encuestas publicas. Crea la primera para empezar.",
+    "experienceLoadErrorMessage": "No se pudieron cargar las experiencias publicas.",
+    "experienceNameFieldLabel": "Nombre de la experiencia",
+    "experienceSlugFieldLabel": "Slug publico",
+    "experienceSlugPlaceholder": "mi-experiencia-publica",
+    "experienceDomainFieldLabel": "Dominio relacionado",
+    "experienceStatusFieldLabel": "Estado de publicacion",
+    "experienceAccessModeFieldLabel": "Acesso da experiencia",
+    "experienceAccessModePublicLabel": "Publica",
+    "experienceAccessModePrivateLabel": "Privada",
+    "experienceAllowedEmailsFieldLabel": "Contas de e-mail autorizadas",
+    "experienceAllowedEmailsHelpText": "Digite um e-mail por linha ou separados por virgula. Somente essas contas poderao acessar quando a experiencia for privada.",
+    "experienceMembershipAccessFieldLabel": "Acesso por conta Plus",
+    "experienceMembershipAccessHelpText": "Defina se esta avaliacao ou pesquisa estara disponivel para usuarios com NAVAI Plus, sem NAVAI Plus ou ambos.",
+    "experienceAllowPlusUsersFieldLabel": "Permitir usuarios com NAVAI Plus",
+    "experienceAllowNonPlusUsersFieldLabel": "Permitir usuarios sem NAVAI Plus",
+    "experienceMembershipAccessRequiredMessage": "Voce deve permitir pelo menos um tipo de conta para continuar.",
+    "experienceStartsAtFieldLabel": "Data e hora de inicio",
+    "experienceEndsAtFieldLabel": "Data e hora de fim",
+    "experienceWelcomeTitleFieldLabel": "Titulo de bienvenida",
+    "experienceDelegateAiGradingFieldLabel": "Delegar ao agente de IA a avaliacao automatica das respostas habilitadas",
+    "experienceEnableRankingFieldLabel": "Habilitar ranking Top 10 por pontuacao",
+    "experienceEnableCommentsFieldLabel": "Permitir comentarios dos usuarios",
+    "experienceEnableEntryModalFieldLabel": "Mostrar modal inicial de recomendacoes e instrucoes",
+    "experienceEnableHCaptchaFieldLabel": "Solicitar verificacao hCaptcha antes de iniciar",
+    "experienceRewardsTabLabel": "Premios",
+    "experienceRewardTypeFieldLabel": "Tipo de premio",
+    "experienceRewardTypeHelpText": "Selecione se o premio e dinheiro, um objeto, uma viagem ou outro formato.",
+    "experienceRewardTypeMoneyLabel": "Dinheiro",
+    "experienceRewardTypeObjectLabel": "Objeto",
+    "experienceRewardTypeTravelLabel": "Viagem",
+    "experienceRewardTypeVoucherLabel": "Voucher",
+    "experienceRewardTypeOtherLabel": "Outro",
+    "experienceRewardTitleFieldLabel": "Nome do premio",
+    "experienceRewardDescriptionFieldLabel": "Descricao do premio",
+    "experienceRewardDeliveryMethodFieldLabel": "Como sera entregue",
+    "experienceRewardDeliveryDetailsFieldLabel": "Detalhes da entrega",
+    "experienceRewardDeliveryDetailsHelpText": "Explique como a entrega do premio sera coordenada ou realizada.",
+    "experienceRewardPaymentMethodsFieldLabel": "Plataformas de pagamento disponiveis",
+    "experienceRewardPaymentMethodsHelpText": "Selecione as plataformas ou bancos disponiveis para entregar o premio quando aplicavel.",
+    "experienceRewardWinnerCountFieldLabel": "Quantidade de posicoes premiadas",
+    "experienceRewardWinnerCountHelpText": "1 premia apenas o primeiro lugar. 3, 5 ou 10 distribuem o premio entre essas posicoes.",
+    "experienceRewardDeliveryManualLabel": "Coordenacao direta com o organizador",
+    "experienceRewardDeliveryBankTransferLabel": "Transferencia bancaria",
+    "experienceRewardDeliveryDigitalWalletLabel": "Carteira digital",
+    "experienceRewardDeliveryHybridLabel": "Entrega combinada",
+    "experienceRewardDeliveryInPersonLabel": "Entrega presencial",
+    "experienceRewardUsdFieldLabel": "Premio em pontos (PT)",
+    "experienceRewardUsdHelpText": "Defina a quantidade total de pontos do premio. 1 PT equivale a 4.000 COP.",
+    "experienceWelcomeBodyFieldLabel": "Instrucoes iniciais",
+    "experienceAutoStartConversationFieldLabel": "Iniciar a conversa automaticamente ao entrar",
+    "experiencePromptFieldLabel": "Prompt conversacional",
+    "experienceAgentConfigSectionLabel": "Configuracao da pasta",
+    "experienceAgentModelFieldLabel": "Modelo",
+    "experienceAgentVoiceFieldLabel": "Voz",
+    "experienceAgentLanguageFieldLabel": "Idioma",
+    "agentSettingsButtonLabel": "Configurar pasta",
+    "agentSettingsDialogTitle": "Configuracao geral da pasta",
+    "agentSidebarTitle": "Pasta",
+    "agentNameFieldLabel": "Nome da pasta",
+    "createAgentButtonLabel": "Criar pasta",
+    "editAgentButtonLabel": "Editar pasta",
+    "defaultEvaluationAgentName": "Pasta de avaliacoes",
+    "defaultSurveyAgentName": "Pasta de pesquisas",
+    "noAgentOptionLabel": "Sem pasta atribuida",
+    "agentDeleteConfirmMessage": "Deseja excluir esta pasta? As experiencias associadas ficarao sem pasta.",
+    "experiencePublicLinkColumnLabel": "URL publica",
+    "experienceDomainColumnLabel": "Dominio",
+    "experiencePublicLinkPreviewLabel": "Vista previa de URL publica",
+    "experienceDeleteConfirmMessage": "Deseas eliminar esta experiencia publica?",
+    "experienceLaunchesMetricLabel": "inicios",
+    "experienceConversationsMetricLabel": "dialogos",
+    "publicExperienceSectionDescription": "Crea experiencias compartibles para que otras personas hablen con NAVAI desde una URL publica.",
+    "publicExperienceLoadingLabel": "Cargando experiencia publica",
+    "publicExperienceNotFoundLabel": "Experiencia no disponible",
+    "publicExperienceNotFoundMessage": "Esta experiencia publica no existe o ya no esta disponible.",
+    "publicExperiencePrivateAuthMessage": "Entre com uma conta autorizada para acessar esta experiencia privada.",
+    "publicExperiencePlusOnlyAuthMessage": "Entre com uma conta que tenha NAVAI Plus ativo para responder esta experiencia.",
+    "publicExperienceNonPlusOnlyAuthMessage": "Entre com uma conta sem NAVAI Plus ativo para responder esta experiencia.",
+    "publicExperienceInactiveMessage": "Esta experiencia nao esta ativa no momento.",
+    "publicExperienceStartsAtMessage": "Esta experiencia estara disponivel a partir de {start}.",
+    "publicExperienceEndsAtMessage": "Esta experiencia deixou de estar disponivel em {end}.",
+    "publicExperienceCommunityLoadErrorMessage": "Nao foi possivel carregar o ranking e os comentarios desta experiencia.",
+    "publicExperienceCommunityLoadingLabel": "Carregando atividade da comunidade...",
+    "publicExperienceRankingEyebrow": "Ranking",
+    "publicExperienceRankingTitle": "Top 10 usuarios",
+    "publicExperienceRankingEmptyMessage": "Ainda nao ha pontuacoes suficientes para mostrar um ranking.",
+    "publicExperienceRankingScoreLabel": "Pontuacao total",
+    "publicExperienceRankingPositionLabel": "Posicao atual",
+    "publicExperienceRankingDuringEventMessage": "O ranking completo sera exibido quando a avaliacao ou pesquisa terminar. Durante o evento voce so pode ver seu resultado atual.",
+    "publicExperienceRankingCurrentUserEmptyMessage": "Sua pontuacao e sua posicao aparecerao quando voce entrar no ranking atual.",
+    "publicExperienceCommentsEyebrow": "Comentarios",
+    "publicExperienceCommentsTitle": "Comentarios dos usuarios",
+    "publicExperienceCommentsEmptyMessage": "Ainda nao ha comentarios publicados.",
+    "publicExperienceCommentsDuringEventMessage": "Os comentarios publicos serao exibidos quando a avaliacao ou pesquisa terminar. Durante o evento voce so pode ver seu proprio comentario.",
+    "publicExperienceCommentsCurrentUserEmptyMessage": "Voce ainda nao publicou um comentario.",
+    "publicExperienceCommentsAuthMessage": "Entre para publicar ou gerenciar seus comentarios.",
+    "publicExperienceRewardsTabLabel": "Premios",
+    "publicExperienceRewardsAuthMessage": "Entre para ver o premio configurado desta experiencia.",
+    "publicExperienceRewardsEyebrow": "Premio configurado",
+    "publicExperienceRewardAmountLabel": "Valor do premio (USD)",
+    "publicExperienceRewardCurrencyLabel": "Moeda",
+    "publicExperienceRewardTypeLabel": "Tipo de premio",
+    "publicExperienceRewardWinnerCountLabel": "Posicoes premiadas",
+    "publicExperienceRewardTitleLabel": "Nome do premio",
+    "publicExperienceRewardDescriptionLabel": "Descricao",
+    "publicExperienceRewardDeliveryMethodLabel": "Entrega do premio",
+    "publicExperienceRewardDeliveryDetailsLabel": "Detalhes da entrega",
+    "publicExperienceRewardPaymentMethodsLabel": "Plataformas disponiveis",
+    "publicExperienceRewardTypeMoneyLabel": "Dinheiro",
+    "publicExperienceRewardRuleOne": "Esta experiencia oferece um premio total de {amount}.",
+    "publicExperienceRewardRuleTwo": "O premio sempre e mostrado como dinheiro em USD.",
+    "publicExperienceRewardRuleThree": "A entrega do premio depende do organizador desta avaliacao ou pesquisa.",
+    "publicExperienceRewardEmptyMessage": "Ainda nao ha um premio configurado para esta experiencia.",
+    "publicExperienceOrganizerTabLabel": "Organizador",
+    "publicExperienceOrganizerEyebrow": "Criado por",
+    "publicExperienceOrganizerTitle": "Organizador",
+    "publicExperienceOrganizerEmptyMessage": "As informacoes do organizador nao estao disponiveis para esta experiencia.",
+    "publicExperienceOrganizerUsernameLabel": "Usuario",
+    "publicExperienceOrganizerVerificationLabel": "Verificacao",
+    "publicExperienceOrganizerVerifiedLabel": "Verificado",
+    "publicExperienceOrganizerUnverifiedLabel": "Nao verificado",
+    "publicExperienceOrganizerNetworksLabel": "Redes e links",
+    "publicExperienceOrganizerRewardResponsibleMessage": "Se esta experiencia oferece premio, o organizador e quem o entrega e coordena.",
+    "publicExperienceRulesTabLabel": "Regras",
+    "publicExperienceRulesEyebrow": "Condicoes de participacao",
+    "publicExperienceRulesTitle": "Regras e condicoes",
+    "publicExperienceRulesAgeRule": "A participacao e destinada a maiores de idade ou a usuarios que tenham a autorizacao legal exigida em sua jurisdicao.",
+    "publicExperienceRulesSingleAccountRule": "So e permitida uma conta por pessoa. Contas duplicadas, imitacoes, bots ou automacoes podem ser rejeitados ou desclassificados.",
+    "publicExperienceRulesAuthenticResponsesRule": "As respostas devem ser autenticas, pessoais e enviadas pelo participante durante o periodo ativo da avaliacao ou pesquisa.",
+    "publicExperienceRulesDailyLimitRule": "Each user may participate up to {count} time per day in this experience. One available entry is consumed for each participation.",
+    "publicExperienceRulesScheduleRule": "A participacao vale dentro da janela programada entre {start} e {end}. Fora desse periodo, o acesso pode ser restringido ou reagendado.",
+    "publicExperienceRulesNoScheduleRule": "Esta experiencia nao possui data de inicio ou fim totalmente configurada, por isso a disponibilidade pode mudar conforme a decisao do organizador.",
+    "publicExperienceRulesRewardQuotaRule": "Se houver premio, ele so sera entregue quando a cota minima de participacao exigida para ativa-lo for atingida. Caso contrario, a data de encerramento pode ser estendida ate atingir essa cota.",
+    "publicExperienceRulesRewardDistributionRule": "O premio total configurado de {amount} e distribuido conforme o ranking final e as primeiras {count} posicoes definidas pelo organizador.",
+    "publicExperienceRulesNoRefundRule": "Nao ha reembolsos, compensacoes ou devolucoes por custos assumidos pelo participante durante a inscricao ou participacao.",
+    "publicExperienceRulesValidationRule": "O organizador pode solicitar validacao de identidade, contato ou meio de pagamento antes de entregar o premio e pode anular participacoes com fraude ou violacao das regras.",
+    "publicExperienceRulesLegalAcceptanceRule": "Ao participar, voce aceita os termos, politicas de privacidade, regras de tratamento de dados, avisos de uso de IA e demais condicoes legais vinculadas nesta experiencia.",
+    "publicExperienceCommentPlaceholder": "Compartilhe sua experiencia ou deixe uma observacao...",
+    "publicExperienceCommentRatingFieldLabel": "Avaliacao do comentario",
+    "publicExperienceCommentFilterLabel": "Filtrar por estrelas",
+    "publicExperienceCommentFilterAllLabel": "Todas",
+    "publicExperienceCommentRequiredMessage": "O comentario e obrigatorio.",
+    "publicExperienceCommentFilteredEmptyMessage": "Nao ha comentarios com essa avaliacao.",
+    "publicExperienceCommentOpenActionLabel": "Escrever comentario",
+    "publicExperienceCommentEditOwnActionLabel": "Editar meu comentario",
+    "publicExperienceCommentDialogCreateTitle": "Novo comentario",
+    "publicExperienceCommentDialogEditTitle": "Editar comentario",
+    "publicExperienceCommentCreateActionLabel": "Publicar comentario",
+    "publicExperienceCommentSaveActionLabel": "Salvar comentario",
+    "publicExperienceCommentSaveErrorMessage": "Nao foi possivel salvar o comentario.",
+    "publicExperienceCommentDeleteErrorMessage": "Nao foi possivel excluir o comentario.",
+    "publicExperienceEntryDialogTitle": "Antes de comecar",
+    "publicExperienceEntryDialogDescription": "Leia estas orientacoes antes de iniciar a avaliacao ou pesquisa.",
+    "publicExperienceEntryTimeTitle": "Reserve tempo suficiente",
+    "publicExperienceEntryTimeDescription": "Certifique-se de ter tempo para responder com calma e sem interrupcoes.",
+    "publicExperienceEntryNoiseTitle": "Escolha um lugar silencioso",
+    "publicExperienceEntryNoiseDescription": "Use um ambiente com pouco ruido para que sua voz seja ouvida com clareza.",
+    "publicExperienceEntryVideoTitle": "Seguranca e verificacao",
+    "publicExperienceEntryVideoDescription": "A gravacao de video pode ser solicitada por seguranca e validacao do processo.",
+    "publicExperienceEntryBotTitle": "Nao usar bots ou uso indevido",
+    "publicExperienceEntryBotDescription": "Nao use automacoes, falsificacao de identidade ou praticas que alterem a plataforma.",
+    "publicExperienceEntryTermsTitle": "Termos e condicoes",
+    "publicExperienceEntryTermsDescription": "Voce deve cumprir as regras de uso, privacidade e seguranca desta experiencia.",
+    "publicExperienceEntryTermsCheckboxLabel": "Li os avisos e aceito os termos e condicoes para continuar.",
+    "publicExperienceEntryCaptchaTitle": "Verificacao hCaptcha",
+    "publicExperienceEntryCaptchaDescription": "Conclua o hCaptcha antes de ativar o agente para validar o acesso.",
+    "publicExperienceEntryCaptchaRequiredMessage": "Conclua o hCaptcha para continuar.",
+    "publicExperienceEntryCaptchaLoadErrorMessage": "Nao foi possivel carregar a verificacao hCaptcha.",
+    "publicExperienceEntryCameraPermissionMessage": "Voce precisa permitir o uso da camera para continuar.",
+    "publicExperienceEntryContinueActionLabel": "Continuar",
+    "publicExperienceProfileTitle": "Perfil do usuario",
+    "publicExperienceProfileLoadingMessage": "Carregando perfil...",
+    "publicExperienceProfileLoadErrorMessage": "Nao foi possivel carregar o perfil publico.",
+    "publicExperienceProfileEmptyMessage": "Este usuario ainda nao completou o perfil.",
+    "noDomainOptionLabel": "Sin dominio asignado",
+    "evaluationQuestionsSectionLabel": "Preguntas de la evaluacion",
+    "createQuestionButtonLabel": "Nueva pregunta",
+    "evaluationQuestionsEmptyMessage": "Todavia no hay preguntas registradas para esta evaluacion.",
+    "tableFilterEvaluationQuestionsPlaceholder": "Filtrar preguntas...",
+    "evaluationQuestionFieldLabel": "Pregunta",
+    "evaluationExpectedAnswerFieldLabel": "Respuesta esperada",
+    "evaluationAiGradingFieldLabel": "Permitir que la IA califique esta respuesta",
+    "evaluationQuestionColumnLabel": "Pregunta",
+    "evaluationExpectedAnswerColumnLabel": "Respuesta esperada",
+    "evaluationAiGradingColumnLabel": "Calificacion IA",
+    "evaluationAiGradingEnabledLabel": "IA califica",
+    "evaluationAiGradingDisabledLabel": "Manual",
+    "evaluationQuestionRequiredMessage": "La pregunta es obligatoria.",
+    "evaluationExpectedAnswerRequiredMessage": "La respuesta esperada es obligatoria.",
+    "surveyQuestionsSectionLabel": "Preguntas de la encuesta",
+    "surveyQuestionsEmptyMessage": "Todavia no hay preguntas registradas para esta encuesta.",
+    "tableFilterSurveyQuestionsPlaceholder": "Filtrar preguntas...",
+    "surveyQuestionColumnLabel": "Pregunta",
+    "experienceResponsesButtonLabel": "Ver respostas",
+    "experienceResponsesDialogTitle": "Respostas por usuario",
+    "experienceResponsesEmptyMessage": "Ainda nao ha respostas registradas para esta experiencia.",
+    "experienceResponsesLoadErrorMessage": "Nao foi possivel carregar as respostas desta experiencia.",
+    "experienceResponsesFilterPlaceholder": "Filtrar respostas...",
+    "experienceResponsesUserColumnLabel": "Usuario",
+    "experienceResponsesDateColumnLabel": "Data",
+    "experienceResponsesStartedAtColumnLabel": "Hora de inicio",
+    "experienceResponsesEndedAtColumnLabel": "Hora de termino",
+    "experienceResponsesDurationColumnLabel": "Tempo de resposta",
+    "experienceResponsesAnsweredColumnLabel": "Perguntas respondidas",
+    "experienceResponsesStatusColumnLabel": "Status",
+    "experienceResponseDetailsButtonLabel": "Ver detalhes das respostas",
+    "experienceResponseAudioButtonLabel": "Reproduzir audio",
+    "experienceResponseVideoButtonLabel": "Abrir video",
+    "experienceResponseDetailsDialogTitle": "Detalhes das respostas",
+    "experienceResponseAnswersSectionLabel": "Respostas por pergunta",
+    "experienceResponseAnswersEmptyMessage": "Nao ha respostas salvas para esta conversa.",
+    "experienceResponseAnswerColumnLabel": "Resposta",
+    "experienceResponseUpdatedAtColumnLabel": "Hora da resposta",
+    "experienceResponseAudioSectionLabel": "Audio da conversa",
+    "experienceResponseAudioEmptyMessage": "Esta conversa nao tem audio gravado disponivel.",
+    "experienceResponseVideoSectionLabel": "Gravacao de video",
+    "experienceResponseVideoEmptyMessage": "Esta conversa nao tem video gravado disponivel.",
+    "backButtonLabel": "Voltar",
+    "experienceResponsesAnonymousUserLabel": "Usuario sem identificacao",
+    "experienceResponsesConversationsColumnLabel": "Conversas",
+    "experienceResponsesCompletedColumnLabel": "Concluidas",
+    "experienceResponsesOpenColumnLabel": "Abertas",
+    "experienceResponsesAbandonedColumnLabel": "Abandonadas",
+    "experienceResponsesLastActivityColumnLabel": "Ultima atividade",
+    "experienceResponsesViewUserButtonLabel": "Ver respostas",
+    "navGroupOverviewLabel": "Visao geral",
+    "navGroupWorkspaceLabel": "Operacoes",
+    "navGroupAccountLabel": "Conta",
+    "navGroupAdministrationLabel": "Administracao",
+    "profileNavLabel": "Meu perfil",
+    "userProfileTabProfileLabel": "Perfil",
+    "userProfileTabVerificationLabel": "Verificacao",
+    "userProfileTabAccountLabel": "Conta",
+    "usersNavLabel": "Usuarios e papeis",
+    "withdrawalsNavLabel": "Withdrawals",
+    "userProfileDescription": "Atualize suas informacoes pessoais, profissionais, de contato e redes sociais para exibi-las nas experiencias publicas.",
+    "userAccountStatusSidebarLabel": "Status da conta",
+    "userAccountStatusLabel": "Status da conta",
+    "userAccountStatusActiveLabel": "Ativa",
+    "userAccountStatusDeletionPendingLabel": "Exclusao agendada",
+    "userAccountStatusInactiveLabel": "Inativa",
+    "userAccountDeletionSectionEyebrow": "Conta e rastreabilidade",
+    "userAccountDeletionSectionTitle": "Exclusao da conta",
+    "userAccountDeletionSectionDescription": "Confirme se deseja colocar sua conta em periodo de exclusao. As informacoes sao preservadas para rastreabilidade e a conta sera desativada apos 5 dias.",
+    "userAccountDeletionKeepRecordsNotice": "A conta nao e excluida fisicamente e os registros nao sao removidos. A rastreabilidade e preservada durante esse periodo e, quando a conta ficar inativa, voce nao podera mais entrar nem expor informacoes publicas vinculadas ao usuario.",
+    "userAccountDeletionRequestedAtLabel": "Solicitacao registrada",
+    "userAccountScheduledDeactivationAtLabel": "Desativacao agendada",
+    "userAccountDeactivatedAtLabel": "Conta desativada",
+    "userAccountDeletionRequestButtonLabel": "Solicitar exclusao da conta",
+    "userAccountDeletionRequestPendingLabel": "Exclusao agendada",
+    "userAccountDeletionDialogTitle": "Confirmar exclusao da conta",
+    "userAccountDeletionDialogDescription": "Se voce confirmar, sua conta entra hoje no periodo de exclusao. Apos 5 dias ela sera desativada, voce nao podera mais entrar e suas informacoes publicas deixarao de ser exibidas. Os registros nao sao apagados para preservar a rastreabilidade.",
+    "userAccountDeletionDialogCancelLabel": "Cancelar",
+    "userAccountDeletionDialogConfirmLabel": "Confirmar exclusao",
+    "userAccountDeletionRequestSuccessMessage": "A conta entrou em periodo de exclusao. Ela sera desativada automaticamente em 5 dias.",
+    "userAccountDeletionRequestErrorMessage": "Nao foi possivel agendar a exclusao da conta.",
+    "userProfileLoadErrorMessage": "Nao foi possivel carregar seu perfil.",
+    "userProfileSaveErrorMessage": "Nao foi possivel salvar seu perfil.",
+    "userProfileSaveSuccessMessage": "Perfil atualizado com sucesso.",
+    "userProfileDisplayNameFieldLabel": "Nome exibido",
+    "userProfilePhotoUrlFieldLabel": "URL da foto",
+    "userProfileEmailFieldLabel": "Email",
+    "userProfileBioFieldLabel": "Informacoes pessoais",
+    "userProfileHeadlineFieldLabel": "Titulo profissional",
+    "userProfileProfessionalSectionTitle": "Informacoes profissionais",
+    "userProfileJobTitleFieldLabel": "Cargo",
+    "userProfileCompanyFieldLabel": "Empresa",
+    "userProfileLocationFieldLabel": "Localizacao",
+    "userProfilePhoneFieldLabel": "Telefone",
+    "userProfileWebsiteFieldLabel": "Site",
+    "userProfileLinkedinFieldLabel": "LinkedIn",
+    "userProfileGithubFieldLabel": "GitHub",
+    "userProfileXFieldLabel": "X / Twitter",
+    "userProfileInstagramFieldLabel": "Instagram",
+    "userProfileFacebookFieldLabel": "Facebook",
+    "userManagementDescription": "Gerencie usuarios, papeis e permissoes operacionais para editar ou excluir dados do painel.",
+    "userManagementUsersSectionLabel": "Usuarios do painel",
+    "userManagementUsersSectionDescription": "Atribua o papel operacional de cada usuario autenticado que ja entrou no painel.",
+    "userManagementRolesSectionLabel": "Permissoes por papel",
+    "userManagementRolesSectionDescription": "Defina se cada papel pode editar tabelas, excluir registros ou administrar usuarios.",
+    "userManagementUsersFilterPlaceholder": "Filtrar usuarios...",
+    "userManagementRolesFilterPlaceholder": "Filtrar papeis...",
+    "userManagementUsersEmptyMessage": "Ainda nao ha usuarios no painel.",
+    "userManagementRolesEmptyMessage": "Ainda nao ha permissoes de papel configuradas.",
+    "userManagementLoadErrorMessage": "Nao foi possivel carregar a administracao do painel.",
+    "userManagementSaveErrorMessage": "Nao foi possivel salvar as alteracoes de administracao.",
+    "userManagementUserSavedMessage": "Papel do usuario atualizado com sucesso.",
+    "userManagementPermissionsSavedMessage": "Permissoes do papel atualizadas com sucesso.",
+    "userManagementUserColumnLabel": "Usuario",
+    "userManagementRoleColumnLabel": "Papel",
+    "userManagementLastSeenColumnLabel": "Ultima atividade",
+    "userManagementUpdatedAtColumnLabel": "Atualizado",
+    "userManagementEditPermissionLabel": "Editar tabelas",
+    "userManagementDeletePermissionLabel": "Excluir registros",
+    "userManagementManageUsersPermissionLabel": "Administrar usuarios",
+    "userManagementSaveRoleButtonLabel": "Salvar papel",
+    "userManagementSavePermissionsButtonLabel": "Salvar permissoes",
+    "userManagementSystemManagedLabel": "Fixo",
+    "userManagementCurrentAdminLabel": "Administrador atual",
+    "userManagementRoleAdminLabel": "Administrador",
+    "userManagementRoleModeratorLabel": "Moderador",
+    "userManagementRoleSupportLabel": "Suporte",
+    "userManagementRoleUserLabel": "Usuario",
+    "userManagementRoleVisitorLabel": "Visitante",
+    "experienceResponseAiGradeButtonLabel": "Avaliar com IA",
+    "experienceResponseAiScoreColumnLabel": "Pontuacao IA",
+    "experienceResponseAiFeedbackColumnLabel": "Comentario IA",
+    "experienceResponseAiNotGradedLabel": "Sem avaliacao",
+    "experienceResponseAiGradingErrorMessage": "Nao foi possivel avaliar esta conversa com IA.",
+    "paymentsNavLabel": "Entries",
+    "paymentsDescription": "Buy NAVAI entries and review related purchases, credits, and accounting records.",
+    "plusPlanTitle": "NAVAI Entry",
+    "plusPlanSummary": "Buy single entries to participate in evaluations and surveys across the platform.",
+    "plusPlanFeatureOne": "Each approved purchase credits 1 entry.",
+    "plusPlanFeatureTwo": "Fixed price of COP 19,900 with VAT included.",
+    "plusPlanFeatureThree": "Entries are consumed when you start an evaluation or survey.",
+    "plusEnvironmentLabel": "Wompi environment:",
+    "plusMembershipTitle": "Entry balance",
+    "plusMembershipActiveLabel": "Available entries",
+    "plusMembershipInactiveLabel": "Referral entries",
+    "plusMembershipEndsAtLabel": "Purchased entries",
+    "plusMembershipLastOrderLabel": "Last order:",
+    "plusPurchaseButtonLabel": "Buy 1 entry",
+    "plusOpenCheckoutButtonLabel": "Open checkout",
+    "plusRefreshButtonLabel": "Refresh payments",
+    "plusPendingOrderTitle": "Pending purchase",
+    "plusPendingOrderDescription": "If you already opened Wompi, you can resume checkout or confirm the purchase manually when you return.",
+    "plusManualConfirmTitle": "Confirm purchase",
+    "plusConfirmOrderFieldLabel": "Order id",
+    "plusConfirmTransactionFieldLabel": "Wompi transaction id",
+    "plusConfirmButtonLabel": "Confirm payment",
+    "plusConfirmSuccessMessage": "The payment was confirmed and 1 entry was credited.",
+    "plusLoadErrorMessage": "Could not load entry information.",
+    "plusCreateOrderErrorMessage": "Could not create the entry purchase order.",
+    "plusConfirmErrorMessage": "Could not confirm the entry payment.",
+    "plusOrdersSectionLabel": "My purchases",
+    "plusAllOrdersSectionLabel": "All purchases",
+    "plusOrdersEmptyMessage": "No purchases have been recorded yet.",
+    "plusOrdersFilterPlaceholder": "Filter purchases...",
+    "plusAccountingSectionLabel": "Accounting and purchase traceability",
+    "plusAccountingRevenueLabel": "Approved revenue",
+    "plusAccountingApprovedLabel": "Approved purchases",
+    "plusAccountingPendingLabel": "Pending purchases",
+    "plusAccountingActiveMembersLabel": "Entries sold",
+    "plusAccountingTotalOrdersLabel": "Total purchases",
+    "plusOrderUserColumnLabel": "User",
+    "plusOrderStatusColumnLabel": "Status",
+    "plusOrderPlanColumnLabel": "Product",
+    "plusOrderEnvironmentColumnLabel": "Environment",
+    "plusOrderAmountColumnLabel": "Amount",
+    "plusOrderReferenceColumnLabel": "Reference",
+    "plusOrderPaymentMethodColumnLabel": "Method",
+    "plusOrderCreatedAtColumnLabel": "Created",
+    "plusOrderActivatedAtColumnLabel": "Credited",
+    "plusOrderCheckoutColumnLabel": "Checkout",
+    "plusOrderOpenCheckoutActionLabel": "Open checkout",
+    "plusOrderCopyIdActionLabel": "Copy id",
+    "dailyAttemptLimitFieldLabel": "Attempts per user per day",
+    "dailyAttemptLimitHelpText": "Define how many times per day the same user can answer this evaluation or survey.",
+    "publicExperienceDailyAttemptLimitReachedMessage": "You already reached the daily limit allowed for this evaluation or survey.",
+    "publicExperiencePlusRequiredMessage": "This experience requires at least 1 available entry.",
+    "publicExperienceNonPlusOnlyMessage": "Esta experiencia esta disponivel apenas para usuarios sem NAVAI Plus.",
+    "publicExperienceReactivationLabel": "Ativa novamente em",
+    "publicExperienceExpirationLabel": "Vence em",
+    "publicExperienceExpirationDateLabel": "Data de vencimento: {end}.",
+    "publicExperienceMissingScheduleMessage": "Esta experiencia nao possui data de inicio ou de fim configurada.",
+    "publicExperienceReactivationPendingLabel": "A reativacao depende da restricao atual.",
+    "publicExperienceCountdownFormatLabel": "DD:HH:MM:SS",
+    "referralsNavLabel": "Referrals",
+    "referralsDescription": "Share your invite link, generate a QR code, and review referral traceability and entries.",
+    "plusReferralDetectedTitle": "Referral detected",
+    "plusReferralDetectedDescription": "This 1-entry purchase will use the referral code captured in this browser.",
+    "referralAttributionAcceptedMessage": "The referral was attached to the entry purchase.",
+    "referralAttributionInvalidMessage": "The referral code is invalid. The purchase will continue without referral attribution.",
+    "referralAttributionSelfMessage": "You cannot use your own referral code.",
+    "referralAttributionAlreadyAssignedMessage": "Your account already has a referral assigned.",
+    "referralAttributionIneligibleMessage": "This account already purchased an entry and is not eligible for the referral reward.",
+    "referralAvailableCreditsLabel": "Available referral entries",
+    "referralTotalReferralsLabel": "Total referrals",
+    "referralRewardedReferralsLabel": "Approved referrals",
+    "referralConsumedCreditsLabel": "Consumed referral entries",
+    "referralProgramRulesTitle": "How it works",
+    "referralProgramRuleOne": "Each approved referral that buys 1 entry adds 3 entries.",
+    "referralProgramRuleTwo": "Referral rewards are added as available entries for evaluations and surveys.",
+    "referralProgramRuleThree": "Traceability records purchases, rewards, and entry consumption.",
+    "referralProgramCodeCardTitle": "Referral code",
+    "referralProgramCodeCardDescription": "Share this code or link to invite new users.",
+    "referralProgramShareTitle": "Share your invitation",
+    "referralProgramShareDescription": "Use the link or QR code to invite users. When they buy 1 entry, you receive 3 entries.",
+    "referralProgramCodeLabel": "Code",
+    "referralProgramLinkLabel": "Invite link",
+    "referralCopyCodeButtonLabel": "Copy code",
+    "referralCopyLinkButtonLabel": "Copy link",
+    "referralOpenLinkButtonLabel": "Open link",
+    "referralCopyCodeSuccessMessage": "Code copied.",
+    "referralCopyLinkSuccessMessage": "Link copied.",
+    "referralProgramQrTitle": "QR code",
+    "referralProgramQrDescription": "Scan or share this QR to open the invitation link.",
+    "referralProgramQrAlt": "Referral program QR code",
+    "referralProgramQrLoadingLabel": "Generating QR code...",
+    "referralsTableTitle": "Referrals",
+    "referralsTableDescription": "Tracking of invited users and related entry purchases.",
+    "referralsTableEmptyMessage": "There are no referrals yet.",
+    "referralsTableFilterPlaceholder": "Filter referrals...",
+    "referralReferredEmailColumnLabel": "Referred user",
+    "referralStatusColumnLabel": "Status",
+    "referralRewardColumnLabel": "Entries",
+    "referralSourceOrderColumnLabel": "Source order",
+    "referralCreatedAtColumnLabel": "Registered",
+    "referralRewardAppliedAtColumnLabel": "Reward applied",
+    "referralRejectionReasonColumnLabel": "Reason",
+    "referralStatusPendingLabel": "Pending",
+    "referralStatusRewardedLabel": "Approved",
+    "referralStatusRejectedLabel": "Rejected",
+    "referralLedgerTitle": "Access traceability",
+    "referralLedgerDescription": "Record of granted rewards and entry consumption.",
+    "referralLedgerEmptyMessage": "There are no referral movements yet.",
+    "referralLedgerFilterPlaceholder": "Filter movements...",
+    "referralLedgerReasonColumnLabel": "Reason",
+    "referralLedgerDeltaColumnLabel": "Delta",
+    "referralLedgerRelatedUserColumnLabel": "Related user",
+    "referralLedgerExperienceColumnLabel": "Survey",
+    "referralLedgerConversationColumnLabel": "Conversation",
+    "referralLedgerCreatedAtColumnLabel": "Date",
+    "referralLedgerReasonRewardLabel": "Referral reward",
+    "referralLedgerReasonBypassLabel": "Entry consumption",
+    "referralLedgerReasonManualLabel": "Manual adjustment",
+    "referralLoadErrorMessage": "Could not load the referral program.",
+    "publicExperienceEntryTermsCheckboxPrefix": "Li e aceito:",
+    "publicExperienceEntryTermsCheckboxSuffix": "",
+    "userVerificationSidebarLabel": "Verification",
+    "userVerificationSectionEyebrow": "Identity verification",
+    "userVerificationSectionTitle": "Account verification",
+    "userVerificationSectionDescription": "Upload your face image and both sides of your identity document to request a manual account verification.",
+    "userVerificationStatusLabel": "Status",
+    "userVerificationCurrentStatusTitle": "Current request status",
+    "userVerificationCurrentStatusDescription": "Check the current status, submission date, and latest response from the review team.",
+    "userVerificationRequirementsTitle": "Request requirements",
+    "userVerificationRequirementsDescription": "Make sure the images are clear and the information matches your identity document.",
+    "userVerificationRequirementFaceImage": "Include a clear image of your face.",
+    "userVerificationRequirementFrontImage": "Upload the front side of the identity document.",
+    "userVerificationRequirementBackImage": "Upload the back side of the identity document.",
+    "userVerificationRequirementClearData": "Verify that the full name and document number are easy to read.",
+    "userVerificationFullNameLabel": "Full name",
+    "userVerificationDocumentTypeLabel": "Document type",
+    "userVerificationDocumentNumberLabel": "Document number",
+    "userVerificationDocumentCountryLabel": "Document country",
+    "userVerificationSubmittedAtLabel": "Submitted",
+    "userVerificationReviewedAtLabel": "Reviewed",
+    "userVerificationResponseLabel": "Review response",
+    "userVerificationSelfieTitle": "Face image",
+    "userVerificationSelfieDescription": "Upload a recent image where your face is fully visible.",
+    "userVerificationFrontTitle": "Document front side",
+    "userVerificationFrontDescription": "Upload the front side of the identity document.",
+    "userVerificationBackTitle": "Document back side",
+    "userVerificationBackDescription": "Upload the back side of the identity document.",
+    "userVerificationUploadFileButtonLabel": "Upload image",
+    "userVerificationOpenFileButtonLabel": "Open link",
+    "userVerificationSubmitButtonLabel": "Submit verification request",
+    "userVerificationSubmitSuccessMessage": "The verification request was submitted successfully.",
+    "userVerificationSubmitErrorMessage": "The verification request could not be submitted.",
+    "userVerificationImageUploadSuccessMessage": "The image was uploaded successfully to Cloudflare.",
+    "userVerificationImageUploadErrorMessage": "The verification image could not be uploaded.",
+    "userVerificationImageTypeErrorMessage": "Only image files can be uploaded for verification.",
+    "userVerificationImageSizeErrorMessage": "Each verification image must be smaller than 10 MB.",
+    "userVerificationStatusNotSubmittedLabel": "Not submitted",
+    "userVerificationStatusPendingLabel": "Pending",
+    "userVerificationStatusApprovedLabel": "Approved",
+    "userVerificationStatusRejectedLabel": "Rejected",
+    "userVerificationStatusChangesRequestedLabel": "Changes requested",
+    "userVerificationDocumentTypeCitizenshipCardLabel": "Citizenship card",
+    "userVerificationDocumentTypeIdentityCardLabel": "Identity card",
+    "userVerificationDocumentTypePassportLabel": "Passport",
+    "userVerificationDocumentTypeDriversLicenseLabel": "Driver's license",
+    "userVerificationDocumentTypeForeignIdLabel": "Foreign ID",
+    "userVerificationDocumentTypeOtherLabel": "Other",
+    "userManagementVerificationsSectionLabel": "Pending verifications",
+    "userManagementVerificationsSectionDescription": "Review identity requests from the oldest pending request to the newest one.",
+    "userManagementVerificationsFilterPlaceholder": "Filter verification requests...",
+    "userManagementVerificationsEmptyMessage": "There are no pending verification requests.",
+    "userManagementVerificationSavedMessage": "The verification request was updated successfully.",
+    "userManagementVerificationUserColumnLabel": "Applicant",
+    "userManagementVerificationSubmittedAtColumnLabel": "Request date",
+    "userManagementVerificationDocumentColumnLabel": "Document",
+    "userManagementVerificationStatusColumnLabel": "Verification status",
+    "userManagementVerificationReviewButtonLabel": "Review request",
+    "userManagementVerificationReviewPanelTitle": "Request review",
+    "userManagementVerificationReviewPanelDescription": "Change the verification status and send a response that the user will see in their profile.",
+    "userManagementVerificationResponseFieldLabel": "Response for the user",
+    "userManagementVerificationSaveButtonLabel": "Save review",
+    "userManagementVerificationPendingCountLabel": "Pending verifications",
+    "userManagementRoutesSectionLabel": "Acesso por rota",
+    "userManagementRoutesSectionDescription": "Defina quais papeis, incluindo visitantes sem sessao iniciada, podem abrir cada pagina ou rota publica.",
+    "userManagementRoutesFilterPlaceholder": "Filtrar rotas...",
+    "userManagementRoutesEmptyMessage": "Ainda nao ha regras de acesso por rota configuradas.",
+    "userManagementRouteSavedMessage": "Acesso por rota atualizado com sucesso.",
+    "userManagementRouteColumnLabel": "Rota / Pagina",
+    "userManagementVisitorPermissionLabel": "Visitante",
+    "userManagementRouteSaveButtonLabel": "Salvar acesso",
+    "pointsNavLabel": "Points cashout",
+    "pointsDescription": "Request PT point cashouts to real money and track each request status.",
+    "withdrawalsDescription": "Manage point cashout withdrawal requests and their payout status.",
+    "pointsWalletCardTitle": "Points wallet",
+    "pointsWalletPointValueLabel": "Valor por 1 PT (USD):",
+    "pointsWalletAvailablePointsLabel": "Available PT",
+    "pointsWalletAvailableAmountLabel": "Saldo disponivel (USD)",
+    "pointsWalletPendingTitle": "Pending cashouts",
+    "pointsWalletPendingPointsLabel": "Pending PT",
+    "pointsWalletPendingAmountLabel": "Valor pendente (USD)",
+    "pointsWalletTotalEarnedLabel": "Total earned PT",
+    "pointsPaymentSettingsTitle": "Cashout payment method",
+    "pointsPaymentSettingsDescription": "Set the account where you want to receive money when submitting a points cashout.",
+    "pointsPaymentMethodLabel": "Payment method",
+    "pointsAccountHolderLabel": "Account holder",
+    "pointsAccountReferenceLabel": "Account number or reference",
+    "pointsNotesLabel": "Notes",
+    "pointsSaveSettingsButtonLabel": "Save payment method",
+    "pointsRefreshButtonLabel": "Refresh wallet",
+    "pointsRequestTitle": "Create cashout request",
+    "pointsRequestDescription": "Informe quantos PT deseja converter para USD.",
+    "pointsRequestPointsLabel": "Points to cash out",
+    "pointsRequestButtonLabel": "Create request",
+    "pointsRequestsSectionTitle": "My cashout requests",
+    "pointsRequestsSectionDescription": "Track status and response for each request.",
+    "pointsRequestsEmptyMessage": "You do not have cashout requests yet.",
+    "pointsRequestsFilterPlaceholder": "Filter requests...",
+    "pointsRequestStatusColumnLabel": "Status",
+    "pointsRequestPointsColumnLabel": "PT",
+    "pointsRequestAmountColumnLabel": "Valor (USD)",
+    "pointsRequestMethodColumnLabel": "Method",
+    "pointsRequestCreatedAtColumnLabel": "Requested",
+    "pointsRequestProcessedAtColumnLabel": "Processed",
+    "pointsRequestResponseColumnLabel": "Response",
+    "pointsStatusPendingLabel": "Pending",
+    "pointsStatusProcessingLabel": "Processing",
+    "pointsStatusPaidLabel": "Paid",
+    "pointsStatusRejectedLabel": "Rejected",
+    "pointsLoadErrorMessage": "Could not load points wallet data.",
+    "pointsPaymentSettingsRequiredMessage": "Account holder and account reference are required.",
+    "pointsSaveSettingsSuccessMessage": "Payment method saved successfully.",
+    "pointsSaveSettingsErrorMessage": "Could not save payment method.",
+    "pointsRequestPointsInvalidMessage": "Enter a valid PT value greater than zero.",
+    "pointsRequestSuccessMessage": "Cashout request created successfully.",
+    "pointsRequestErrorMessage": "Could not create cashout request.",
+    "pointsTraceabilityTitle": "Cashout traceability",
+    "pointsTraceabilityDescription": "Point movement history related to cashout requests and adjustments.",
+    "pointsTraceabilityEmptyMessage": "There are no traceability movements to display yet.",
+    "pointsTraceabilityFilterPlaceholder": "Filter traceability...",
+    "pointsTraceabilityReasonColumnLabel": "Reason",
+    "pointsTraceabilityDeltaColumnLabel": "PT delta",
+    "pointsTraceabilityCashoutColumnLabel": "Cashout id",
+    "pointsTraceabilityCreatedAtColumnLabel": "Date",
+    "pointsTraceabilityReasonExperienceRewardLabel": "Experience reward",
+    "pointsTraceabilityReasonCashoutRequestLabel": "Cashout request",
+    "pointsTraceabilityReasonCashoutRevertedLabel": "Cashout reverted",
+    "pointsTraceabilityReasonManualAdjustmentLabel": "Manual adjustment",
+    "pointsWalletUsageTitle": "Cashout and withdrawal information",
+    "pointsWalletUsageDescription": "Submit PT-to-money cashout requests, set withdrawal details, and track payout status from this screen.",
+    "pointsWalletUsageEntryNote": "If you converted PT to money, you can use that money in your digital wallet to buy entries in the Entries section.",
+    "withdrawalsRequestsTitle": "Withdrawal requests",
+    "withdrawalsRequestsDescription": "Review point cashout requests, validate payment details, and update payout status.",
+    "withdrawalsPendingTabLabel": "Pending",
+    "withdrawalsProcessedTabLabel": "Processed",
+    "withdrawalsAllTabLabel": "All",
+    "withdrawalsRefreshButtonLabel": "Refresh requests",
+    "withdrawalsEmptyMessage": "There are no withdrawal requests for this filter.",
+    "withdrawalsLoadErrorMessage": "Could not load withdrawal requests.",
+    "withdrawalsReviewSuccessMessage": "Withdrawal request updated successfully.",
+    "withdrawalsReviewErrorMessage": "Could not update withdrawal request.",
+    "entryPackagesNavLabel": "Packages",
+    "entryPackagesDescription": "Manage entry packages with dynamic USD pricing and VAT.",
+    "entryPackagesTitle": "Entry Packages",
+    "entryPackagesSummaryTitle": "Package Summary",
+    "entryPackagesSummaryDescription": "Define active packages for entry purchases in the panel and public experiences.",
+    "entryPackagesTotalLabel": "Total packages",
+    "entryPackagesActiveLabel": "Active packages",
+    "entryPackagesTabListLabel": "List",
+    "entryPackagesTabEditorLabel": "Editor",
+    "entryPackagesCreateButtonLabel": "New package",
+    "entryPackagesRefreshButtonLabel": "Refresh packages",
+    "entryPackagesEmptyMessage": "No packages configured yet.",
+    "entryPackagesFilterPlaceholder": "Filter by name...",
+    "entryPackagesEditorTitle": "Edit package",
+    "entryPackagesEditorDescription": "Configure USD price, VAT included, and number of entries.",
+    "entryPackagesKeyFieldLabel": "Package key",
+    "entryPackagesNameFieldLabel": "Name",
+    "entryPackagesDescriptionFieldLabel": "Description",
+    "entryPackagesEntriesFieldLabel": "Included entries",
+    "entryPackagesPriceUsdFieldLabel": "Base price (USD)",
+    "entryPackagesVatFieldLabel": "VAT (%)",
+    "entryPackagesSortOrderFieldLabel": "Sort order",
+    "entryPackagesActiveFieldLabel": "Active package",
+    "entryPackagesSaveButtonLabel": "Save package",
+    "entryPackagesSaveSuccessMessage": "Package saved successfully.",
+    "entryPackagesSaveErrorMessage": "Could not save package.",
+    "entryPackagesLoadErrorMessage": "Could not load packages.",
+    "entryPackagesKeyRequiredMessage": "Package key is required.",
+    "entryPackagesKeyColumnLabel": "Key",
+    "entryPackagesNameColumnLabel": "Name",
+    "entryPackagesEntriesColumnLabel": "Entries",
+    "entryPackagesTotalUsdColumnLabel": "Total USD",
+    "entryPackagesTotalCopColumnLabel": "Total COP",
+    "entryPackagesStatusColumnLabel": "Status",
+    "entryPackagesUpdatedAtColumnLabel": "Updated",
+    "entryPackagesStatusActiveLabel": "Active",
+    "entryPackagesStatusInactiveLabel": "Inactive",
+    "entryPackagesPurchaseDescription": "Select a package to buy entries with dynamic pricing (USD + VAT).",
+    "entryPackagesNoActiveMessage": "There are no active entry packages.",
+    "entryPackagesSelectedLabel": "Selected",
+    "entryPackagesUsdColumnLabel": "Total USD",
+    "entryPackagesVatLabel": "VAT",
+    "plusOrderEntriesColumnLabel": "Entries",
+    "publicExperiencePurchaseDescription": "You do not have available entries. Buy a package to continue.",
+    "publicExperiencePurchaseLoadingLabel": "Loading entry packages...",
+    "publicExperiencePurchaseLoadErrorMessage": "Could not load entry purchase options.",
+    "publicExperiencePurchaseRequiredAuthMessage": "Sign in to buy entries.",
+    "publicExperiencePurchaseCheckoutMessage": "Checkout opened in a new tab."
+  }
+}
+

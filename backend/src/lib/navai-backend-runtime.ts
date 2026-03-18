@@ -18,7 +18,7 @@ type NavaiFunctionsRuntime = {
   warnings: string[];
 };
 
-const DEFAULT_FUNCTIONS_FOLDER_CANDIDATES = ["src/ai/functions-modules"];
+const DEFAULT_FUNCTIONS_FOLDER_CANDIDATES = ["src/ai"];
 
 let runtimePromise: Promise<NavaiFunctionsRuntime> | null = null;
 

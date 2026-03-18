@@ -25,6 +25,63 @@ This repository is split into:
 - `frontend/README.md`: frontend setup, env vars and commands.
 - `backend/README.md`: backend setup, env vars, endpoints and commands.
 
+## NAVAI Multi-Agent Structure
+
+The project now uses this structure:
+
+```text
+frontend/src/ai/
+  main/
+  evaluations/
+  surveys/
+  public-experience/
+
+backend/src/ai/
+  main/
+  evaluations/
+  surveys/
+```
+
+Only the first level under `src/ai/` defines an agent. Inner folders are optional and only used for organization.
+
+- `main`: primary agent for navigation, orchestration, and delegation.
+- `evaluations`: specialist for evaluations.
+- `surveys`: specialist for surveys.
+- `public-experience`: public runtime for shared survey and evaluation links.
+
+In web realtime, the primary agent delegates to specialists using `handoffs`.
+
+## Key Environment Variables
+
+- Frontend: `NAVAI_FUNCTIONS_FOLDERS=src/ai`
+- Frontend: `NAVAI_AGENTS_FOLDERS=main,evaluations,surveys,public-experience`
+- Frontend routes: `NAVAI_ROUTES_FILE=src/ai/main/routes.ts`
+- Backend: `NAVAI_FUNCTIONS_FOLDERS=backend/src/ai`
+- Backend: `NAVAI_AGENTS_FOLDERS=main,evaluations,surveys`
+
+## How to Add a New Agent
+
+1. Create `src/ai/<agent>/`.
+2. Add `agent.config.ts`.
+3. Place the agent functions inside that folder.
+4. Add the agent name to `NAVAI_AGENTS_FOLDERS`.
+5. Regenerate loaders and validate the runtime.
+
+## How to Test the Multi-Agent Flow
+
+```bash
+npm run generate:module-loaders
+npm run dev:frontend
+npm run dev:backend
+npm run check:backend-functions
+```
+
+Then verify:
+
+- General requests stay in `main`.
+- Evaluation requests are delegated to `evaluations`.
+- Survey requests are delegated to `surveys`.
+
 ## Quick Start
 
 1. Install dependencies
