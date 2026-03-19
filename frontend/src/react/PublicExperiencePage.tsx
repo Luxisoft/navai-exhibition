@@ -2,24 +2,34 @@
 
 import { NavaiVoiceHeroOrb } from "@navai/voice-frontend";
 import {
+  CheckCircle2,
   Bot,
   Camera,
   Clock3,
-  CreditCard,
+  Copy,
+  ExternalLink,
+  Facebook,
   FileCheck2,
+  Globe,
+  Github,
   Gift,
+  Instagram,
+  Linkedin,
   Loader2,
   MessageSquareText,
   MessageSquarePlus,
-  Package,
   Pencil,
+  QrCode,
   Star,
   Trophy,
   Trash2,
+  Twitter,
   VolumeX,
+  XCircle,
 } from "lucide-react";
 import Image from "@/platform/image";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import QRCode from "qrcode";
 
 import FirebaseGoogleAuthButton from "@/components/FirebaseGoogleAuthButton";
 import HomeFooterBar from "@/components/HomeFooterBar";
@@ -37,6 +47,7 @@ import HCaptchaGate, {
   type HCaptchaGateRef,
 } from "@/components/security/HCaptchaGate";
 import { Textarea } from "@/components/ui/textarea";
+import { confirmActionModal } from "@/lib/confirm-action-modal";
 import { useFirebaseAuth } from "@/lib/firebase-auth";
 import {
   clearNavaiVoiceSessionContext,
@@ -44,6 +55,7 @@ import {
   type NavaiVoiceConversationStopPayload,
   type NavaiVoiceConversationTurn,
 } from "@/lib/navai-voice-controller";
+import { buildReferralInviteUrl } from "@/lib/navai-referrals";
 import {
   clearPublicExperienceAgentToolsContext,
   setPublicExperienceAgentToolsContext,
@@ -51,13 +63,13 @@ import {
 import { useI18n } from "@/lib/i18n/provider";
 import { LEGAL_GUIDE_SLUGS } from "@/lib/legal-docs-guide";
 import {
-  createNavaiEntryOrder,
   createCloudflareStreamDirectUpload,
   createCloudflareStreamDownload,
   createPublicNavaiExperienceComment,
   createPublicNavaiConversation,
   deletePublicNavaiExperienceComment,
   getHCaptchaSiteKey,
+  getNavaiReferralProgram,
   getNavaiEntryBilling,
   getPublicNavaiEvaluation,
   getPublicNavaiExperienceAccess,
@@ -80,6 +92,7 @@ import {
   type NavaiPublicConversationAnswer,
   type NavaiEntryBilling,
   type NavaiPublicExperience,
+  type NavaiReferralProgram,
   type NavaiUserProfile,
 } from "@/lib/navai-panel-api";
 import { useNavaiPanelAccess } from "@/lib/navai-panel-access";
@@ -196,31 +209,19 @@ function formatUsdCurrency(value: number) {
   }).format(Math.max(0, value));
 }
 
-function formatCopCurrency(value: number) {
-  return new Intl.NumberFormat("es-CO", {
-    style: "currency",
-    currency: "COP",
-    maximumFractionDigits: 0,
-  }).format(Math.max(0, value));
-}
-
 function resolveRewardMonetaryValues(item: NavaiPublicExperience) {
-  const rewardPoints = Math.max(0, Math.round(Number(item.rewardPoints || 0)));
+  const rewardAmountUsd = Math.max(
+    0,
+    Math.round(Number(item.rewardUsdAmount || item.rewardAmountUsd || 0) * 100) /
+      100,
+  );
   const rewardAmountCop =
     Math.max(0, Math.round(Number(item.rewardAmountCop || 0))) ||
-    rewardPoints * 4000;
-  const rewardAmountUsdFromRate = item.exchangeRate?.rate
-    ? Math.max(
-        0,
-        Math.round((rewardAmountCop / item.exchangeRate.rate) * 100) / 100,
-      )
-    : 0;
-  const rewardAmountUsd =
-    Math.max(0, Math.round(Number(item.rewardAmountUsd || 0) * 100) / 100) ||
-    rewardAmountUsdFromRate;
+    (item.exchangeRate?.rate
+      ? Math.max(0, Math.round(rewardAmountUsd * item.exchangeRate.rate))
+      : 0);
 
   return {
-    rewardPoints,
     rewardAmountCop,
     rewardAmountUsd,
   };
@@ -425,6 +426,7 @@ function PublicExperiencePersonAvatar({
 
 const MIN_CLOUDFLARE_UPLOAD_DURATION_SECONDS = 600;
 const MAX_CLOUDFLARE_UPLOAD_DURATION_SECONDS = 60 * 60 * 4;
+const PUBLIC_EXPERIENCE_RANKING_PAGE_SIZE = 10;
 
 function resolveCloudflareUploadDurationSeconds(durationMs: number) {
   const roundedSeconds = Math.ceil(Math.max(0, durationMs) / 1000) + 120;
@@ -562,17 +564,14 @@ function PublicExperiencePageContent({
   const [communityDialog, setCommunityDialog] = useState<
     "top" | "comments" | null
   >(null);
+  const [rankingPage, setRankingPage] = useState(1);
   const [hasAcceptedEntryTerms, setHasAcceptedEntryTerms] = useState(false);
   const [hasAcceptedEntryRequirements, setHasAcceptedEntryRequirements] =
     useState(false);
   const [entryError, setEntryError] = useState("");
   const [entryPurchaseBilling, setEntryPurchaseBilling] =
     useState<NavaiEntryBilling | null>(null);
-  const [entryPurchasePackageKey, setEntryPurchasePackageKey] = useState("");
-  const [entryPurchaseError, setEntryPurchaseError] = useState("");
-  const [entryPurchaseNotice, setEntryPurchaseNotice] = useState("");
   const [isEntryPurchaseLoading, setIsEntryPurchaseLoading] = useState(false);
-  const [isEntryPurchaseCreating, setIsEntryPurchaseCreating] = useState(false);
   const [isPreparingEntryRequirements, setIsPreparingEntryRequirements] =
     useState(false);
   const [isCaptchaSiteKeyLoading, setIsCaptchaSiteKeyLoading] = useState(true);
@@ -585,6 +584,11 @@ function PublicExperiencePageContent({
   const [profileError, setProfileError] = useState("");
   const [selectedProfile, setSelectedProfile] =
     useState<NavaiUserProfile | null>(null);
+  const [referralProgram, setReferralProgram] =
+    useState<NavaiReferralProgram | null>(null);
+  const [referralInviteUrl, setReferralInviteUrl] = useState("");
+  const [referralQrCodeUrl, setReferralQrCodeUrl] = useState("");
+  const [referralNotice, setReferralNotice] = useState("");
   const captchaGateRef = useRef<HCaptchaGateRef | null>(null);
   const hasTrackedLaunchRef = useRef(false);
   const [resolvedSlug, setResolvedSlug] = useState(slug ?? "");
@@ -624,6 +628,101 @@ function PublicExperiencePageContent({
       `${window.location.pathname}${window.location.search}${window.location.hash}`,
     );
   }, [pathname]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadReferralProgram = async () => {
+      if (!user) {
+        if (isMounted) {
+          setReferralProgram(null);
+        }
+        return;
+      }
+
+      try {
+        const idToken = await user.getIdToken();
+        const response = await getNavaiReferralProgram(idToken);
+        if (isMounted) {
+          setReferralProgram(response.program);
+        }
+      } catch {
+        if (isMounted) {
+          setReferralProgram(null);
+        }
+      }
+    };
+
+    void loadReferralProgram();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [user]);
+
+  useEffect(() => {
+    setReferralInviteUrl(buildReferralInviteUrl(referralProgram?.code || ""));
+  }, [referralProgram?.code]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    if (!referralInviteUrl) {
+      setReferralQrCodeUrl("");
+      return () => {
+        isMounted = false;
+      };
+    }
+
+    void QRCode.toDataURL(referralInviteUrl, {
+      margin: 1,
+      width: 320,
+      color: {
+        dark: "#f5f7ff",
+        light: "#111111",
+      },
+    })
+      .then((dataUrl: string) => {
+        if (isMounted) {
+          setReferralQrCodeUrl(dataUrl);
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setReferralQrCodeUrl("");
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [referralInviteUrl]);
+
+  const copyReferralQrImage = useCallback(async () => {
+    if (!referralQrCodeUrl) {
+      return;
+    }
+
+    if (
+      !navigator.clipboard?.write ||
+      typeof ClipboardItem === "undefined"
+    ) {
+      return;
+    }
+
+    try {
+      const response = await fetch(referralQrCodeUrl);
+      const blob = await response.blob();
+      const mimeType = blob.type || "image/png";
+      const clipboardItem = new ClipboardItem({
+        [mimeType]: blob,
+      });
+      await navigator.clipboard.write([clipboardItem]);
+      setReferralNotice(messages.panelPage.referralCopyQrSuccessMessage);
+    } catch {
+      // Ignore clipboard failures to avoid noisy UX on unsupported browsers.
+    }
+  }, [messages.panelPage.referralCopyQrSuccessMessage, referralQrCodeUrl]);
 
   useEffect(() => {
     let isMounted = true;
@@ -700,15 +799,13 @@ function PublicExperiencePageContent({
     setHasAcceptedEntryRequirements(false);
     setEntryError("");
     setEntryPurchaseBilling(null);
-    setEntryPurchasePackageKey("");
-    setEntryPurchaseError("");
-    setEntryPurchaseNotice("");
     setCaptchaToken("");
     setCaptchaEkey("");
     setIsCaptchaReady(false);
     setSelectedProfile(null);
     setProfileError("");
     setIsProfileDialogOpen(false);
+    setReferralNotice("");
   }, [item?.id]);
 
   useEffect(() => {
@@ -740,7 +837,6 @@ function PublicExperiencePageContent({
       messages.panelPage.publicExperiencePlusRequiredMessage,
     ],
   );
-
   useEffect(() => {
     let isMounted = true;
 
@@ -846,15 +942,12 @@ function PublicExperiencePageContent({
     let isMounted = true;
 
     const loadEntryPurchaseBilling = async () => {
-      if (!shouldShowPurchaseTab || !user) {
+      if (!user) {
         if (!isMounted) {
           return;
         }
 
         setEntryPurchaseBilling(null);
-        setEntryPurchasePackageKey("");
-        setEntryPurchaseError("");
-        setEntryPurchaseNotice("");
         setIsEntryPurchaseLoading(false);
         return;
       }
@@ -867,31 +960,13 @@ function PublicExperiencePageContent({
           return;
         }
 
-        const activePackages = response.billing.packages.filter(
-          (entryPackage) => entryPackage.isActive,
-        );
-        const fallbackKey =
-          activePackages[0]?.key || response.billing.catalog.key || "";
-
         setEntryPurchaseBilling(response.billing);
-        setEntryPurchasePackageKey((current) => {
-          if (current && activePackages.some((entryPackage) => entryPackage.key === current)) {
-            return current;
-          }
-          return fallbackKey;
-        });
-        setEntryPurchaseError("");
       } catch (loadError) {
         if (!isMounted) {
           return;
         }
 
         setEntryPurchaseBilling(null);
-        setEntryPurchaseError(
-          loadError instanceof Error
-            ? loadError.message
-            : messages.panelPage.publicExperiencePurchaseLoadErrorMessage,
-        );
       } finally {
         if (isMounted) {
           setIsEntryPurchaseLoading(false);
@@ -904,11 +979,7 @@ function PublicExperiencePageContent({
     return () => {
       isMounted = false;
     };
-  }, [
-    messages.panelPage.publicExperiencePurchaseLoadErrorMessage,
-    shouldShowPurchaseTab,
-    user,
-  ]);
+  }, [user]);
 
   const loadCommunityData = useCallback(async () => {
     if (!item) {
@@ -951,51 +1022,9 @@ function PublicExperiencePageContent({
     void loadCommunityData();
   }, [loadCommunityData]);
 
-  const handlePurchaseEntryPackage = useCallback(async () => {
-    if (!user) {
-      setEntryPurchaseError(
-        messages.panelPage.publicExperiencePurchaseRequiredAuthMessage,
-      );
-      return;
-    }
-
-    if (!entryPurchasePackageKey) {
-      setEntryPurchaseError(messages.panelPage.entryPackagesNoActiveMessage);
-      return;
-    }
-
-    setIsEntryPurchaseCreating(true);
-    setEntryPurchaseError("");
-    setEntryPurchaseNotice("");
-
-    try {
-      const idToken = await user.getIdToken();
-      const response = await createNavaiEntryOrder(idToken, {
-        packageKey: entryPurchasePackageKey,
-      });
-      if (typeof window !== "undefined" && response.checkoutUrl) {
-        window.open(response.checkoutUrl, "_blank", "noopener,noreferrer");
-      }
-      setEntryPurchaseNotice(
-        messages.panelPage.publicExperiencePurchaseCheckoutMessage,
-      );
-    } catch (purchaseError) {
-      setEntryPurchaseError(
-        purchaseError instanceof Error
-          ? purchaseError.message
-          : messages.panelPage.plusCreateOrderErrorMessage,
-      );
-    } finally {
-      setIsEntryPurchaseCreating(false);
-    }
-  }, [
-    entryPurchasePackageKey,
-    messages.panelPage.entryPackagesNoActiveMessage,
-    messages.panelPage.plusCreateOrderErrorMessage,
-    messages.panelPage.publicExperiencePurchaseCheckoutMessage,
-    messages.panelPage.publicExperiencePurchaseRequiredAuthMessage,
-    user,
-  ]);
+  useEffect(() => {
+    setRankingPage(1);
+  }, [item?.id]);
 
   const openUserProfile = useCallback(
     async (userId: string) => {
@@ -1123,6 +1152,18 @@ function PublicExperiencePageContent({
         return;
       }
 
+      const shouldDelete = await confirmActionModal({
+        title: messages.panelPage.deleteActionLabel,
+        description:
+          messages.panelPage.publicExperienceCommentDeleteConfirmMessage,
+        confirmLabel: messages.panelPage.deleteActionLabel,
+        cancelLabel: messages.panelPage.cancelActionLabel,
+        destructive: true,
+      });
+      if (!shouldDelete) {
+        return;
+      }
+
       setCommunityError("");
 
       try {
@@ -1145,6 +1186,9 @@ function PublicExperiencePageContent({
     [
       closeCommentEditor,
       editingCommentId,
+      messages.panelPage.cancelActionLabel,
+      messages.panelPage.deleteActionLabel,
+      messages.panelPage.publicExperienceCommentDeleteConfirmMessage,
       messages.panelPage.publicExperienceCommentDeleteErrorMessage,
       user,
     ],
@@ -1671,10 +1715,43 @@ function PublicExperiencePageContent({
   const currentUserComment =
     comments.find((comment) => comment.authorUserId === (user?.uid ?? "")) ??
     null;
+  const sortedTopEntries = useMemo(
+    () =>
+      [...topEntries].sort((left, right) => {
+        if (right.totalScore !== left.totalScore) {
+          return right.totalScore - left.totalScore;
+        }
+        if (right.answeredQuestions !== left.answeredQuestions) {
+          return right.answeredQuestions - left.answeredQuestions;
+        }
+        const rightActivity = new Date(right.latestActivityAt).getTime();
+        const leftActivity = new Date(left.latestActivityAt).getTime();
+        if (Number.isFinite(rightActivity) && Number.isFinite(leftActivity)) {
+          return rightActivity - leftActivity;
+        }
+
+        return resolvePersonName(left).localeCompare(resolvePersonName(right));
+      }),
+    [topEntries],
+  );
+  const rankingTotalPages = Math.max(
+    1,
+    Math.ceil(sortedTopEntries.length / PUBLIC_EXPERIENCE_RANKING_PAGE_SIZE),
+  );
+  const normalizedRankingPage = Math.min(rankingPage, rankingTotalPages);
+  const rankingPageStart = Math.max(
+    0,
+    (normalizedRankingPage - 1) * PUBLIC_EXPERIENCE_RANKING_PAGE_SIZE,
+  );
+  const rankingVisibleEntries = sortedTopEntries.slice(
+    rankingPageStart,
+    rankingPageStart + PUBLIC_EXPERIENCE_RANKING_PAGE_SIZE,
+  );
   const currentUserTopEntry =
-    topEntries.find((entry) => entry.userId === (user?.uid ?? "")) ?? null;
+    sortedTopEntries.find((entry) => entry.userId === (user?.uid ?? "")) ??
+    null;
   const currentUserTopPosition = currentUserTopEntry
-    ? topEntries.findIndex(
+    ? sortedTopEntries.findIndex(
         (entry) => entry.userId === currentUserTopEntry.userId,
       ) + 1
     : null;
@@ -1733,9 +1810,18 @@ function PublicExperiencePageContent({
           },
         )
       : "";
-  const canShowFullCommunityResults =
-    availabilityState.code === "ended" ||
-    (!isActiveExperience && availabilityState.code !== "scheduled");
+  const entriesTabLabel = messages.panelPage.plusOrderEntriesColumnLabel;
+  const availablePurchasedEntries = Math.max(
+    0,
+    (entryPurchaseBilling?.balance.purchasedEntries ?? 0) -
+      (entryPurchaseBilling?.balance.consumedPurchasedEntries ?? 0),
+  );
+  const availableReferralEntries = Math.max(
+    0,
+    (entryPurchaseBilling?.balance.bonusEntries ?? 0) -
+      (entryPurchaseBilling?.balance.consumedBonusEntries ?? 0),
+  );
+  const availableTotalEntries = availablePurchasedEntries + availableReferralEntries;
   const isReadyToStartConversation = Boolean(
     item &&
     (!(isEntryModalEnabled || isHCaptchaEnabled) ||
@@ -1757,6 +1843,12 @@ function PublicExperiencePageContent({
   const entryHubMessage = isEntryModalEnabled
     ? messages.panelPage.publicExperienceEntryDialogDescription
     : messages.panelPage.publicExperienceEntryCaptchaDescription;
+
+  useEffect(() => {
+    if (rankingPage !== normalizedRankingPage) {
+      setRankingPage(normalizedRankingPage);
+    }
+  }, [normalizedRankingPage, rankingPage]);
 
   const openCommentEditor = useCallback(() => {
     setCommunityError("");
@@ -1825,12 +1917,12 @@ function PublicExperiencePageContent({
           <p className="navai-public-experience-sidecard-empty">
             {messages.panelPage.publicExperienceCommunityLoadingLabel}
           </p>
-        ) : !canShowFullCommunityResults ? (
+        ) : sortedTopEntries.length === 0 ? (
+          <p className="navai-public-experience-sidecard-empty">
+            {messages.panelPage.publicExperienceRankingEmptyMessage}
+          </p>
+        ) : (
           <div className="grid gap-3">
-            <p className="text-sm leading-6 text-muted-foreground">
-              {messages.panelPage.publicExperienceRankingDuringEventMessage}
-            </p>
-
             {currentUserTopEntry ? (
               <div className="navai-public-experience-rewards-metrics">
                 <div className="navai-public-experience-rewards-metric">
@@ -1850,50 +1942,93 @@ function PublicExperiencePageContent({
                   </strong>
                 </div>
               </div>
-            ) : (
-              <p className="navai-public-experience-sidecard-empty">
-                {
-                  messages.panelPage
-                    .publicExperienceRankingCurrentUserEmptyMessage
-                }
+            ) : null}
+
+            <div className="navai-public-experience-ranking-table-wrap">
+              <table className="navai-public-experience-ranking-table">
+                <thead>
+                  <tr>
+                    <th>{messages.panelPage.publicExperienceRankingPositionLabel}</th>
+                    <th>{messages.panelPage.userProfileDisplayNameFieldLabel}</th>
+                    <th>{messages.panelPage.publicExperienceRankingScoreLabel}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rankingVisibleEntries.map((entry, index) => {
+                    const rankingPosition = rankingPageStart + index + 1;
+
+                    return (
+                      <tr key={`${entry.userId}:${rankingPosition}`}>
+                        <td>#{rankingPosition}</td>
+                        <td>
+                          <button
+                            type="button"
+                            className="navai-public-experience-ranking-user"
+                            onClick={() => {
+                              void openUserProfile(entry.userId);
+                            }}
+                          >
+                            <PublicExperiencePersonAvatar
+                              displayName={entry.displayName}
+                              email={entry.email}
+                              photoUrl={entry.photoUrl}
+                              userId={entry.userId}
+                            />
+                            <span>{resolvePersonName(entry)}</span>
+                          </button>
+                        </td>
+                        <td>{entry.totalScore}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="navai-public-experience-ranking-pagination">
+              <p className="navai-public-experience-ranking-pagination-summary">
+                {fillMessageTemplate(
+                  messages.panelPage.tablePaginationSummaryLabel,
+                  {
+                    start: String(rankingPageStart + 1),
+                    end: String(
+                      Math.min(
+                        rankingPageStart + PUBLIC_EXPERIENCE_RANKING_PAGE_SIZE,
+                        sortedTopEntries.length,
+                      ),
+                    ),
+                    total: String(sortedTopEntries.length),
+                    pageSize: String(PUBLIC_EXPERIENCE_RANKING_PAGE_SIZE),
+                  },
+                )}
               </p>
-            )}
-          </div>
-        ) : topEntries.length === 0 ? (
-          <p className="navai-public-experience-sidecard-empty">
-            {messages.panelPage.publicExperienceRankingEmptyMessage}
-          </p>
-        ) : (
-          <div className="navai-public-experience-person-list">
-            {topEntries.map((entry, index) => (
-              <button
-                key={`${entry.userId}:${index}`}
-                type="button"
-                className="navai-public-experience-person-card"
-                onClick={() => {
-                  void openUserProfile(entry.userId);
-                }}
-              >
-                <div className="navai-public-experience-person-meta">
-                  <PublicExperiencePersonAvatar
-                    displayName={entry.displayName}
-                    email={entry.email}
-                    photoUrl={entry.photoUrl}
-                    userId={entry.userId}
-                  />
-                  <div>
-                    <strong>{resolvePersonName(entry)}</strong>
-                    <span>{entry.email}</span>
-                  </div>
-                </div>
-                <div className="navai-public-experience-person-value">
-                  <strong>{entry.totalScore}</strong>
-                  <span>
-                    {messages.panelPage.publicExperienceRankingScoreLabel}
-                  </span>
-                </div>
-              </button>
-            ))}
+              <div className="navai-public-experience-ranking-pagination-actions">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() =>
+                    setRankingPage((current) => Math.max(1, current - 1))
+                  }
+                  disabled={normalizedRankingPage <= 1}
+                >
+                  {messages.panelPage.tablePreviousPageLabel}
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() =>
+                    setRankingPage((current) =>
+                      Math.min(rankingTotalPages, current + 1),
+                    )
+                  }
+                  disabled={normalizedRankingPage >= rankingTotalPages}
+                >
+                  {messages.panelPage.tableNextPageLabel}
+                </Button>
+              </div>
+            </div>
           </div>
         )}
       </section>
@@ -1944,87 +2079,6 @@ function PublicExperiencePageContent({
           <p className="navai-public-experience-sidecard-empty">
             {messages.panelPage.publicExperienceCommunityLoadingLabel}
           </p>
-        ) : !canShowFullCommunityResults ? (
-          <div className="grid gap-3">
-            <p className="text-sm leading-6 text-muted-foreground">
-              {messages.panelPage.publicExperienceCommentsDuringEventMessage}
-            </p>
-
-            {currentUserComment ? (
-              <article className="navai-public-experience-comment-card">
-                <button
-                  type="button"
-                  className="navai-public-experience-person-meta"
-                  onClick={() => {
-                    void openUserProfile(currentUserComment.authorUserId);
-                  }}
-                >
-                  <PublicExperiencePersonAvatar
-                    displayName={currentUserComment.authorDisplayName}
-                    email={currentUserComment.authorEmail}
-                    photoUrl={currentUserComment.authorPhotoUrl}
-                    userId={currentUserComment.authorUserId}
-                  />
-                  <div>
-                    <strong>
-                      {resolvePersonName({
-                        displayName: currentUserComment.authorDisplayName,
-                        email: currentUserComment.authorEmail,
-                        userId: currentUserComment.authorUserId,
-                      })}
-                    </strong>
-                    <span>
-                      {formatExperienceDateTime(
-                        currentUserComment.updatedAt ||
-                          currentUserComment.createdAt,
-                      )}
-                    </span>
-                  </div>
-                </button>
-
-                <div className="flex items-center justify-between gap-3">
-                  <PublicExperienceStarRating
-                    value={currentUserComment.rating}
-                  />
-                  <span className="text-sm text-white/55">
-                    {currentUserComment.rating}/5
-                  </span>
-                </div>
-
-                <p>{currentUserComment.body}</p>
-
-                <div className="navai-public-experience-comment-actions">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => startCommentEdit(currentUserComment)}
-                  >
-                    <Pencil aria-hidden="true" />
-                    {messages.panelPage.editActionLabel}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      void deleteComment(currentUserComment.id);
-                    }}
-                  >
-                    <Trash2 aria-hidden="true" />
-                    {messages.panelPage.deleteActionLabel}
-                  </Button>
-                </div>
-              </article>
-            ) : (
-              <p className="navai-public-experience-sidecard-empty">
-                {
-                  messages.panelPage
-                    .publicExperienceCommentsCurrentUserEmptyMessage
-                }
-              </p>
-            )}
-          </div>
         ) : visibleComments.length === 0 ? (
           <p className="navai-public-experience-sidecard-empty">
             {messages.panelPage.publicExperienceCommentsEmptyMessage}
@@ -2115,7 +2169,7 @@ function PublicExperiencePageContent({
       return null;
     }
 
-    const { rewardPoints, rewardAmountUsd } = resolveRewardMonetaryValues(item);
+    const { rewardAmountUsd } = resolveRewardMonetaryValues(item);
     const formattedRewardUsdAmount = formatUsdCurrency(rewardAmountUsd);
     const rewardTitle = item.rewardTitle.trim();
     const rewardDescription = item.rewardDescription.trim();
@@ -2129,7 +2183,7 @@ function PublicExperiencePageContent({
       )
       .filter(Boolean);
     const hasRewardConfigured =
-      rewardPoints > 0 ||
+      rewardAmountUsd > 0 ||
       item.rewardType !== "money" ||
       Math.max(1, item.rewardWinnerCount || 1) > 1 ||
       item.rewardDeliveryMethod !== "manual_coordination" ||
@@ -2254,18 +2308,112 @@ function PublicExperiencePageContent({
     );
   };
 
+  const renderReferralSection = () => (
+    <section className="navai-public-experience-sidecard">
+      <header className="navai-public-experience-sidecard-header">
+        <div>
+          <p className="navai-public-experience-sidecard-eyebrow">
+            {messages.panelPage.referralsNavLabel}
+          </p>
+          <h2>{messages.panelPage.referralProgramShareTitle}</h2>
+        </div>
+        <QrCode aria-hidden="true" />
+      </header>
+
+      {referralNotice ? (
+        <p className="text-sm text-emerald-300">{referralNotice}</p>
+      ) : null}
+
+      {!user ? (
+        <div className="space-y-3">
+          <p className="text-sm leading-6 text-muted-foreground">
+            {messages.panelPage.publicExperienceRewardsAuthMessage}
+          </p>
+          <FirebaseGoogleAuthButton
+            className="navai-public-experience-auth-button"
+            redirectHref={authRedirectHref}
+          />
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {entryPurchaseBilling ? (
+            <div className="rounded-2xl border border-border/60 bg-background/40 p-4">
+              <p className="text-sm text-foreground">
+                <strong>{messages.panelPage.plusMembershipActiveLabel}: </strong>
+                {String(availableTotalEntries)}
+              </p>
+              <p className="mt-2 text-xs text-muted-foreground">
+                {messages.panelPage.referralAvailableCreditsLabel}:{" "}
+                {String(availableReferralEntries)}
+              </p>
+            </div>
+          ) : null}
+          <p className="text-sm leading-6 text-muted-foreground">
+            {messages.panelPage.experienceReferralBonusInfoText}
+          </p>
+          {referralQrCodeUrl ? (
+            <img
+              src={referralQrCodeUrl}
+              alt={messages.panelPage.referralProgramQrAlt}
+              className="mx-auto aspect-square w-full max-w-56 rounded-[1rem] border border-border/60 bg-background p-3"
+            />
+          ) : (
+            <div className="mx-auto flex aspect-square w-full max-w-56 items-center justify-center rounded-[1rem] border border-dashed border-border/60 bg-background/40 px-6 text-sm text-muted-foreground">
+              {messages.panelPage.referralProgramQrLoadingLabel}
+            </div>
+          )}
+
+          <div className="flex flex-wrap justify-center gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                if (!referralInviteUrl) {
+                  return;
+                }
+                void navigator.clipboard?.writeText(referralInviteUrl);
+                setReferralNotice(messages.panelPage.referralCopyLinkSuccessMessage);
+              }}
+              disabled={!referralInviteUrl}
+            >
+              <Copy aria-hidden="true" />
+              {messages.panelPage.referralCopyLinkButtonLabel}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                void copyReferralQrImage();
+              }}
+              disabled={!referralQrCodeUrl}
+            >
+              <Copy aria-hidden="true" />
+              {messages.panelPage.referralCopyQrButtonLabel}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                if (!referralInviteUrl) {
+                  return;
+                }
+                window.open(referralInviteUrl, "_blank", "noopener,noreferrer");
+              }}
+              disabled={!referralInviteUrl}
+            >
+              <ExternalLink aria-hidden="true" />
+              {messages.panelPage.referralOpenLinkButtonLabel}
+            </Button>
+          </div>
+        </div>
+      )}
+    </section>
+  );
+
   const renderOrganizerSection = () => {
     if (!item?.organizer) {
       return (
         <section className="navai-public-experience-sidecard navai-public-experience-sidecard--organizer">
-          <header className="navai-public-experience-sidecard-header navai-public-experience-sidecard-header--organizer">
-            <div>
-              <p className="navai-public-experience-sidecard-eyebrow">
-                {messages.panelPage.publicExperienceOrganizerEyebrow}
-              </p>
-              <h2>{messages.panelPage.publicExperienceOrganizerTitle}</h2>
-            </div>
-          </header>
           <p className="navai-public-experience-sidecard-empty">
             {messages.panelPage.publicExperienceOrganizerEmptyMessage}
           </p>
@@ -2274,90 +2422,85 @@ function PublicExperiencePageContent({
     }
 
     const organizer = item.organizer;
-    const organizerName = resolvePersonName({
-      displayName: organizer.displayName,
-      email: organizer.email,
-      userId: organizer.userId,
-    });
+    const organizerPhotoUrl =
+      organizer.photoUrl.trim() ||
+      (user?.uid === organizer.userId ? user.photoURL?.trim() || "" : "");
+    const organizerName =
+      organizer.displayName.trim() ||
+      messages.panelPage.publicExperienceOrganizerTitle;
     const organizerHeadline = organizer.professionalHeadline.trim();
     const organizerBio = organizer.bio.trim();
-    const organizerProfessionalSummary = [organizer.jobTitle, organizer.company]
-      .map((value) => value.trim())
-      .filter(Boolean)
-      .join(" / ");
-    const organizerNetworks = [
-      {
-        label: messages.panelPage.userProfileWebsiteFieldLabel,
-        href: organizer.websiteUrl,
-      },
-      {
-        label: messages.panelPage.userProfileLinkedinFieldLabel,
-        href: organizer.linkedinUrl,
-      },
-      {
-        label: messages.panelPage.userProfileGithubFieldLabel,
-        href: organizer.githubUrl,
-      },
-      {
-        label: messages.panelPage.userProfileXFieldLabel,
-        href: organizer.xUrl,
-      },
-      {
-        label: messages.panelPage.userProfileInstagramFieldLabel,
-        href: organizer.instagramUrl,
-      },
-      {
-        label: messages.panelPage.userProfileFacebookFieldLabel,
-        href: organizer.facebookUrl,
-      },
-    ].filter((entry) => entry.href.trim().length > 0);
-    const { rewardPoints } = resolveRewardMonetaryValues(item);
-    const hasRewardConfigured =
-      rewardPoints > 0 ||
-      item.rewardType !== "money" ||
-      Math.max(1, item.rewardWinnerCount || 1) > 1 ||
-      item.rewardDeliveryMethod !== "manual_coordination" ||
-      Boolean(item.rewardTitle.trim()) ||
-      Boolean(item.rewardDescription.trim()) ||
-      Boolean(item.rewardDeliveryDetails.trim()) ||
-      item.rewardPaymentMethods.length > 0;
+    const organizerJobTitle = organizer.jobTitle.trim();
+    const organizerCompany = organizer.company.trim();
+    const organizerPhone = organizer.phone.trim();
+    const organizerLocation = organizer.location.trim();
+    const organizerWebsiteUrl = organizer.websiteUrl.trim();
+    const organizerLinkedinUrl = organizer.linkedinUrl.trim();
+    const organizerGithubUrl = organizer.githubUrl.trim();
+    const organizerXUrl = organizer.xUrl.trim();
+    const organizerInstagramUrl = organizer.instagramUrl.trim();
+    const organizerFacebookUrl = organizer.facebookUrl.trim();
+    const renderOrganizerLinkButton = (
+      href: string,
+      Icon: typeof Linkedin,
+      label: string,
+    ) => {
+      const buttonClassName =
+        "inline-flex h-9 w-9 items-center justify-center rounded-lg border border-border/60 bg-background/70 text-foreground transition hover:border-foreground/30 hover:bg-background";
+      if (href) {
+        return (
+          <a
+            href={href}
+            target="_blank"
+            rel="noreferrer"
+            className={buttonClassName}
+            aria-label={label}
+            title={label}
+          >
+            <Icon aria-hidden="true" className="h-4 w-4" />
+          </a>
+        );
+      }
+
+      return (
+        <button
+          type="button"
+          disabled
+          className={`${buttonClassName} cursor-not-allowed opacity-60`}
+          aria-label={label}
+          title={label}
+        >
+          <Icon aria-hidden="true" className="h-4 w-4" />
+        </button>
+      );
+    };
 
     return (
       <section className="navai-public-experience-sidecard navai-public-experience-sidecard--organizer">
-        <header className="navai-public-experience-sidecard-header navai-public-experience-sidecard-header--organizer">
-          <div>
-            <p className="navai-public-experience-sidecard-eyebrow">
-              {messages.panelPage.publicExperienceOrganizerEyebrow}
-            </p>
-            <h2>{messages.panelPage.publicExperienceOrganizerTitle}</h2>
-          </div>
-        </header>
-
         <div className="navai-public-experience-profile-card navai-public-experience-profile-card--organizer">
           <div className="navai-public-experience-profile-hero navai-public-experience-profile-hero--organizer">
             <PublicExperiencePersonAvatar
               displayName={organizer.displayName}
               email={organizer.email}
-              photoUrl={organizer.photoUrl}
+              photoUrl={organizerPhotoUrl}
               userId={organizer.userId}
             />
             <div className="grid gap-2 navai-public-experience-profile-hero-copy--organizer">
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex items-center gap-2">
+                {organizer.isVerified ? (
+                  <CheckCircle2
+                    aria-hidden="true"
+                    className="h-5 w-5 text-emerald-500"
+                  />
+                ) : (
+                  <XCircle
+                    aria-hidden="true"
+                    className="h-5 w-5 text-muted-foreground"
+                  />
+                )}
                 <h2>{organizerName}</h2>
-                <span
-                  className={`rounded-full border px-3 py-1 text-xs font-semibold ${
-                    organizer.isVerified
-                      ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
-                      : "border-border/60 bg-muted/15 text-muted-foreground"
-                  }`}
-                >
-                  {organizer.isVerified
-                    ? messages.panelPage.publicExperienceOrganizerVerifiedLabel
-                    : messages.panelPage
-                        .publicExperienceOrganizerUnverifiedLabel}
-                </span>
               </div>
-              <p>{organizerHeadline || organizer.email}</p>
+              {organizerHeadline ? <p>{organizerHeadline}</p> : null}
             </div>
           </div>
 
@@ -2369,99 +2512,58 @@ function PublicExperiencePageContent({
 
           <div className="navai-public-experience-profile-grid navai-public-experience-profile-grid--organizer">
             <div>
-              <strong>
-                {messages.panelPage.publicExperienceOrganizerUsernameLabel}
-              </strong>
-              <span>{organizer.email}</span>
+              <strong>{messages.panelPage.userProfileJobTitleFieldLabel}</strong>
+              <span>{organizerJobTitle || "-"}</span>
             </div>
             <div>
-              <strong>
-                {messages.panelPage.publicExperienceOrganizerVerificationLabel}
-              </strong>
-              <span>
-                {organizer.isVerified
-                  ? messages.panelPage.publicExperienceOrganizerVerifiedLabel
-                  : messages.panelPage.publicExperienceOrganizerUnverifiedLabel}
-              </span>
+              <strong>{messages.panelPage.userProfileCompanyFieldLabel}</strong>
+              <span>{organizerCompany || "-"}</span>
             </div>
             <div>
-              <strong>{messages.panelPage.userProfilePhotoUrlFieldLabel}</strong>
-              {organizer.photoUrl ? (
-                <a
-                  href={organizer.photoUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="navai-public-experience-profile-link navai-public-experience-profile-link--photo"
-                >
-                  <img
-                    src={organizer.photoUrl}
-                    alt={organizerName}
-                    loading="lazy"
-                    className="navai-public-experience-organizer-photo-preview"
-                  />
-                </a>
-              ) : (
-                <span>-</span>
-              )}
+              <strong>{messages.panelPage.userProfilePhoneFieldLabel}</strong>
+              <span>{organizerPhone || "-"}</span>
             </div>
-            {organizerProfessionalSummary ? (
-              <div>
-                <strong>
-                  {messages.panelPage.userProfileProfessionalSectionTitle}
-                </strong>
-                <span>{organizerProfessionalSummary}</span>
+            <div>
+              <strong>{messages.panelPage.userProfileLocationFieldLabel}</strong>
+              <span>{organizerLocation || "-"}</span>
+            </div>
+            <div className="col-span-full">
+              <div className="flex justify-center">
+                <div className="flex flex-wrap items-center justify-center gap-2">
+                  {renderOrganizerLinkButton(
+                    organizerLinkedinUrl,
+                    Linkedin,
+                    messages.panelPage.userProfileLinkedinFieldLabel,
+                  )}
+                  {renderOrganizerLinkButton(
+                    organizerGithubUrl,
+                    Github,
+                    messages.panelPage.userProfileGithubFieldLabel,
+                  )}
+                  {renderOrganizerLinkButton(
+                    organizerXUrl,
+                    Twitter,
+                    messages.panelPage.userProfileXFieldLabel,
+                  )}
+                  {renderOrganizerLinkButton(
+                    organizerInstagramUrl,
+                    Instagram,
+                    messages.panelPage.userProfileInstagramFieldLabel,
+                  )}
+                  {renderOrganizerLinkButton(
+                    organizerFacebookUrl,
+                    Facebook,
+                    messages.panelPage.userProfileFacebookFieldLabel,
+                  )}
+                  {renderOrganizerLinkButton(
+                    organizerWebsiteUrl,
+                    Globe,
+                    messages.panelPage.userProfileWebsiteFieldLabel,
+                  )}
+                </div>
               </div>
-            ) : null}
-            {organizer.location ? (
-              <div>
-                <strong>
-                  {messages.panelPage.userProfileLocationFieldLabel}
-                </strong>
-                <span>{organizer.location}</span>
-              </div>
-            ) : null}
-            {organizer.phone ? (
-              <div>
-                <strong>{messages.panelPage.userProfilePhoneFieldLabel}</strong>
-                <span>{organizer.phone}</span>
-              </div>
-            ) : null}
+            </div>
           </div>
-
-          {organizerNetworks.length > 0 ? (
-            <div className="rounded-2xl border border-border/60 bg-muted/15 p-4">
-              <span className="navai-public-experience-rewards-metric-label">
-                {messages.panelPage.publicExperienceOrganizerNetworksLabel}
-              </span>
-              <div className="mt-3 flex flex-wrap gap-2 navai-public-experience-profile-chip-list">
-                {organizerNetworks.map((network) => (
-                  <a
-                    key={`${network.label}:${network.href}`}
-                    href={network.href}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="rounded-full border border-border/60 bg-background/70 px-3 py-1 text-xs font-medium text-foreground transition hover:border-foreground/30 hover:bg-background"
-                  >
-                    {network.label}
-                  </a>
-                ))}
-              </div>
-            </div>
-          ) : null}
-
-          {hasRewardConfigured ? (
-            <div className="rounded-2xl border border-border/60 bg-muted/15 p-4">
-              <span className="navai-public-experience-rewards-metric-label">
-                {messages.panelPage.publicExperienceRewardsTabLabel}
-              </span>
-              <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                {
-                  messages.panelPage
-                    .publicExperienceOrganizerRewardResponsibleMessage
-                }
-              </p>
-            </div>
-          ) : null}
         </div>
       </section>
     );
@@ -2472,11 +2574,11 @@ function PublicExperiencePageContent({
       return null;
     }
 
-    const { rewardPoints, rewardAmountUsd } = resolveRewardMonetaryValues(item);
+    const { rewardAmountUsd } = resolveRewardMonetaryValues(item);
     const formattedRewardUsdAmount = formatUsdCurrency(rewardAmountUsd);
     const formattedRewardAmount = formattedRewardUsdAmount;
     const hasRewardConfigured =
-      rewardPoints > 0 ||
+      rewardAmountUsd > 0 ||
       item.rewardType !== "money" ||
       Math.max(1, item.rewardWinnerCount || 1) > 1 ||
       item.rewardDeliveryMethod !== "manual_coordination" ||
@@ -2724,120 +2826,32 @@ function PublicExperiencePageContent({
             {messages.panelPage.publicExperienceEntryContinueActionLabel}
           </Button>
         </div>
+        {renderReferralSection()}
       </div>
     </section>
   );
 
   const renderEntryPurchaseSection = () => {
-    const activePackages =
-      entryPurchaseBilling?.packages.filter((entryPackage) => entryPackage.isActive) ?? [];
-    const selectedPackage =
-      activePackages.find((entryPackage) => entryPackage.key === entryPurchasePackageKey) ??
-      activePackages[0] ??
-      null;
-
     return (
       <section className="navai-public-experience-sidecard">
         <header className="navai-public-experience-sidecard-header">
           <div>
             <p className="navai-public-experience-sidecard-eyebrow">
-              {messages.panelPage.entryPackagesTitle}
+              {messages.panelPage.publicExperienceEntryDialogTitle}
             </p>
-            <h2>{messages.panelPage.entryPackagesTitle}</h2>
+            <h2>{entriesTabLabel}</h2>
           </div>
-          <Package aria-hidden="true" />
+          <FileCheck2 aria-hidden="true" />
         </header>
-
-        <p className="text-sm leading-6 text-muted-foreground">
-          {messages.panelPage.publicExperiencePurchaseDescription}
-        </p>
-
         {isEntryPurchaseLoading ? (
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" />
-            <span>{messages.panelPage.publicExperiencePurchaseLoadingLabel}</span>
+            <span>
+              {messages.panelPage.publicExperiencePurchaseLoadingLabel}
+            </span>
           </div>
-        ) : activePackages.length === 0 ? (
-          <p className="navai-public-experience-sidecard-empty">
-            {messages.panelPage.entryPackagesNoActiveMessage}
-          </p>
-        ) : (
-          <div className="grid gap-3">
-            {activePackages.map((entryPackage) => {
-              const isSelected = selectedPackage?.key === entryPackage.key;
-              return (
-                <button
-                  key={entryPackage.key}
-                  type="button"
-                  className={`rounded-2xl border p-4 text-left transition ${
-                    isSelected
-                      ? "border-primary/50 bg-primary/10"
-                      : "border-border/60 bg-background/50 hover:border-primary/40"
-                  }`}
-                  onClick={() => setEntryPurchasePackageKey(entryPackage.key)}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <strong className="text-sm text-foreground">{entryPackage.name}</strong>
-                    {isSelected ? (
-                      <span className="rounded-full border border-primary/40 bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
-                        {messages.panelPage.entryPackagesSelectedLabel}
-                      </span>
-                    ) : null}
-                  </div>
-                  {entryPackage.description ? (
-                    <p className="mt-2 text-sm text-muted-foreground">
-                      {entryPackage.description}
-                    </p>
-                  ) : null}
-                  <div className="mt-3 grid gap-1 text-sm text-muted-foreground">
-                    <p>
-                      <strong>{messages.panelPage.plusOrderEntriesColumnLabel}</strong>{" "}
-                      {entryPackage.entriesCount}
-                    </p>
-                    <p>
-                      <strong>{messages.panelPage.entryPackagesUsdColumnLabel}</strong>{" "}
-                      {formatUsdCurrency(entryPackage.totalUsd)}
-                    </p>
-                    <p>
-                      <strong>{messages.panelPage.plusOrderAmountColumnLabel}</strong>{" "}
-                      {formatCopCurrency(entryPackage.totalCopCents / 100)}
-                    </p>
-                    <p>
-                      <strong>{messages.panelPage.entryPackagesVatLabel}</strong>{" "}
-                      {entryPackage.vatPercentage}%
-                    </p>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        )}
-
-        {entryPurchaseError ? (
-          <p className="navai-public-experience-sidecard-error">{entryPurchaseError}</p>
         ) : null}
-        {entryPurchaseNotice ? (
-          <p className="text-sm text-emerald-300">{entryPurchaseNotice}</p>
-        ) : null}
-
-        <div className="flex justify-end">
-          <Button
-            type="button"
-            disabled={
-              !selectedPackage || isEntryPurchaseLoading || isEntryPurchaseCreating
-            }
-            onClick={() => {
-              void handlePurchaseEntryPackage();
-            }}
-          >
-            {isEntryPurchaseCreating ? (
-              <Loader2 aria-hidden="true" className="animate-spin" />
-            ) : (
-              <CreditCard aria-hidden="true" />
-            )}
-            {messages.panelPage.plusPurchaseButtonLabel}
-          </Button>
-        </div>
+        {renderReferralSection()}
       </section>
     );
   };
@@ -3059,7 +3073,7 @@ function PublicExperiencePageContent({
                   value="entry"
                   className="navai-public-experience-restricted-tab-trigger"
                 >
-                  {entryHubTabLabel}
+                  {entriesTabLabel}
                 </TabsTrigger>
                 <TabsTrigger
                   value="rewards"
@@ -3198,7 +3212,7 @@ function PublicExperiencePageContent({
                     value="purchase"
                     className="navai-public-experience-restricted-tab-trigger"
                   >
-                    {messages.panelPage.entryPackagesTitle}
+                    {entriesTabLabel}
                   </TabsTrigger>
                 ) : null}
                 <TabsTrigger
@@ -3633,4 +3647,3 @@ export default function PublicExperiencePage(props: PublicExperiencePageProps) {
     </AppProvidersShell>
   );
 }
-

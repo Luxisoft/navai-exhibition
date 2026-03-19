@@ -17,6 +17,7 @@ import {
   listNavaiPanelDomains,
   type NavaiPanelDomainRecord,
 } from "./navai-panel-sqlite";
+import { upsertNavaiPanelUserRoleBySystem } from "./navai-panel-access-sqlite";
 import { resolveProjectRoot } from "./project-root";
 import {
   createWompiPaymentLink,
@@ -98,29 +99,50 @@ const NAVAI_POINTS_CASHOUT_STATUSES = new Set<NavaiPointsCashoutStatus>([
   "rejected",
 ]);
 
-const NAVAI_POINTS_CASHOUT_PAYMENT_METHODS = new Set<NavaiPointsCashoutPaymentMethod>([
-  "bancolombia",
-  "nequi",
-  "daviplata",
-  "davivienda",
-  "banco_de_bogota",
-  "bbva_colombia",
-  "paypal",
+const NAVAI_POINTS_CASHOUT_PAYMENT_METHODS =
+  new Set<NavaiPointsCashoutPaymentMethod>([
+    "bancolombia",
+    "nequi",
+    "daviplata",
+    "davivienda",
+    "banco_de_bogota",
+    "bbva_colombia",
+    "paypal",
+  ]);
+
+const NAVAI_MEMBERSHIP_SERVICE_PERIODS = new Set<NavaiMembershipServicePeriod>([
+  "monthly",
+  "quarterly",
+  "semiannual",
+  "annual",
 ]);
+
+const NAVAI_MEMBERSHIP_ASSIGNMENT_STATUSES =
+  new Set<NavaiMembershipRoleAssignmentStatus>([
+    "scheduled",
+    "active",
+    "completed",
+  ]);
 
 export const NAVAI_POINT_VALUE_COP = 4000;
 const NAVAI_DEFAULT_USD_COP_RATE = 4000;
 const NAVAI_DEFAULT_ENTRY_PACKAGE_KEY = "ENTRY_STANDARD";
 const NAVAI_DEFAULT_ENTRY_PACKAGE_ENTRIES = 1;
 const NAVAI_DEFAULT_ENTRY_PACKAGE_VAT_PERCENTAGE = 19;
-const NAVAI_DEFAULT_ENTRY_PACKAGE_PRICE_USD = Math.round(
-  (NAVAI_ENTRY_PRICE_CENTS / 100 / NAVAI_DEFAULT_USD_COP_RATE) * 10000
-) / 10000;
+const NAVAI_DEFAULT_ENTRY_PACKAGE_PRICE_USD =
+  Math.round(
+    (NAVAI_ENTRY_PRICE_CENTS / 100 / NAVAI_DEFAULT_USD_COP_RATE) * 10000,
+  ) / 10000;
 
 export type NavaiPanelExperienceKind = "evaluation" | "survey";
 export type NavaiPanelExperienceStatus = "Draft" | "Active" | "Completed";
 export type NavaiPanelExperienceAccessMode = "public" | "private";
-export type NavaiExperienceRewardType = "money" | "object" | "travel" | "voucher" | "other";
+export type NavaiExperienceRewardType =
+  | "money"
+  | "object"
+  | "travel"
+  | "voucher"
+  | "other";
 export type NavaiExperienceRewardDeliveryMethod =
   | "manual_coordination"
   | "bank_transfer"
@@ -149,7 +171,11 @@ export type NavaiUserVerificationDocumentType =
   | "foreign_id"
   | "other";
 export type NavaiUserAccountStatus = "active" | "deletion_pending" | "inactive";
-export type NavaiPointsCashoutStatus = "pending" | "processing" | "paid" | "rejected";
+export type NavaiPointsCashoutStatus =
+  | "pending"
+  | "processing"
+  | "paid"
+  | "rejected";
 export type NavaiPointsCashoutPaymentMethod =
   | "bancolombia"
   | "nequi"
@@ -163,6 +189,15 @@ export type NavaiPointsLedgerReason =
   | "cashout_request"
   | "cashout_reverted"
   | "manual_adjustment";
+export type NavaiMembershipServicePeriod =
+  | "monthly"
+  | "quarterly"
+  | "semiannual"
+  | "annual";
+export type NavaiMembershipRoleAssignmentStatus =
+  | "scheduled"
+  | "active"
+  | "completed";
 
 export type NavaiPanelEvaluationQuestionRecord = {
   id: string;
@@ -329,7 +364,10 @@ export type NavaiPublicExperienceRecord = {
   > | null;
 };
 
-export type NavaiPublicExperienceConversationStatus = "Open" | "Completed" | "Abandoned";
+export type NavaiPublicExperienceConversationStatus =
+  | "Open"
+  | "Completed"
+  | "Abandoned";
 
 export type NavaiPublicExperienceConversationTurnInput = {
   clientTurnId?: unknown;
@@ -568,6 +606,9 @@ export type NavaiEntryPackageRecord = {
   currency: string;
   isActive: boolean;
   sortOrder: number;
+  servicePeriod: NavaiMembershipServicePeriod;
+  roleOnStart: NavaiPanelActor["role"];
+  roleOnEnd: NavaiPanelActor["role"];
   updatedAt: string;
 };
 
@@ -587,6 +628,31 @@ export type NavaiEntryBillingRecord = {
   orders: NavaiEntryOrderRecord[];
   accounting: NavaiEntryAccountingSummaryRecord;
   allOrders: NavaiEntryOrderRecord[];
+};
+
+export type NavaiFreeEntryGrantRecord = {
+  userId: string;
+  experienceKind: NavaiPanelExperienceKind;
+  grantedEntries: number;
+  balance: NavaiEntryBalanceRecord;
+};
+
+export type NavaiMembershipRoleAssignmentRecord = {
+  id: string;
+  userId: string;
+  userEmail: string;
+  packageKey: string;
+  packageName: string;
+  servicePeriod: NavaiMembershipServicePeriod;
+  roleOnStart: NavaiPanelActor["role"];
+  roleOnEnd: NavaiPanelActor["role"];
+  startsAt: string;
+  endsAt: string;
+  status: NavaiMembershipRoleAssignmentStatus;
+  activatedAt: string;
+  completedAt: string;
+  createdAt: string;
+  updatedAt: string;
 };
 
 export type NavaiPointsCashoutPaymentSettingsRecord = {
@@ -853,6 +919,17 @@ export type NavaiEntryPackageInput = {
   vatPercentage?: unknown;
   isActive?: unknown;
   sortOrder?: unknown;
+  servicePeriod?: unknown;
+  roleOnStart?: unknown;
+  roleOnEnd?: unknown;
+};
+
+export type NavaiMembershipRoleAssignmentInput = {
+  userId?: unknown;
+  userEmail?: unknown;
+  packageKey?: unknown;
+  startsAt?: unknown;
+  endsAt?: unknown;
 };
 
 export type NavaiPanelAgentSettingsRecord = {
@@ -980,6 +1057,7 @@ type NormalizedExperienceInput = {
   rewardPaymentMethods: NavaiExperienceRewardPaymentMethod[];
   rewardWinnerCount: number;
   rewardPoints: number;
+  rewardUsdAmount: number;
   dailyAttemptLimit: number;
   agentId: string;
   questions: NavaiPanelEvaluationQuestionRecord[];
@@ -1095,9 +1173,10 @@ type NormalizedPointsCashoutPaymentSettingsInput = {
   notes: string;
 };
 
-type NormalizedPointsCashoutRequestInput = NormalizedPointsCashoutPaymentSettingsInput & {
-  requestedPoints: number;
-};
+type NormalizedPointsCashoutRequestInput =
+  NormalizedPointsCashoutPaymentSettingsInput & {
+    requestedPoints: number;
+  };
 
 type NormalizedPointsCashoutReviewInput = {
   status: Exclude<NavaiPointsCashoutStatus, "pending">;
@@ -1112,6 +1191,17 @@ type NormalizedEntryPackageInput = {
   vatPercentage: number;
   isActive: boolean;
   sortOrder: number;
+  servicePeriod: NavaiMembershipServicePeriod;
+  roleOnStart: NavaiPanelActor["role"];
+  roleOnEnd: NavaiPanelActor["role"];
+};
+
+type NormalizedMembershipRoleAssignmentInput = {
+  userId: string;
+  userEmail: string;
+  packageKey: string;
+  startsAt: string;
+  endsAt: string;
 };
 
 type EntryPackagePricing = {
@@ -1134,7 +1224,8 @@ type NormalizedSupportAttachmentInput = {
 
 let sqliteStatePromise: Promise<NavaiPanelWorkspaceSqliteState> | null = null;
 let sqliteMutationQueue = Promise.resolve();
-const PUBLIC_CODE_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+const PUBLIC_CODE_ALPHABET =
+  "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 const PUBLIC_CODE_LENGTH = 23;
 const REFERRAL_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const REFERRAL_CODE_LENGTH = 8;
@@ -1187,16 +1278,26 @@ function normalizePointAmount(value: unknown, fallback = 0) {
   return Math.max(0, parsed);
 }
 
-function normalizePointsCashoutStatus(value: unknown): NavaiPointsCashoutStatus {
+function normalizePointsCashoutStatus(
+  value: unknown,
+): NavaiPointsCashoutStatus {
   const normalized = normalizeString(value).toLowerCase();
-  return NAVAI_POINTS_CASHOUT_STATUSES.has(normalized as NavaiPointsCashoutStatus)
+  return NAVAI_POINTS_CASHOUT_STATUSES.has(
+    normalized as NavaiPointsCashoutStatus,
+  )
     ? (normalized as NavaiPointsCashoutStatus)
     : "pending";
 }
 
-function normalizePointsCashoutPaymentMethod(value: unknown): NavaiPointsCashoutPaymentMethod {
+function normalizePointsCashoutPaymentMethod(
+  value: unknown,
+): NavaiPointsCashoutPaymentMethod {
   const normalized = normalizeString(value).toLowerCase();
-  if (NAVAI_POINTS_CASHOUT_PAYMENT_METHODS.has(normalized as NavaiPointsCashoutPaymentMethod)) {
+  if (
+    NAVAI_POINTS_CASHOUT_PAYMENT_METHODS.has(
+      normalized as NavaiPointsCashoutPaymentMethod,
+    )
+  ) {
     return normalized as NavaiPointsCashoutPaymentMethod;
   }
   return POINTS_FALLBACK_PAYMENT_METHOD;
@@ -1206,7 +1307,21 @@ function convertPointsToCop(points: number) {
   return Math.max(0, normalizePointAmount(points)) * NAVAI_POINT_VALUE_COP;
 }
 
-function normalizeExchangeRate(value: unknown, fallback = NAVAI_DEFAULT_USD_COP_RATE) {
+function convertUsdToCop(amountUsd: number, usdCopRate: number) {
+  if (!Number.isFinite(usdCopRate) || usdCopRate <= 0) {
+    return 0;
+  }
+
+  return Math.max(
+    0,
+    Math.round(Math.max(0, normalizeCurrencyAmount(amountUsd, 0)) * usdCopRate),
+  );
+}
+
+function normalizeExchangeRate(
+  value: unknown,
+  fallback = NAVAI_DEFAULT_USD_COP_RATE,
+) {
   const parsed = Number.parseFloat(String(value ?? fallback));
   if (!Number.isFinite(parsed) || parsed <= 0) {
     return fallback;
@@ -1218,11 +1333,14 @@ function convertCopToUsd(amountCop: number, usdCopRate: number) {
   if (!Number.isFinite(usdCopRate) || usdCopRate <= 0) {
     return 0;
   }
-  return Math.max(0, Math.round((Math.max(0, amountCop) / usdCopRate) * 100) / 100);
+  return Math.max(
+    0,
+    Math.round((Math.max(0, amountCop) / usdCopRate) * 100) / 100,
+  );
 }
 
 function buildFallbackExchangeRateRecord(
-  sourceDate = getLocalDateYmd()
+  sourceDate = getLocalDateYmd(),
 ): NavaiCurrencyExchangeRateRecord {
   const now = new Date().toISOString();
   return {
@@ -1236,7 +1354,7 @@ function buildFallbackExchangeRateRecord(
 
 function mapExchangeRateRow(
   row: Record<string, unknown>,
-  fallbackSourceDate = getLocalDateYmd()
+  fallbackSourceDate = getLocalDateYmd(),
 ): NavaiCurrencyExchangeRateRecord {
   const now = new Date().toISOString();
   const updatedAt = normalizeString(row.updated_at) || now;
@@ -1261,7 +1379,7 @@ function readStoredUsdCopExchangeRate(db: SqlJsDatabase) {
       WHERE key = ?
       LIMIT 1
     `,
-    [NAVAI_USD_COP_RATE_KEY]
+    [NAVAI_USD_COP_RATE_KEY],
   );
   return row ? mapExchangeRateRow(row) : null;
 }
@@ -1277,7 +1395,8 @@ async function resolveUsdCopExchangeRateRecord(): Promise<NavaiCurrencyExchangeR
   try {
     const fetched = await fetchUsdCopRate(sourceDate);
     const normalizedRate = normalizeExchangeRate(fetched.rate);
-    const normalizedSourceDate = normalizeString(fetched.sourceDate) || sourceDate;
+    const normalizedSourceDate =
+      normalizeString(fetched.sourceDate) || sourceDate;
     const now = new Date().toISOString();
 
     return runSerializedMutation((serializedDb) => {
@@ -1296,7 +1415,13 @@ async function resolveUsdCopExchangeRateRecord(): Promise<NavaiCurrencyExchangeR
             fetched_at = excluded.fetched_at,
             updated_at = excluded.updated_at
         `,
-        [NAVAI_USD_COP_RATE_KEY, normalizedRate, normalizedSourceDate, now, now]
+        [
+          NAVAI_USD_COP_RATE_KEY,
+          normalizedRate,
+          normalizedSourceDate,
+          now,
+          now,
+        ],
       );
 
       const updatedRow = readFirstRow(
@@ -1307,7 +1432,7 @@ async function resolveUsdCopExchangeRateRecord(): Promise<NavaiCurrencyExchangeR
           WHERE key = ?
           LIMIT 1
         `,
-        [NAVAI_USD_COP_RATE_KEY]
+        [NAVAI_USD_COP_RATE_KEY],
       );
 
       return updatedRow
@@ -1334,7 +1459,9 @@ function normalizeOptionalInteger(value: unknown) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-function normalizeSupportAttachmentKind(value: unknown): NavaiPanelSupportAttachmentKind {
+function normalizeSupportAttachmentKind(
+  value: unknown,
+): NavaiPanelSupportAttachmentKind {
   return normalizeString(value).toLowerCase() === "video" ? "video" : "image";
 }
 
@@ -1383,7 +1510,10 @@ function normalizeBooleanWithFallback(value: unknown, fallback = false) {
   return normalizeBoolean(value);
 }
 
-function normalizeExperienceMembershipAccessFlag(value: unknown, fallback = true) {
+function normalizeExperienceMembershipAccessFlag(
+  value: unknown,
+  fallback = true,
+) {
   if (value === undefined || value === null || value === "") {
     return fallback;
   }
@@ -1409,12 +1539,14 @@ function normalizeEmailAddress(value: unknown) {
 }
 
 function normalizeReferralCode(value: unknown) {
-  return normalizeString(value).replace(/[^a-z0-9]/gi, "").toUpperCase();
+  return normalizeString(value)
+    .replace(/[^a-z0-9]/gi, "")
+    .toUpperCase();
 }
 
 function normalizeEntryPackageKey(
   value: unknown,
-  fallback = NAVAI_DEFAULT_ENTRY_PACKAGE_KEY
+  fallback = NAVAI_DEFAULT_ENTRY_PACKAGE_KEY,
 ) {
   const normalized = normalizeString(value)
     .toUpperCase()
@@ -1422,7 +1554,73 @@ function normalizeEntryPackageKey(
   return normalized || fallback;
 }
 
-function normalizeEntryPriceUsd(value: unknown, fallback = NAVAI_DEFAULT_ENTRY_PACKAGE_PRICE_USD) {
+function normalizePanelActorRole(value: unknown): NavaiPanelActor["role"] {
+  const normalized = normalizeString(value).toLowerCase();
+  if (normalized === "support") {
+    return "support";
+  }
+  if (normalized === "moderator") {
+    return "moderator";
+  }
+  if (normalized === "admin") {
+    return "admin";
+  }
+  return "user";
+}
+
+function normalizeMembershipServicePeriod(
+  value: unknown,
+  fallback: NavaiMembershipServicePeriod = "monthly",
+) {
+  const normalized = normalizeString(value).toLowerCase();
+  if (
+    NAVAI_MEMBERSHIP_SERVICE_PERIODS.has(
+      normalized as NavaiMembershipServicePeriod,
+    )
+  ) {
+    return normalized as NavaiMembershipServicePeriod;
+  }
+  return fallback;
+}
+
+function resolveMembershipServicePeriodEndIso(
+  startIso: string,
+  period: NavaiMembershipServicePeriod,
+) {
+  const startAt = new Date(startIso);
+  if (Number.isNaN(startAt.getTime())) {
+    return startIso;
+  }
+
+  const monthsByPeriod: Record<NavaiMembershipServicePeriod, number> = {
+    monthly: 1,
+    quarterly: 3,
+    semiannual: 6,
+    annual: 12,
+  };
+  startAt.setUTCMonth(startAt.getUTCMonth() + monthsByPeriod[period]);
+  return startAt.toISOString();
+}
+
+function normalizeMembershipRoleAssignmentStatus(
+  value: unknown,
+  fallback: NavaiMembershipRoleAssignmentStatus = "scheduled",
+) {
+  const normalized = normalizeString(value).toLowerCase();
+  if (
+    NAVAI_MEMBERSHIP_ASSIGNMENT_STATUSES.has(
+      normalized as NavaiMembershipRoleAssignmentStatus,
+    )
+  ) {
+    return normalized as NavaiMembershipRoleAssignmentStatus;
+  }
+  return fallback;
+}
+
+function normalizeEntryPriceUsd(
+  value: unknown,
+  fallback = NAVAI_DEFAULT_ENTRY_PACKAGE_PRICE_USD,
+) {
   const parsed = Number.parseFloat(String(value ?? fallback));
   if (!Number.isFinite(parsed) || parsed <= 0) {
     return fallback;
@@ -1432,7 +1630,7 @@ function normalizeEntryPriceUsd(value: unknown, fallback = NAVAI_DEFAULT_ENTRY_P
 
 function normalizeVatPercentage(
   value: unknown,
-  fallback = NAVAI_DEFAULT_ENTRY_PACKAGE_VAT_PERCENTAGE
+  fallback = NAVAI_DEFAULT_ENTRY_PACKAGE_VAT_PERCENTAGE,
 ) {
   const parsed = Number.parseFloat(String(value ?? fallback));
   if (!Number.isFinite(parsed)) {
@@ -1444,16 +1642,27 @@ function normalizeVatPercentage(
 function buildEntryPackagePricing(
   priceUsd: number,
   vatPercentage: number,
-  usdCopRate: number
+  usdCopRate: number,
 ): EntryPackagePricing {
-  const normalizedRate = normalizeExchangeRate(usdCopRate, NAVAI_DEFAULT_USD_COP_RATE);
-  const subtotalUsd = normalizeEntryPriceUsd(priceUsd);
+  const normalizedRate = normalizeExchangeRate(
+    usdCopRate,
+    NAVAI_DEFAULT_USD_COP_RATE,
+  );
+  const totalUsd = normalizeEntryPriceUsd(priceUsd);
   const normalizedVat = normalizeVatPercentage(vatPercentage);
-  const taxUsd = Math.round((subtotalUsd * normalizedVat) / 100 * 10000) / 10000;
-  const totalUsd = Math.round((subtotalUsd + taxUsd) * 10000) / 10000;
-  const subtotalCopCents = Math.max(1, Math.round(subtotalUsd * normalizedRate * 100));
-  const taxCopCents = Math.max(0, Math.round(taxUsd * normalizedRate * 100));
-  const totalCopCents = Math.max(1, subtotalCopCents + taxCopCents);
+  const vatDivider = normalizedVat > 0 ? 1 + normalizedVat / 100 : 1;
+  const subtotalUsd = Math.round((totalUsd / vatDivider) * 10000) / 10000;
+  const taxUsd =
+    Math.round(Math.max(0, totalUsd - subtotalUsd) * 10000) / 10000;
+  const totalCopCents = Math.max(
+    1,
+    Math.round(totalUsd * normalizedRate * 100),
+  );
+  const subtotalCopCents = Math.max(
+    0,
+    Math.round(subtotalUsd * normalizedRate * 100),
+  );
+  const taxCopCents = Math.max(0, totalCopCents - subtotalCopCents);
 
   return {
     subtotalUsd,
@@ -1471,7 +1680,7 @@ function buildReferralAttribution(
     code?: string;
     referrerUserId?: string;
     referralId?: string;
-  } = {}
+  } = {},
 ): NavaiReferralAttributionRecord {
   return {
     code: normalizeReferralCode(options.code),
@@ -1505,23 +1714,35 @@ function resolveExperienceAttemptDateKey(value: string) {
   return year && month && day ? `${year}-${month}-${day}` : "";
 }
 
-function normalizeExperienceAccessMode(value: unknown): NavaiPanelExperienceAccessMode {
-  return normalizeString(value).toLowerCase() === "private" ? "private" : "public";
+function normalizeExperienceAccessMode(
+  value: unknown,
+): NavaiPanelExperienceAccessMode {
+  return normalizeString(value).toLowerCase() === "private"
+    ? "private"
+    : "public";
 }
 
 function normalizeRewardType(value: unknown): NavaiExperienceRewardType {
-  const normalized = normalizeString(value).toLowerCase() as NavaiExperienceRewardType;
+  const normalized = normalizeString(
+    value,
+  ).toLowerCase() as NavaiExperienceRewardType;
   return NAVAI_EXPERIENCE_REWARD_TYPES.has(normalized) ? normalized : "money";
 }
 
-function normalizeRewardDeliveryMethod(value: unknown): NavaiExperienceRewardDeliveryMethod {
-  const normalized = normalizeString(value).toLowerCase() as NavaiExperienceRewardDeliveryMethod;
+function normalizeRewardDeliveryMethod(
+  value: unknown,
+): NavaiExperienceRewardDeliveryMethod {
+  const normalized = normalizeString(
+    value,
+  ).toLowerCase() as NavaiExperienceRewardDeliveryMethod;
   return NAVAI_EXPERIENCE_REWARD_DELIVERY_METHODS.has(normalized)
     ? normalized
     : "manual_coordination";
 }
 
-function normalizeRewardPaymentMethods(value: unknown): NavaiExperienceRewardPaymentMethod[] {
+function normalizeRewardPaymentMethods(
+  value: unknown,
+): NavaiExperienceRewardPaymentMethod[] {
   const rawValues = Array.isArray(value)
     ? value
     : typeof value === "string"
@@ -1533,30 +1754,41 @@ function normalizeRewardPaymentMethods(value: unknown): NavaiExperienceRewardPay
   return Array.from(
     new Set(
       rawValues
-        .map((entry) =>
-          normalizeString(entry).toLowerCase() as NavaiExperienceRewardPaymentMethod
+        .map(
+          (entry) =>
+            normalizeString(
+              entry,
+            ).toLowerCase() as NavaiExperienceRewardPaymentMethod,
         )
-        .filter((entry) => NAVAI_EXPERIENCE_REWARD_PAYMENT_METHODS.has(entry))
-    )
+        .filter((entry) => NAVAI_EXPERIENCE_REWARD_PAYMENT_METHODS.has(entry)),
+    ),
   );
 }
 
-function normalizeUserVerificationStatus(value: unknown): NavaiUserVerificationStatus {
-  const normalized = normalizeString(value).toLowerCase() as NavaiUserVerificationStatus;
+function normalizeUserVerificationStatus(
+  value: unknown,
+): NavaiUserVerificationStatus {
+  const normalized = normalizeString(
+    value,
+  ).toLowerCase() as NavaiUserVerificationStatus;
   return NAVAI_USER_VERIFICATION_STATUSES.has(normalized)
     ? normalized
     : "not_submitted";
 }
 
 function normalizeUserAccountStatus(value: unknown): NavaiUserAccountStatus {
-  const normalized = normalizeString(value).toLowerCase() as NavaiUserAccountStatus;
+  const normalized = normalizeString(
+    value,
+  ).toLowerCase() as NavaiUserAccountStatus;
   return NAVAI_USER_ACCOUNT_STATUSES.has(normalized) ? normalized : "active";
 }
 
 function normalizeUserVerificationDocumentType(
-  value: unknown
+  value: unknown,
 ): NavaiUserVerificationDocumentType {
-  const normalized = normalizeString(value).toLowerCase() as NavaiUserVerificationDocumentType;
+  const normalized = normalizeString(
+    value,
+  ).toLowerCase() as NavaiUserVerificationDocumentType;
   return NAVAI_USER_VERIFICATION_DOCUMENT_TYPES.has(normalized)
     ? normalized
     : "citizenship_card";
@@ -1565,7 +1797,7 @@ function normalizeUserVerificationDocumentType(
 function normalizeUserVerificationAssetInput(
   assetIdValue: unknown,
   urlValue: unknown,
-  fieldLabel: string
+  fieldLabel: string,
 ): NormalizedUserVerificationAssetInput {
   const assetId = normalizeString(assetIdValue);
   const url = normalizeOptionalUrl(urlValue);
@@ -1578,7 +1810,7 @@ function normalizeUserVerificationAssetInput(
 }
 
 function validateUserVerificationInput(
-  input: NavaiUserVerificationInput
+  input: NavaiUserVerificationInput,
 ): NormalizedUserVerificationInput {
   const fullName = normalizeString(input.fullName);
   const documentNumber = normalizeString(input.documentNumber);
@@ -1602,23 +1834,23 @@ function validateUserVerificationInput(
     selfieImage: normalizeUserVerificationAssetInput(
       input.selfieImageId,
       input.selfieImageUrl,
-      "Verification face image"
+      "Verification face image",
     ),
     documentFrontImage: normalizeUserVerificationAssetInput(
       input.documentFrontImageId,
       input.documentFrontImageUrl,
-      "Verification document front image"
+      "Verification document front image",
     ),
     documentBackImage: normalizeUserVerificationAssetInput(
       input.documentBackImageId,
       input.documentBackImageUrl,
-      "Verification document back image"
+      "Verification document back image",
     ),
   };
 }
 
 function validateUserVerificationReviewInput(
-  input: NavaiUserVerificationReviewInput
+  input: NavaiUserVerificationReviewInput,
 ): NormalizedUserVerificationReviewInput {
   const status = normalizeUserVerificationStatus(input.status);
   if (status === "not_submitted") {
@@ -1632,7 +1864,7 @@ function validateUserVerificationReviewInput(
 }
 
 function normalizePublicCommentInput(
-  input: NavaiPublicExperienceCommentInput
+  input: NavaiPublicExperienceCommentInput,
 ): NormalizedPublicCommentInput {
   const body = normalizeString(input.body);
   if (!body) {
@@ -1647,7 +1879,9 @@ function normalizePublicCommentInput(
   return { body, rating };
 }
 
-function validateUserProfileInput(input: NavaiUserProfileInput): NormalizedUserProfileInput {
+function validateUserProfileInput(
+  input: NavaiUserProfileInput,
+): NormalizedUserProfileInput {
   return {
     displayName: normalizeString(input.displayName),
     photoUrl: normalizeOptionalUrl(input.photoUrl),
@@ -1741,7 +1975,7 @@ function doesPublicCodeExist(db: SqlJsDatabase, slug: string, excludedId = "") {
   const row = readFirstRow(
     db,
     `SELECT id FROM navai_workspace_experiences WHERE slug = ?${excludedId ? " AND id <> ?" : ""}`,
-    params
+    params,
   );
 
   return Boolean(row);
@@ -1758,7 +1992,10 @@ function generateUniquePublicCode(db: SqlJsDatabase) {
   throw new Error("Could not generate a unique public URL code.");
 }
 
-function normalizeQuestionItem(value: unknown, index: number): NavaiPanelEvaluationQuestionRecord | null {
+function normalizeQuestionItem(
+  value: unknown,
+  index: number,
+): NavaiPanelEvaluationQuestionRecord | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return null;
   }
@@ -1786,7 +2023,9 @@ function normalizeQuestions(value: unknown) {
 
   return value
     .map((item, index) => normalizeQuestionItem(item, index))
-    .filter((item): item is NavaiPanelEvaluationQuestionRecord => Boolean(item));
+    .filter((item): item is NavaiPanelEvaluationQuestionRecord =>
+      Boolean(item),
+    );
 }
 
 function normalizeExperienceStatus(value: unknown): NavaiPanelExperienceStatus {
@@ -1800,7 +2039,9 @@ function normalizeExperienceStatus(value: unknown): NavaiPanelExperienceStatus {
   return "Draft";
 }
 
-function normalizePublicConversationStatus(value: unknown): NavaiPublicExperienceConversationStatus {
+function normalizePublicConversationStatus(
+  value: unknown,
+): NavaiPublicExperienceConversationStatus {
   const normalized = normalizeString(value).toLowerCase();
   if (normalized === "completed") {
     return "Completed";
@@ -1811,12 +2052,19 @@ function normalizePublicConversationStatus(value: unknown): NavaiPublicExperienc
   return "Open";
 }
 
-function resolveExperiencePublicPath(kind: NavaiPanelExperienceKind, slug: string) {
+function resolveExperiencePublicPath(
+  kind: NavaiPanelExperienceKind,
+  slug: string,
+) {
   const pathname = kind === "evaluation" ? "/evaluation" : "/survey";
   return `${pathname}/${encodeURIComponent(slug)}`;
 }
 
-function readStatementRows(db: SqlJsDatabase, sql: string, params: unknown[] = []) {
+function readStatementRows(
+  db: SqlJsDatabase,
+  sql: string,
+  params: unknown[] = [],
+) {
   const statement = db.prepare(sql);
   if (params.length > 0) {
     statement.bind(params);
@@ -1848,7 +2096,9 @@ function formatFallbackDisplayName(email: string, userId: string) {
   return userId ? `Usuario ${userId.slice(0, 6)}` : "Usuario";
 }
 
-function mapUserProfileRow(row: Record<string, unknown> | null): NavaiUserProfileRecord | null {
+function mapUserProfileRow(
+  row: Record<string, unknown> | null,
+): NavaiUserProfileRecord | null {
   if (!row) {
     return null;
   }
@@ -1881,7 +2131,7 @@ function mapUserProfileRow(row: Record<string, unknown> | null): NavaiUserProfil
 
 function mapUserVerificationAsset(
   assetId: unknown,
-  url: unknown
+  url: unknown,
 ): NavaiUserVerificationAssetRecord | null {
   const normalizedAssetId = normalizeString(assetId);
   const normalizedUrl = normalizeOptionalUrl(url);
@@ -1896,7 +2146,7 @@ function mapUserVerificationAsset(
 }
 
 function mapUserVerificationRow(
-  row: Record<string, unknown> | null
+  row: Record<string, unknown> | null,
 ): NavaiUserVerificationRecord | null {
   if (!row) {
     return null;
@@ -1910,14 +2160,17 @@ function mapUserVerificationRow(
     documentType: normalizeUserVerificationDocumentType(row.document_type),
     documentNumber: String(row.document_number ?? ""),
     documentCountry: String(row.document_country ?? ""),
-    selfieImage: mapUserVerificationAsset(row.selfie_image_id, row.selfie_image_url),
+    selfieImage: mapUserVerificationAsset(
+      row.selfie_image_id,
+      row.selfie_image_url,
+    ),
     documentFrontImage: mapUserVerificationAsset(
       row.document_front_image_id,
-      row.document_front_image_url
+      row.document_front_image_url,
     ),
     documentBackImage: mapUserVerificationAsset(
       row.document_back_image_id,
-      row.document_back_image_url
+      row.document_back_image_url,
     ),
     responseMessage: String(row.response_message ?? ""),
     submittedAt: String(row.submitted_at ?? ""),
@@ -1931,7 +2184,7 @@ function mapUserVerificationRow(
 
 function buildResolvedUserProfile(
   profile: NavaiUserProfileRecord | null,
-  fallback: { userId: string; email: string }
+  fallback: { userId: string; email: string },
 ) {
   const userId = profile?.userId || fallback.userId;
   const email = profile?.email || fallback.email;
@@ -1943,7 +2196,8 @@ function buildResolvedUserProfile(
     scheduledDeletionAt: profile?.scheduledDeletionAt ?? "",
     deactivatedAt: profile?.deactivatedAt ?? "",
     displayName:
-      normalizeString(profile?.displayName) || formatFallbackDisplayName(email, userId),
+      normalizeString(profile?.displayName) ||
+      formatFallbackDisplayName(email, userId),
     photoUrl: normalizeOptionalUrl(profile?.photoUrl),
     bio: normalizeString(profile?.bio),
     professionalHeadline: normalizeString(profile?.professionalHeadline),
@@ -1989,7 +2243,7 @@ function buildPublicFacingUserProfile(profile: NavaiUserProfileRecord) {
 
 function buildResolvedUserVerification(
   verification: NavaiUserVerificationRecord | null,
-  fallback: { userId: string; email: string }
+  fallback: { userId: string; email: string },
 ) {
   return {
     userId: verification?.userId || fallback.userId,
@@ -2019,12 +2273,15 @@ async function resolveWorkspaceSqliteFilePath() {
   return path.join(directory, "navai-workspace.sqlite");
 }
 
-function mapSupportMessageRow(row: Record<string, unknown>): NavaiPanelSupportMessageRecord {
+function mapSupportMessageRow(
+  row: Record<string, unknown>,
+): NavaiPanelSupportMessageRecord {
   return {
     id: String(row.id ?? ""),
     ticketId: String(row.ticket_id ?? ""),
     author: String(row.author ?? ""),
-    authorRole: String(row.author_role ?? "") === "support" ? "support" : "customer",
+    authorRole:
+      String(row.author_role ?? "") === "support" ? "support" : "customer",
     body: String(row.body ?? ""),
     attachments: [],
     createdAt: String(row.created_at ?? ""),
@@ -2032,7 +2289,7 @@ function mapSupportMessageRow(row: Record<string, unknown>): NavaiPanelSupportMe
 }
 
 function mapSupportAttachmentRow(
-  row: Record<string, unknown>
+  row: Record<string, unknown>,
 ): NavaiPanelSupportAttachmentRecord {
   return {
     id: String(row.id ?? ""),
@@ -2047,7 +2304,10 @@ function mapSupportAttachmentRow(
   };
 }
 
-function readSupportMessageAttachmentsByMessageId(db: SqlJsDatabase, messageId: string) {
+function readSupportMessageAttachmentsByMessageId(
+  db: SqlJsDatabase,
+  messageId: string,
+) {
   return readStatementRows(
     db,
     `
@@ -2056,14 +2316,14 @@ function readSupportMessageAttachmentsByMessageId(db: SqlJsDatabase, messageId: 
       WHERE message_id = ?
       ORDER BY created_at ASC
     `,
-    [messageId]
+    [messageId],
   ).map(mapSupportAttachmentRow);
 }
 
 function mapSupportTicketRow(
   row: Record<string, unknown>,
   messages: NavaiPanelSupportMessageRecord[],
-  requesterProfile: NavaiUserProfileRecord
+  requesterProfile: NavaiUserProfileRecord,
 ): NavaiPanelSupportTicketRecord {
   return {
     id: String(row.id ?? ""),
@@ -2083,7 +2343,7 @@ function mapSupportTicketRow(
 
 function buildDefaultAgentSettings(
   userId: string,
-  kind: NavaiPanelExperienceKind
+  kind: NavaiPanelExperienceKind,
 ): NavaiPanelAgentSettingsRecord {
   return {
     userId,
@@ -2117,18 +2377,18 @@ function mapAgentRow(row: Record<string, unknown>): NavaiPanelAgentRecord {
 function mapExperienceRow(
   row: Record<string, unknown>,
   domainById: Map<string, NavaiPanelDomainRecord>,
-  agentById: Map<string, NavaiPanelAgentRecord>
+  agentById: Map<string, NavaiPanelAgentRecord>,
 ): NavaiPanelEvaluationRecord | NavaiPanelSurveyRecord {
   const kind = String(row.kind ?? "") === "survey" ? "survey" : "evaluation";
   const domainId = String(row.domain_id ?? "");
   const domain = domainById.get(domainId);
   const agentId = String(row.agent_id ?? "");
   const agent = agentById.get(agentId);
-  const rewardPoints = normalizePointAmount(
-    row.reward_points ?? row.reward_usd_amount ?? 0,
-    0
+  const rewardPoints = normalizePointAmount(0, 0);
+  const rewardUsdAmount = normalizeCurrencyAmount(
+    row.reward_usd_amount ?? row.reward_points ?? 0,
+    0,
   );
-  const rewardUsdAmount = normalizeCurrencyAmount(row.reward_usd_amount ?? rewardPoints, rewardPoints);
   const base = {
     id: String(row.id ?? ""),
     userId: String(row.user_id ?? ""),
@@ -2140,7 +2400,9 @@ function mapExperienceRow(
     description: String(row.description ?? ""),
     status: normalizeExperienceStatus(row.status),
     accessMode: normalizeExperienceAccessMode(row.access_mode),
-    allowedEmails: normalizeAllowedEmails(parseJsonArray(row.allowed_emails_json)),
+    allowedEmails: normalizeAllowedEmails(
+      parseJsonArray(row.allowed_emails_json),
+    ),
     allowPlusUsers: true,
     allowNonPlusUsers: true,
     startsAt: String(row.starts_at ?? ""),
@@ -2151,10 +2413,12 @@ function mapExperienceRow(
     rewardType: normalizeRewardType(row.reward_type),
     rewardTitle: String(row.reward_title ?? ""),
     rewardDescription: String(row.reward_description ?? ""),
-    rewardDeliveryMethod: normalizeRewardDeliveryMethod(row.reward_delivery_method),
+    rewardDeliveryMethod: normalizeRewardDeliveryMethod(
+      row.reward_delivery_method,
+    ),
     rewardDeliveryDetails: String(row.reward_delivery_details ?? ""),
     rewardPaymentMethods: normalizeRewardPaymentMethods(
-      parseJsonArray(row.reward_payment_methods_json)
+      parseJsonArray(row.reward_payment_methods_json),
     ),
     rewardWinnerCount: normalizePositiveInteger(row.reward_winner_count, 1),
     rewardPoints,
@@ -2166,7 +2430,10 @@ function mapExperienceRow(
     welcomeTitle: String(row.welcome_title ?? ""),
     welcomeBody: String(row.welcome_body ?? ""),
     autoStartConversation: normalizeBoolean(row.auto_start_conversation),
-    enableEntryModal: normalizeBooleanWithFallback(row.enable_entry_modal, true),
+    enableEntryModal: normalizeBooleanWithFallback(
+      row.enable_entry_modal,
+      true,
+    ),
     enableHCaptcha: normalizeBooleanWithFallback(row.enable_hcaptcha, true),
     systemPrompt: String(row.system_prompt ?? ""),
     agentModel: agent?.agentModel ?? "",
@@ -2197,7 +2464,9 @@ function validateUserId(userId: string) {
   return normalizedUserId;
 }
 
-function validateExperienceInput(input: NavaiPanelExperienceInput): NormalizedExperienceInput {
+function validateExperienceInput(
+  input: NavaiPanelExperienceInput,
+): NormalizedExperienceInput {
   const name = normalizeString(input.name);
   if (!name) {
     throw new Error("Experience name is required.");
@@ -2211,18 +2480,31 @@ function validateExperienceInput(input: NavaiPanelExperienceInput): NormalizedEx
   const allowNonPlusUsers = true;
   const startsAt = normalizeIsoDateTime(input.startsAt, "Start date and time");
   const endsAt = normalizeIsoDateTime(input.endsAt, "End date and time");
-  const dailyAttemptLimit = normalizePositiveInteger(input.dailyAttemptLimit, 1);
-  const rewardWinnerCount = Math.min(100, normalizePositiveInteger(input.rewardWinnerCount, 1));
-  const rewardPoints = normalizePointAmount(
-    input.rewardPoints ?? input.rewardUsdAmount,
-    0
+  const dailyAttemptLimit = normalizePositiveInteger(
+    input.dailyAttemptLimit,
+    1,
+  );
+  const rewardWinnerCount = Math.min(
+    100,
+    normalizePositiveInteger(input.rewardWinnerCount, 1),
+  );
+  const rewardPoints = normalizePointAmount(0, 0);
+  const rewardUsdAmount = normalizeCurrencyAmount(
+    input.rewardUsdAmount ?? input.rewardPoints,
+    0,
   );
 
   if (accessMode === "private" && allowedEmails.length === 0) {
     throw new Error("Private experiences require at least one allowed email.");
   }
-  if (startsAt && endsAt && new Date(startsAt).getTime() >= new Date(endsAt).getTime()) {
-    throw new Error("End date and time must be later than start date and time.");
+  if (
+    startsAt &&
+    endsAt &&
+    new Date(startsAt).getTime() >= new Date(endsAt).getTime()
+  ) {
+    throw new Error(
+      "End date and time must be later than start date and time.",
+    );
   }
 
   return {
@@ -2243,25 +2525,34 @@ function validateExperienceInput(input: NavaiPanelExperienceInput): NormalizedEx
     rewardType: normalizeRewardType(input.rewardType),
     rewardTitle: normalizeString(input.rewardTitle),
     rewardDescription: normalizeString(input.rewardDescription),
-    rewardDeliveryMethod: normalizeRewardDeliveryMethod(input.rewardDeliveryMethod),
+    rewardDeliveryMethod: normalizeRewardDeliveryMethod(
+      input.rewardDeliveryMethod,
+    ),
     rewardDeliveryDetails: normalizeString(input.rewardDeliveryDetails),
-    rewardPaymentMethods: normalizeRewardPaymentMethods(input.rewardPaymentMethods),
+    rewardPaymentMethods: normalizeRewardPaymentMethods(
+      input.rewardPaymentMethods,
+    ),
     rewardWinnerCount,
     rewardPoints,
+    rewardUsdAmount,
     dailyAttemptLimit,
     agentId: normalizeString(input.agentId),
     questions: normalizeQuestions(input.questions),
     welcomeTitle: normalizeString(input.welcomeTitle),
     welcomeBody: normalizeString(input.welcomeBody),
     autoStartConversation: normalizeBoolean(input.autoStartConversation),
-    enableEntryModal: normalizeBooleanWithFallback(input.enableEntryModal, true),
+    enableEntryModal: normalizeBooleanWithFallback(
+      input.enableEntryModal,
+      true,
+    ),
     enableHCaptcha: normalizeBooleanWithFallback(input.enableHCaptcha, true),
-    systemPrompt: normalizeString(input.systemPrompt) || normalizeString(input.description),
+    systemPrompt:
+      normalizeString(input.systemPrompt) || normalizeString(input.description),
   };
 }
 
 function validatePointsCashoutPaymentSettingsInput(
-  input: NavaiPointsCashoutPaymentSettingsInput
+  input: NavaiPointsCashoutPaymentSettingsInput,
 ): NormalizedPointsCashoutPaymentSettingsInput {
   const accountReference = normalizeString(input.accountReference);
   if (!accountReference) {
@@ -2277,7 +2568,7 @@ function validatePointsCashoutPaymentSettingsInput(
 }
 
 function validatePointsCashoutRequestInput(
-  input: NavaiPointsCashoutRequestInput
+  input: NavaiPointsCashoutRequestInput,
 ): NormalizedPointsCashoutRequestInput {
   const base = validatePointsCashoutPaymentSettingsInput(input);
   const requestedPoints = normalizePointAmount(input.requestedPoints, 0);
@@ -2292,7 +2583,7 @@ function validatePointsCashoutRequestInput(
 }
 
 function validatePointsCashoutReviewInput(
-  input: NavaiPointsCashoutReviewInput
+  input: NavaiPointsCashoutReviewInput,
 ): NormalizedPointsCashoutReviewInput {
   const status = normalizePointsCashoutStatus(input.status);
   if (status === "pending") {
@@ -2305,19 +2596,32 @@ function validatePointsCashoutReviewInput(
   };
 }
 
-function validateEntryPackageInput(input: NavaiEntryPackageInput): NormalizedEntryPackageInput {
+function validateEntryPackageInput(
+  input: NavaiEntryPackageInput,
+): NormalizedEntryPackageInput {
   const name = normalizeString(input.name);
   if (!name) {
     throw new Error("Entry package name is required.");
   }
 
-  const entriesCount = Math.max(1, Math.min(100000, normalizePositiveInteger(input.entriesCount, 1)));
-  const priceUsd = normalizeEntryPriceUsd(input.priceUsd, NAVAI_DEFAULT_ENTRY_PACKAGE_PRICE_USD);
+  const entriesCount = Math.max(
+    1,
+    Math.min(100000, normalizePositiveInteger(input.entriesCount, 1)),
+  );
+  const priceUsd = normalizeEntryPriceUsd(
+    input.priceUsd,
+    NAVAI_DEFAULT_ENTRY_PACKAGE_PRICE_USD,
+  );
   const vatPercentage = normalizeVatPercentage(
     input.vatPercentage,
-    NAVAI_DEFAULT_ENTRY_PACKAGE_VAT_PERCENTAGE
+    NAVAI_DEFAULT_ENTRY_PACKAGE_VAT_PERCENTAGE,
   );
-  const sortOrder = Math.max(0, Math.min(100000, normalizeInteger(input.sortOrder)));
+  const sortOrder = Math.max(
+    0,
+    Math.min(100000, normalizeInteger(input.sortOrder)),
+  );
+  const roleOnStart = normalizePanelActorRole(input.roleOnStart);
+  const roleOnEnd = normalizePanelActorRole(input.roleOnEnd);
 
   return {
     name,
@@ -2327,11 +2631,50 @@ function validateEntryPackageInput(input: NavaiEntryPackageInput): NormalizedEnt
     vatPercentage,
     isActive: normalizeBooleanWithFallback(input.isActive, true),
     sortOrder,
+    servicePeriod: normalizeMembershipServicePeriod(
+      input.servicePeriod,
+      "monthly",
+    ),
+    roleOnStart,
+    roleOnEnd,
+  };
+}
+
+function validateMembershipRoleAssignmentInput(
+  input: NavaiMembershipRoleAssignmentInput,
+): NormalizedMembershipRoleAssignmentInput {
+  const userId = normalizeString(input.userId);
+  if (!userId) {
+    throw new Error("User id is required.");
+  }
+
+  const packageKey = normalizeEntryPackageKey(input.packageKey, "");
+  if (!packageKey) {
+    throw new Error("Entry package key is required.");
+  }
+
+  const startsAt = normalizeIsoDateTime(input.startsAt, "Start date and time");
+  const endsAt = normalizeIsoDateTime(input.endsAt, "End date and time");
+  if (!startsAt || !endsAt) {
+    throw new Error("Start date and time is invalid.");
+  }
+  if (new Date(startsAt).getTime() >= new Date(endsAt).getTime()) {
+    throw new Error(
+      "End date and time must be later than start date and time.",
+    );
+  }
+
+  return {
+    userId,
+    userEmail: normalizeEmailAddress(input.userEmail),
+    packageKey,
+    startsAt,
+    endsAt,
   };
 }
 
 function validateAgentSettingsInput(
-  input: NavaiPanelAgentSettingsInput
+  input: NavaiPanelAgentSettingsInput,
 ): NormalizedAgentSettingsInput {
   return {
     name: normalizeString(input.name),
@@ -2361,7 +2704,7 @@ function validateAgentInput(input: NavaiPanelAgentInput): NormalizedAgentInput {
 
 function normalizePublicConversationTurnInput(
   value: unknown,
-  index: number
+  index: number,
 ): NormalizedPublicConversationTurnInput | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return null;
@@ -2373,7 +2716,10 @@ function normalizePublicConversationTurnInput(
     return null;
   }
 
-  const role = normalizeString(record.role).toLowerCase() === "assistant" ? "assistant" : "user";
+  const role =
+    normalizeString(record.role).toLowerCase() === "assistant"
+      ? "assistant"
+      : "user";
   const providedClientTurnId = normalizeString(record.clientTurnId);
   return {
     clientTurnId: providedClientTurnId || `turn-${index + 1}-${randomUUID()}`,
@@ -2384,7 +2730,7 @@ function normalizePublicConversationTurnInput(
 }
 
 function normalizePublicConversationAnswerInput(
-  value: unknown
+  value: unknown,
 ): NormalizedPublicConversationAnswerInput | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return null;
@@ -2405,7 +2751,7 @@ function normalizePublicConversationAnswerInput(
 }
 
 function normalizePublicConversationMediaInput(
-  value: unknown
+  value: unknown,
 ): NormalizedPublicConversationAudioInput | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return null;
@@ -2427,18 +2773,24 @@ function normalizePublicConversationMediaInput(
 }
 
 function validatePublicConversationProgressInput(
-  input: NavaiPublicExperienceConversationProgressInput
+  input: NavaiPublicExperienceConversationProgressInput,
 ): NormalizedPublicConversationProgressInput {
   return {
     turns: Array.isArray(input.turns)
       ? input.turns
-          .map((item, index) => normalizePublicConversationTurnInput(item, index))
-          .filter((item): item is NormalizedPublicConversationTurnInput => Boolean(item))
+          .map((item, index) =>
+            normalizePublicConversationTurnInput(item, index),
+          )
+          .filter((item): item is NormalizedPublicConversationTurnInput =>
+            Boolean(item),
+          )
       : [],
     answers: Array.isArray(input.answers)
       ? input.answers
           .map((item) => normalizePublicConversationAnswerInput(item))
-          .filter((item): item is NormalizedPublicConversationAnswerInput => Boolean(item))
+          .filter((item): item is NormalizedPublicConversationAnswerInput =>
+            Boolean(item),
+          )
       : [],
     status:
       input.status === undefined || input.status === null
@@ -2450,7 +2802,7 @@ function validatePublicConversationProgressInput(
 }
 
 function mapPublicConversationAnswerRow(
-  row: Record<string, unknown>
+  row: Record<string, unknown>,
 ): NavaiPublicExperienceConversationAnswerRecord {
   return {
     id: String(row.id ?? ""),
@@ -2468,12 +2820,13 @@ function mapPublicConversationAnswerRow(
 
 function mapPublicConversationRow(
   row: Record<string, unknown>,
-  answers: NavaiPublicExperienceConversationAnswerRecord[]
+  answers: NavaiPublicExperienceConversationAnswerRecord[],
 ): NavaiPublicExperienceConversationRecord {
   return {
     id: String(row.id ?? ""),
     experienceId: String(row.experience_id ?? ""),
-    experienceKind: String(row.experience_kind ?? "") === "survey" ? "survey" : "evaluation",
+    experienceKind:
+      String(row.experience_kind ?? "") === "survey" ? "survey" : "evaluation",
     experienceSlug: String(row.experience_slug ?? ""),
     respondentUserId: String(row.respondent_user_id ?? ""),
     respondentEmail: String(row.respondent_email ?? ""),
@@ -2499,7 +2852,7 @@ function mapPublicConversationRow(
 
 function readPublicConversationAnswers(
   db: SqlJsDatabase,
-  conversationId: string
+  conversationId: string,
 ) {
   return readStatementRows(
     db,
@@ -2519,14 +2872,11 @@ function readPublicConversationAnswers(
       WHERE conversation_id = ?
       ORDER BY updated_at ASC, created_at ASC
     `,
-    [conversationId]
+    [conversationId],
   ).map(mapPublicConversationAnswerRow);
 }
 
-function readPublicConversationById(
-  db: SqlJsDatabase,
-  conversationId: string
-) {
+function readPublicConversationById(db: SqlJsDatabase, conversationId: string) {
   const row = readFirstRow(
     db,
     `
@@ -2556,14 +2906,17 @@ function readPublicConversationById(
       FROM navai_public_experience_conversations
       WHERE id = ?
     `,
-    [conversationId]
+    [conversationId],
   );
 
   if (!row) {
     return null;
   }
 
-  return mapPublicConversationRow(row, readPublicConversationAnswers(db, conversationId));
+  return mapPublicConversationRow(
+    row,
+    readPublicConversationAnswers(db, conversationId),
+  );
 }
 
 function readUserProfileByUserId(db: SqlJsDatabase, userId: string) {
@@ -2602,7 +2955,7 @@ function readUserProfileByUserId(db: SqlJsDatabase, userId: string) {
       WHERE user_id = ?
       LIMIT 1
     `,
-    [normalizedUserId]
+    [normalizedUserId],
   );
 
   return mapUserProfileRow(row);
@@ -2642,7 +2995,7 @@ function readUserVerificationByUserId(db: SqlJsDatabase, userId: string) {
       WHERE user_id = ?
       LIMIT 1
     `,
-    [normalizedUserId]
+    [normalizedUserId],
   );
 
   return mapUserVerificationRow(row);
@@ -2651,7 +3004,7 @@ function readUserVerificationByUserId(db: SqlJsDatabase, userId: string) {
 function readFallbackEmailForUser(
   db: SqlJsDatabase,
   userId: string,
-  options?: { preferredEmail?: string }
+  options?: { preferredEmail?: string },
 ) {
   const preferredEmail = normalizeEmailAddress(options?.preferredEmail);
   if (preferredEmail) {
@@ -2673,7 +3026,7 @@ function readFallbackEmailForUser(
       ORDER BY updated_at DESC, created_at DESC
       LIMIT 1
     `,
-    [userId]
+    [userId],
   );
   const commentEmail = normalizeEmailAddress(commentRow?.author_email);
   if (commentEmail) {
@@ -2689,7 +3042,7 @@ function readFallbackEmailForUser(
       ORDER BY updated_at DESC, started_at DESC
       LIMIT 1
     `,
-    [userId]
+    [userId],
   );
 
   return normalizeEmailAddress(conversationRow?.respondent_email);
@@ -2698,7 +3051,7 @@ function readFallbackEmailForUser(
 function readResolvedUserProfile(
   db: SqlJsDatabase,
   userId: string,
-  options?: { preferredEmail?: string }
+  options?: { preferredEmail?: string },
 ) {
   const normalizedUserId = normalizeString(userId);
   const profile = readUserProfileByUserId(db, normalizedUserId);
@@ -2711,15 +3064,17 @@ function readResolvedUserProfile(
 function readPublicFacingUserProfile(
   db: SqlJsDatabase,
   userId: string,
-  options?: { preferredEmail?: string }
+  options?: { preferredEmail?: string },
 ) {
-  return buildPublicFacingUserProfile(readResolvedUserProfile(db, userId, options));
+  return buildPublicFacingUserProfile(
+    readResolvedUserProfile(db, userId, options),
+  );
 }
 
 function readResolvedUserVerification(
   db: SqlJsDatabase,
   userId: string,
-  options?: { preferredEmail?: string }
+  options?: { preferredEmail?: string },
 ) {
   const normalizedUserId = normalizeString(userId);
   const verification = readUserVerificationByUserId(db, normalizedUserId);
@@ -2731,7 +3086,7 @@ function readResolvedUserVerification(
 
 function mapPublicExperienceCommentRow(
   db: SqlJsDatabase,
-  row: Record<string, unknown>
+  row: Record<string, unknown>,
 ): NavaiPublicExperienceCommentRecord {
   const authorUserId = String(row.author_user_id ?? "");
   const authorEmail = String(row.author_email ?? "");
@@ -2756,10 +3111,7 @@ function mapPublicExperienceCommentRow(
   };
 }
 
-function readPublicExperienceComments(
-  db: SqlJsDatabase,
-  experienceId: string
-) {
+function readPublicExperienceComments(db: SqlJsDatabase, experienceId: string) {
   return readStatementRows(
     db,
     `
@@ -2778,7 +3130,7 @@ function readPublicExperienceComments(
       WHERE experience_id = ?
       ORDER BY updated_at DESC, created_at DESC
     `,
-    [experienceId]
+    [experienceId],
   ).map((row) => mapPublicExperienceCommentRow(db, row));
 }
 
@@ -2806,7 +3158,7 @@ function readPublicExperienceCommentById(db: SqlJsDatabase, commentId: string) {
       WHERE id = ?
       LIMIT 1
     `,
-    [normalizedCommentId]
+    [normalizedCommentId],
   );
 
   return row ? mapPublicExperienceCommentRow(db, row) : null;
@@ -2815,7 +3167,7 @@ function readPublicExperienceCommentById(db: SqlJsDatabase, commentId: string) {
 function readPublicExperienceCommentByExperienceAndAuthor(
   db: SqlJsDatabase,
   experienceId: string,
-  authorUserId: string
+  authorUserId: string,
 ) {
   const normalizedExperienceId = normalizeString(experienceId);
   const normalizedAuthorUserId = normalizeString(authorUserId);
@@ -2841,7 +3193,7 @@ function readPublicExperienceCommentByExperienceAndAuthor(
       WHERE experience_id = ? AND author_user_id = ?
       LIMIT 1
     `,
-    [normalizedExperienceId, normalizedAuthorUserId]
+    [normalizedExperienceId, normalizedAuthorUserId],
   );
 
   return row ? mapPublicExperienceCommentRow(db, row) : null;
@@ -2849,11 +3201,13 @@ function readPublicExperienceCommentByExperienceAndAuthor(
 
 function resolveTopEntryRow(
   db: SqlJsDatabase,
-  row: Record<string, unknown>
+  row: Record<string, unknown>,
 ): NavaiPublicExperienceTopEntryRecord {
   const userId = String(row.respondent_user_id ?? "");
   const email = String(row.respondent_email ?? "");
-  const profile = readPublicFacingUserProfile(db, userId, { preferredEmail: email });
+  const profile = readPublicFacingUserProfile(db, userId, {
+    preferredEmail: email,
+  });
 
   return {
     userId,
@@ -2870,7 +3224,7 @@ function resolveTopEntryRow(
 function readLatestPublicExperienceAnswers(
   db: SqlJsDatabase,
   experienceId: string,
-  respondentUserId: string
+  respondentUserId: string,
 ) {
   const rows = readStatementRows(
     db,
@@ -2892,10 +3246,13 @@ function readLatestPublicExperienceAnswers(
       WHERE conversations.experience_id = ? AND conversations.respondent_user_id = ?
       ORDER BY answers.updated_at DESC, answers.created_at DESC
     `,
-    [experienceId, respondentUserId]
+    [experienceId, respondentUserId],
   );
 
-  const latestByQuestionId = new Map<string, NavaiPublicExperienceConversationAnswerRecord>();
+  const latestByQuestionId = new Map<
+    string,
+    NavaiPublicExperienceConversationAnswerRecord
+  >();
   for (const row of rows) {
     const mapped = mapPublicConversationAnswerRow(row);
     if (!mapped.questionId || latestByQuestionId.has(mapped.questionId)) {
@@ -2912,7 +3269,7 @@ function readWorkspaceExperienceQuestionsForConversation(
   conversation: Pick<
     NavaiPublicExperienceConversationRecord,
     "experienceId" | "experienceKind"
-  >
+  >,
 ) {
   const row = readFirstRow(
     db,
@@ -2921,7 +3278,7 @@ function readWorkspaceExperienceQuestionsForConversation(
       FROM navai_workspace_experiences
       WHERE id = ? AND kind = ?
     `,
-    [conversation.experienceId, conversation.experienceKind]
+    [conversation.experienceId, conversation.experienceKind],
   );
 
   return {
@@ -2933,7 +3290,7 @@ function readWorkspaceExperienceQuestionsForConversation(
 
 function readWorkspaceExperienceAccessSettings(
   db: SqlJsDatabase,
-  experienceId: string
+  experienceId: string,
 ) {
   const row = readFirstRow(
     db,
@@ -2964,13 +3321,15 @@ function readWorkspaceExperienceAccessSettings(
       FROM navai_workspace_experiences
       WHERE id = ?
     `,
-    [experienceId]
+    [experienceId],
   );
 
   return {
     status: normalizeExperienceStatus(row?.status),
     accessMode: normalizeExperienceAccessMode(row?.access_mode),
-    allowedEmails: normalizeAllowedEmails(parseJsonArray(row?.allowed_emails_json)),
+    allowedEmails: normalizeAllowedEmails(
+      parseJsonArray(row?.allowed_emails_json),
+    ),
     allowPlusUsers: true,
     allowNonPlusUsers: true,
     startsAt: String(row?.starts_at ?? ""),
@@ -2979,7 +3338,10 @@ function readWorkspaceExperienceAccessSettings(
     enableRanking: normalizeBoolean(row?.enable_ranking),
     enableComments: normalizeBoolean(row?.enable_comments),
     dailyAttemptLimit: normalizePositiveInteger(row?.daily_attempt_limit, 1),
-    enableEntryModal: normalizeBooleanWithFallback(row?.enable_entry_modal, true),
+    enableEntryModal: normalizeBooleanWithFallback(
+      row?.enable_entry_modal,
+      true,
+    ),
     enableHCaptcha: normalizeBooleanWithFallback(row?.enable_hcaptcha, true),
   };
 }
@@ -2989,7 +3351,7 @@ function assertExperienceCanStartConversation(
   experience: Pick<NavaiPublicExperienceRecord, "status">,
   settings: ReturnType<typeof readWorkspaceExperienceAccessSettings>,
   respondentUserId: string,
-  respondentEmail: string
+  respondentEmail: string,
 ) {
   if (experience.status !== "Active") {
     throw new Error("This experience is not currently active.");
@@ -3015,7 +3377,9 @@ function assertExperienceCanStartConversation(
       !normalizedRespondentEmail ||
       !settings.allowedEmails.includes(normalizedRespondentEmail)
     ) {
-      throw new Error("This private experience is only available to selected email accounts.");
+      throw new Error(
+        "This private experience is only available to selected email accounts.",
+      );
     }
   }
 
@@ -3031,9 +3395,11 @@ function resolveAnswersToGrade(
     experienceName: string;
     questions: NavaiPanelEvaluationQuestionRecord[];
   },
-  options: { forceAll: boolean }
+  options: { forceAll: boolean },
 ) {
-  const questionsById = new Map(experience.questions.map((question) => [question.id, question]));
+  const questionsById = new Map(
+    experience.questions.map((question) => [question.id, question]),
+  );
 
   return conversation.answers
     .map((answer) => {
@@ -3057,13 +3423,13 @@ function resolveAnswersToGrade(
     })
     .filter(
       (
-        item
+        item,
       ): item is {
         questionId: string;
         questionText: string;
         expectedAnswer: string;
         answerText: string;
-      } => Boolean(item)
+      } => Boolean(item),
     );
 }
 
@@ -3075,7 +3441,7 @@ function persistConversationAnswerGrades(
     score: number;
     feedback: string;
     scoredAt: string;
-  }>
+  }>,
 ) {
   for (const grade of grades) {
     db.run(
@@ -3084,7 +3450,13 @@ function persistConversationAnswerGrades(
         SET ai_score = ?, ai_feedback = ?, ai_scored_at = ?, updated_at = updated_at
         WHERE conversation_id = ? AND question_id = ?
       `,
-      [grade.score, grade.feedback, grade.scoredAt, conversationId, grade.questionId]
+      [
+        grade.score,
+        grade.feedback,
+        grade.scoredAt,
+        conversationId,
+        grade.questionId,
+      ],
     );
   }
 }
@@ -3093,7 +3465,8 @@ async function createWorkspaceSqliteState(): Promise<NavaiPanelWorkspaceSqliteSt
   const projectRoot = resolveProjectRoot();
   const filePath = await resolveWorkspaceSqliteFilePath();
   const SQL = await initSqlJs({
-    locateFile: (file: string) => path.join(projectRoot, "node_modules", "sql.js", "dist", file),
+    locateFile: (file: string) =>
+      path.join(projectRoot, "node_modules", "sql.js", "dist", file),
   });
 
   let db: SqlJsDatabase;
@@ -3345,6 +3718,27 @@ async function createWorkspaceSqliteState(): Promise<NavaiPanelWorkspaceSqliteSt
       vat_percentage REAL NOT NULL DEFAULT 19,
       is_active INTEGER NOT NULL DEFAULT 1,
       sort_order INTEGER NOT NULL DEFAULT 0,
+      service_period TEXT NOT NULL DEFAULT 'monthly',
+      role_on_start TEXT NOT NULL DEFAULT 'user',
+      role_on_end TEXT NOT NULL DEFAULT 'user',
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS navai_membership_role_assignments (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      user_email TEXT NOT NULL DEFAULT '',
+      package_key TEXT NOT NULL,
+      package_name TEXT NOT NULL DEFAULT '',
+      service_period TEXT NOT NULL DEFAULT 'monthly',
+      role_on_start TEXT NOT NULL DEFAULT 'user',
+      role_on_end TEXT NOT NULL DEFAULT 'user',
+      starts_at TEXT NOT NULL,
+      ends_at TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'scheduled',
+      activated_at TEXT NOT NULL DEFAULT '',
+      completed_at TEXT NOT NULL DEFAULT '',
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL
     );
@@ -3500,297 +3894,322 @@ async function createWorkspaceSqliteState(): Promise<NavaiPanelWorkspaceSqliteSt
     );
   `);
 
-  const workspaceTableInfo = readStatementRows(db, "PRAGMA table_info(navai_workspace_experiences)");
-  const workspaceColumns = new Set(workspaceTableInfo.map((column) => String(column.name ?? "")));
+  const workspaceTableInfo = readStatementRows(
+    db,
+    "PRAGMA table_info(navai_workspace_experiences)",
+  );
+  const workspaceColumns = new Set(
+    workspaceTableInfo.map((column) => String(column.name ?? "")),
+  );
   const hasQuestionsColumn = workspaceColumns.has("questions_json");
   if (!hasQuestionsColumn) {
     db.run(
-      "ALTER TABLE navai_workspace_experiences ADD COLUMN questions_json TEXT NOT NULL DEFAULT '[]'"
+      "ALTER TABLE navai_workspace_experiences ADD COLUMN questions_json TEXT NOT NULL DEFAULT '[]'",
     );
   }
   if (!workspaceColumns.has("agent_id")) {
     db.run(
-      "ALTER TABLE navai_workspace_experiences ADD COLUMN agent_id TEXT NOT NULL DEFAULT ''"
+      "ALTER TABLE navai_workspace_experiences ADD COLUMN agent_id TEXT NOT NULL DEFAULT ''",
     );
   }
   if (!workspaceColumns.has("auto_start_conversation")) {
     db.run(
-      "ALTER TABLE navai_workspace_experiences ADD COLUMN auto_start_conversation INTEGER NOT NULL DEFAULT 0"
+      "ALTER TABLE navai_workspace_experiences ADD COLUMN auto_start_conversation INTEGER NOT NULL DEFAULT 0",
     );
   }
   if (!workspaceColumns.has("access_mode")) {
     db.run(
-      "ALTER TABLE navai_workspace_experiences ADD COLUMN access_mode TEXT NOT NULL DEFAULT 'public'"
+      "ALTER TABLE navai_workspace_experiences ADD COLUMN access_mode TEXT NOT NULL DEFAULT 'public'",
     );
   }
   if (!workspaceColumns.has("allowed_emails_json")) {
     db.run(
-      "ALTER TABLE navai_workspace_experiences ADD COLUMN allowed_emails_json TEXT NOT NULL DEFAULT '[]'"
+      "ALTER TABLE navai_workspace_experiences ADD COLUMN allowed_emails_json TEXT NOT NULL DEFAULT '[]'",
     );
   }
   if (!workspaceColumns.has("allow_plus_users")) {
     db.run(
-      "ALTER TABLE navai_workspace_experiences ADD COLUMN allow_plus_users INTEGER NOT NULL DEFAULT 1"
+      "ALTER TABLE navai_workspace_experiences ADD COLUMN allow_plus_users INTEGER NOT NULL DEFAULT 1",
     );
   }
   if (!workspaceColumns.has("allow_non_plus_users")) {
     db.run(
-      "ALTER TABLE navai_workspace_experiences ADD COLUMN allow_non_plus_users INTEGER NOT NULL DEFAULT 1"
+      "ALTER TABLE navai_workspace_experiences ADD COLUMN allow_non_plus_users INTEGER NOT NULL DEFAULT 1",
     );
   }
   if (!workspaceColumns.has("starts_at")) {
     db.run(
-      "ALTER TABLE navai_workspace_experiences ADD COLUMN starts_at TEXT NOT NULL DEFAULT ''"
+      "ALTER TABLE navai_workspace_experiences ADD COLUMN starts_at TEXT NOT NULL DEFAULT ''",
     );
   }
   if (!workspaceColumns.has("ends_at")) {
     db.run(
-      "ALTER TABLE navai_workspace_experiences ADD COLUMN ends_at TEXT NOT NULL DEFAULT ''"
+      "ALTER TABLE navai_workspace_experiences ADD COLUMN ends_at TEXT NOT NULL DEFAULT ''",
     );
   }
   if (!workspaceColumns.has("delegate_ai_grading")) {
     db.run(
-      "ALTER TABLE navai_workspace_experiences ADD COLUMN delegate_ai_grading INTEGER NOT NULL DEFAULT 0"
+      "ALTER TABLE navai_workspace_experiences ADD COLUMN delegate_ai_grading INTEGER NOT NULL DEFAULT 0",
     );
   }
   if (!workspaceColumns.has("enable_ranking")) {
     db.run(
-      "ALTER TABLE navai_workspace_experiences ADD COLUMN enable_ranking INTEGER NOT NULL DEFAULT 0"
+      "ALTER TABLE navai_workspace_experiences ADD COLUMN enable_ranking INTEGER NOT NULL DEFAULT 0",
     );
   }
   if (!workspaceColumns.has("enable_comments")) {
     db.run(
-      "ALTER TABLE navai_workspace_experiences ADD COLUMN enable_comments INTEGER NOT NULL DEFAULT 0"
+      "ALTER TABLE navai_workspace_experiences ADD COLUMN enable_comments INTEGER NOT NULL DEFAULT 0",
     );
   }
   if (!workspaceColumns.has("daily_attempt_limit")) {
     db.run(
-      "ALTER TABLE navai_workspace_experiences ADD COLUMN daily_attempt_limit INTEGER NOT NULL DEFAULT 1"
+      "ALTER TABLE navai_workspace_experiences ADD COLUMN daily_attempt_limit INTEGER NOT NULL DEFAULT 1",
     );
   }
   if (!workspaceColumns.has("enable_entry_modal")) {
     db.run(
-      "ALTER TABLE navai_workspace_experiences ADD COLUMN enable_entry_modal INTEGER NOT NULL DEFAULT 1"
+      "ALTER TABLE navai_workspace_experiences ADD COLUMN enable_entry_modal INTEGER NOT NULL DEFAULT 1",
     );
   }
   if (!workspaceColumns.has("enable_hcaptcha")) {
     db.run(
-      "ALTER TABLE navai_workspace_experiences ADD COLUMN enable_hcaptcha INTEGER NOT NULL DEFAULT 1"
+      "ALTER TABLE navai_workspace_experiences ADD COLUMN enable_hcaptcha INTEGER NOT NULL DEFAULT 1",
     );
   }
   if (!workspaceColumns.has("reward_points")) {
     db.run(
-      "ALTER TABLE navai_workspace_experiences ADD COLUMN reward_points INTEGER NOT NULL DEFAULT 0"
+      "ALTER TABLE navai_workspace_experiences ADD COLUMN reward_points INTEGER NOT NULL DEFAULT 0",
     );
     if (workspaceColumns.has("reward_usd_amount")) {
       db.run(
-        "UPDATE navai_workspace_experiences SET reward_points = CAST(ROUND(COALESCE(reward_usd_amount, 0)) AS INTEGER) WHERE reward_points <= 0 AND reward_usd_amount > 0"
+        "UPDATE navai_workspace_experiences SET reward_points = CAST(ROUND(COALESCE(reward_usd_amount, 0)) AS INTEGER) WHERE reward_points <= 0 AND reward_usd_amount > 0",
       );
     }
   }
   if (!workspaceColumns.has("reward_usd_amount")) {
     db.run(
-      "ALTER TABLE navai_workspace_experiences ADD COLUMN reward_usd_amount REAL NOT NULL DEFAULT 0"
+      "ALTER TABLE navai_workspace_experiences ADD COLUMN reward_usd_amount REAL NOT NULL DEFAULT 0",
     );
   }
+  db.run(
+    "UPDATE navai_workspace_experiences SET reward_usd_amount = CAST(COALESCE(reward_points, 0) AS REAL) WHERE reward_usd_amount <= 0 AND reward_points > 0",
+  );
+  db.run(
+    "UPDATE navai_workspace_experiences SET reward_points = 0 WHERE reward_points <> 0",
+  );
   if (!workspaceColumns.has("reward_type")) {
     db.run(
-      "ALTER TABLE navai_workspace_experiences ADD COLUMN reward_type TEXT NOT NULL DEFAULT 'money'"
+      "ALTER TABLE navai_workspace_experiences ADD COLUMN reward_type TEXT NOT NULL DEFAULT 'money'",
     );
   }
   if (!workspaceColumns.has("reward_title")) {
     db.run(
-      "ALTER TABLE navai_workspace_experiences ADD COLUMN reward_title TEXT NOT NULL DEFAULT ''"
+      "ALTER TABLE navai_workspace_experiences ADD COLUMN reward_title TEXT NOT NULL DEFAULT ''",
     );
   }
   if (!workspaceColumns.has("reward_description")) {
     db.run(
-      "ALTER TABLE navai_workspace_experiences ADD COLUMN reward_description TEXT NOT NULL DEFAULT ''"
+      "ALTER TABLE navai_workspace_experiences ADD COLUMN reward_description TEXT NOT NULL DEFAULT ''",
     );
   }
   if (!workspaceColumns.has("reward_delivery_method")) {
     db.run(
-      "ALTER TABLE navai_workspace_experiences ADD COLUMN reward_delivery_method TEXT NOT NULL DEFAULT 'manual_coordination'"
+      "ALTER TABLE navai_workspace_experiences ADD COLUMN reward_delivery_method TEXT NOT NULL DEFAULT 'manual_coordination'",
     );
   }
   if (!workspaceColumns.has("reward_delivery_details")) {
     db.run(
-      "ALTER TABLE navai_workspace_experiences ADD COLUMN reward_delivery_details TEXT NOT NULL DEFAULT ''"
+      "ALTER TABLE navai_workspace_experiences ADD COLUMN reward_delivery_details TEXT NOT NULL DEFAULT ''",
     );
   }
   if (!workspaceColumns.has("reward_payment_methods_json")) {
     db.run(
-      "ALTER TABLE navai_workspace_experiences ADD COLUMN reward_payment_methods_json TEXT NOT NULL DEFAULT '[]'"
+      "ALTER TABLE navai_workspace_experiences ADD COLUMN reward_payment_methods_json TEXT NOT NULL DEFAULT '[]'",
     );
   }
   if (!workspaceColumns.has("reward_winner_count")) {
     db.run(
-      "ALTER TABLE navai_workspace_experiences ADD COLUMN reward_winner_count INTEGER NOT NULL DEFAULT 1"
+      "ALTER TABLE navai_workspace_experiences ADD COLUMN reward_winner_count INTEGER NOT NULL DEFAULT 1",
     );
   }
 
-  const agentSettingsTableInfo = readStatementRows(db, "PRAGMA table_info(navai_workspace_agent_settings)");
+  const agentSettingsTableInfo = readStatementRows(
+    db,
+    "PRAGMA table_info(navai_workspace_agent_settings)",
+  );
   const agentSettingsColumns = new Set(
-    agentSettingsTableInfo.map((column) => String(column.name ?? ""))
+    agentSettingsTableInfo.map((column) => String(column.name ?? "")),
   );
   if (!agentSettingsColumns.has("name")) {
     db.run(
-      "ALTER TABLE navai_workspace_agent_settings ADD COLUMN name TEXT NOT NULL DEFAULT ''"
+      "ALTER TABLE navai_workspace_agent_settings ADD COLUMN name TEXT NOT NULL DEFAULT ''",
     );
   }
 
-  const supportTicketTableInfo = readStatementRows(db, "PRAGMA table_info(navai_support_tickets)");
+  const supportTicketTableInfo = readStatementRows(
+    db,
+    "PRAGMA table_info(navai_support_tickets)",
+  );
   const hasRequesterEmailColumn = supportTicketTableInfo.some(
-    (column) => String(column.name ?? "") === "requester_email"
+    (column) => String(column.name ?? "") === "requester_email",
   );
   if (!hasRequesterEmailColumn) {
     db.run(
-      "ALTER TABLE navai_support_tickets ADD COLUMN requester_email TEXT NOT NULL DEFAULT ''"
+      "ALTER TABLE navai_support_tickets ADD COLUMN requester_email TEXT NOT NULL DEFAULT ''",
     );
   }
   const hasCategoryColumn = supportTicketTableInfo.some(
-    (column) => String(column.name ?? "") === "category"
+    (column) => String(column.name ?? "") === "category",
   );
   if (!hasCategoryColumn) {
     db.run(
-      "ALTER TABLE navai_support_tickets ADD COLUMN category TEXT NOT NULL DEFAULT 'General'"
+      "ALTER TABLE navai_support_tickets ADD COLUMN category TEXT NOT NULL DEFAULT 'General'",
     );
   }
   const hasPriorityColumn = supportTicketTableInfo.some(
-    (column) => String(column.name ?? "") === "priority"
+    (column) => String(column.name ?? "") === "priority",
   );
   if (!hasPriorityColumn) {
     db.run(
-      "ALTER TABLE navai_support_tickets ADD COLUMN priority TEXT NOT NULL DEFAULT 'Medium'"
+      "ALTER TABLE navai_support_tickets ADD COLUMN priority TEXT NOT NULL DEFAULT 'Medium'",
     );
   }
 
-  const supportMessageTableInfo = readStatementRows(db, "PRAGMA table_info(navai_support_messages)");
+  const supportMessageTableInfo = readStatementRows(
+    db,
+    "PRAGMA table_info(navai_support_messages)",
+  );
   const hasAuthorRoleColumn = supportMessageTableInfo.some(
-    (column) => String(column.name ?? "") === "author_role"
+    (column) => String(column.name ?? "") === "author_role",
   );
   if (!hasAuthorRoleColumn) {
     db.run(
-      "ALTER TABLE navai_support_messages ADD COLUMN author_role TEXT NOT NULL DEFAULT 'customer'"
+      "ALTER TABLE navai_support_messages ADD COLUMN author_role TEXT NOT NULL DEFAULT 'customer'",
     );
   }
 
-  const userProfileTableInfo = readStatementRows(db, "PRAGMA table_info(navai_user_profiles)");
+  const userProfileTableInfo = readStatementRows(
+    db,
+    "PRAGMA table_info(navai_user_profiles)",
+  );
   const userProfileColumns = new Set(
-    userProfileTableInfo.map((column) => String(column.name ?? ""))
+    userProfileTableInfo.map((column) => String(column.name ?? "")),
   );
   if (!userProfileColumns.has("account_status")) {
     db.run(
-      "ALTER TABLE navai_user_profiles ADD COLUMN account_status TEXT NOT NULL DEFAULT 'active'"
+      "ALTER TABLE navai_user_profiles ADD COLUMN account_status TEXT NOT NULL DEFAULT 'active'",
     );
   }
   if (!userProfileColumns.has("deletion_requested_at")) {
     db.run(
-      "ALTER TABLE navai_user_profiles ADD COLUMN deletion_requested_at TEXT NOT NULL DEFAULT ''"
+      "ALTER TABLE navai_user_profiles ADD COLUMN deletion_requested_at TEXT NOT NULL DEFAULT ''",
     );
   }
   if (!userProfileColumns.has("scheduled_deletion_at")) {
     db.run(
-      "ALTER TABLE navai_user_profiles ADD COLUMN scheduled_deletion_at TEXT NOT NULL DEFAULT ''"
+      "ALTER TABLE navai_user_profiles ADD COLUMN scheduled_deletion_at TEXT NOT NULL DEFAULT ''",
     );
   }
   if (!userProfileColumns.has("deactivated_at")) {
     db.run(
-      "ALTER TABLE navai_user_profiles ADD COLUMN deactivated_at TEXT NOT NULL DEFAULT ''"
+      "ALTER TABLE navai_user_profiles ADD COLUMN deactivated_at TEXT NOT NULL DEFAULT ''",
     );
   }
 
   const publicConversationTableInfo = readStatementRows(
     db,
-    "PRAGMA table_info(navai_public_experience_conversations)"
+    "PRAGMA table_info(navai_public_experience_conversations)",
   );
   const publicConversationColumns = new Set(
-    publicConversationTableInfo.map((column) => String(column.name ?? ""))
+    publicConversationTableInfo.map((column) => String(column.name ?? "")),
   );
   if (!publicConversationColumns.has("audio_storage_path")) {
     db.run(
-      "ALTER TABLE navai_public_experience_conversations ADD COLUMN audio_storage_path TEXT NOT NULL DEFAULT ''"
+      "ALTER TABLE navai_public_experience_conversations ADD COLUMN audio_storage_path TEXT NOT NULL DEFAULT ''",
     );
   }
   if (!publicConversationColumns.has("audio_download_url")) {
     db.run(
-      "ALTER TABLE navai_public_experience_conversations ADD COLUMN audio_download_url TEXT NOT NULL DEFAULT ''"
+      "ALTER TABLE navai_public_experience_conversations ADD COLUMN audio_download_url TEXT NOT NULL DEFAULT ''",
     );
   }
   if (!publicConversationColumns.has("audio_content_type")) {
     db.run(
-      "ALTER TABLE navai_public_experience_conversations ADD COLUMN audio_content_type TEXT NOT NULL DEFAULT ''"
+      "ALTER TABLE navai_public_experience_conversations ADD COLUMN audio_content_type TEXT NOT NULL DEFAULT ''",
     );
   }
   if (!publicConversationColumns.has("audio_size_bytes")) {
     db.run(
-      "ALTER TABLE navai_public_experience_conversations ADD COLUMN audio_size_bytes INTEGER NOT NULL DEFAULT 0"
+      "ALTER TABLE navai_public_experience_conversations ADD COLUMN audio_size_bytes INTEGER NOT NULL DEFAULT 0",
     );
   }
   if (!publicConversationColumns.has("audio_duration_ms")) {
     db.run(
-      "ALTER TABLE navai_public_experience_conversations ADD COLUMN audio_duration_ms INTEGER NOT NULL DEFAULT 0"
+      "ALTER TABLE navai_public_experience_conversations ADD COLUMN audio_duration_ms INTEGER NOT NULL DEFAULT 0",
     );
   }
   if (!publicConversationColumns.has("video_storage_path")) {
     db.run(
-      "ALTER TABLE navai_public_experience_conversations ADD COLUMN video_storage_path TEXT NOT NULL DEFAULT ''"
+      "ALTER TABLE navai_public_experience_conversations ADD COLUMN video_storage_path TEXT NOT NULL DEFAULT ''",
     );
   }
   if (!publicConversationColumns.has("video_download_url")) {
     db.run(
-      "ALTER TABLE navai_public_experience_conversations ADD COLUMN video_download_url TEXT NOT NULL DEFAULT ''"
+      "ALTER TABLE navai_public_experience_conversations ADD COLUMN video_download_url TEXT NOT NULL DEFAULT ''",
     );
   }
   if (!publicConversationColumns.has("video_content_type")) {
     db.run(
-      "ALTER TABLE navai_public_experience_conversations ADD COLUMN video_content_type TEXT NOT NULL DEFAULT ''"
+      "ALTER TABLE navai_public_experience_conversations ADD COLUMN video_content_type TEXT NOT NULL DEFAULT ''",
     );
   }
   if (!publicConversationColumns.has("video_size_bytes")) {
     db.run(
-      "ALTER TABLE navai_public_experience_conversations ADD COLUMN video_size_bytes INTEGER NOT NULL DEFAULT 0"
+      "ALTER TABLE navai_public_experience_conversations ADD COLUMN video_size_bytes INTEGER NOT NULL DEFAULT 0",
     );
   }
   if (!publicConversationColumns.has("video_duration_ms")) {
     db.run(
-      "ALTER TABLE navai_public_experience_conversations ADD COLUMN video_duration_ms INTEGER NOT NULL DEFAULT 0"
+      "ALTER TABLE navai_public_experience_conversations ADD COLUMN video_duration_ms INTEGER NOT NULL DEFAULT 0",
     );
   }
 
   const publicConversationAnswerTableInfo = readStatementRows(
     db,
-    "PRAGMA table_info(navai_public_experience_conversation_answers)"
+    "PRAGMA table_info(navai_public_experience_conversation_answers)",
   );
   const publicConversationAnswerColumns = new Set(
-    publicConversationAnswerTableInfo.map((column) => String(column.name ?? ""))
+    publicConversationAnswerTableInfo.map((column) =>
+      String(column.name ?? ""),
+    ),
   );
   if (!publicConversationAnswerColumns.has("ai_score")) {
     db.run(
-      "ALTER TABLE navai_public_experience_conversation_answers ADD COLUMN ai_score INTEGER NOT NULL DEFAULT 0"
+      "ALTER TABLE navai_public_experience_conversation_answers ADD COLUMN ai_score INTEGER NOT NULL DEFAULT 0",
     );
   }
   if (!publicConversationAnswerColumns.has("ai_feedback")) {
     db.run(
-      "ALTER TABLE navai_public_experience_conversation_answers ADD COLUMN ai_feedback TEXT NOT NULL DEFAULT ''"
+      "ALTER TABLE navai_public_experience_conversation_answers ADD COLUMN ai_feedback TEXT NOT NULL DEFAULT ''",
     );
   }
   if (!publicConversationAnswerColumns.has("ai_scored_at")) {
     db.run(
-      "ALTER TABLE navai_public_experience_conversation_answers ADD COLUMN ai_scored_at TEXT NOT NULL DEFAULT ''"
+      "ALTER TABLE navai_public_experience_conversation_answers ADD COLUMN ai_scored_at TEXT NOT NULL DEFAULT ''",
     );
   }
 
   const publicCommentsTableInfo = readStatementRows(
     db,
-    "PRAGMA table_info(navai_public_experience_comments)"
+    "PRAGMA table_info(navai_public_experience_comments)",
   );
   const publicCommentsColumns = new Set(
-    publicCommentsTableInfo.map((column) => String(column.name ?? ""))
+    publicCommentsTableInfo.map((column) => String(column.name ?? "")),
   );
   if (!publicCommentsColumns.has("rating")) {
     db.run(
-      "ALTER TABLE navai_public_experience_comments ADD COLUMN rating INTEGER NOT NULL DEFAULT 5"
+      "ALTER TABLE navai_public_experience_comments ADD COLUMN rating INTEGER NOT NULL DEFAULT 5",
     );
   }
 
@@ -3803,7 +4222,7 @@ async function createWorkspaceSqliteState(): Promise<NavaiPanelWorkspaceSqliteSt
         author_user_id
       FROM navai_public_experience_comments
       ORDER BY experience_id ASC, author_user_id ASC, updated_at DESC, created_at DESC, id DESC
-    `
+    `,
   );
   const seenExperienceAuthorPairs = new Set<string>();
   for (const row of duplicateCommentRows) {
@@ -3813,36 +4232,55 @@ async function createWorkspaceSqliteState(): Promise<NavaiPanelWorkspaceSqliteSt
       continue;
     }
     if (seenExperienceAuthorPairs.has(pairKey)) {
-      db.run("DELETE FROM navai_public_experience_comments WHERE id = ?", [commentId]);
+      db.run("DELETE FROM navai_public_experience_comments WHERE id = ?", [
+        commentId,
+      ]);
       continue;
     }
     seenExperienceAuthorPairs.add(pairKey);
   }
 
-  const plusOrdersTableInfo = readStatementRows(db, "PRAGMA table_info(navai_plus_orders)");
+  const plusOrdersTableInfo = readStatementRows(
+    db,
+    "PRAGMA table_info(navai_plus_orders)",
+  );
   const plusOrdersColumns = new Set(
-    plusOrdersTableInfo.map((column) => String(column.name ?? ""))
+    plusOrdersTableInfo.map((column) => String(column.name ?? "")),
   );
   if (!plusOrdersColumns.has("product_name")) {
-    db.run("ALTER TABLE navai_plus_orders ADD COLUMN product_name TEXT NOT NULL DEFAULT ''");
+    db.run(
+      "ALTER TABLE navai_plus_orders ADD COLUMN product_name TEXT NOT NULL DEFAULT ''",
+    );
   }
   if (!plusOrdersColumns.has("package_key")) {
-    db.run("ALTER TABLE navai_plus_orders ADD COLUMN package_key TEXT NOT NULL DEFAULT ''");
+    db.run(
+      "ALTER TABLE navai_plus_orders ADD COLUMN package_key TEXT NOT NULL DEFAULT ''",
+    );
   }
   if (!plusOrdersColumns.has("entries_count")) {
-    db.run("ALTER TABLE navai_plus_orders ADD COLUMN entries_count INTEGER NOT NULL DEFAULT 1");
+    db.run(
+      "ALTER TABLE navai_plus_orders ADD COLUMN entries_count INTEGER NOT NULL DEFAULT 1",
+    );
   }
   if (!plusOrdersColumns.has("unit_price_usd")) {
-    db.run("ALTER TABLE navai_plus_orders ADD COLUMN unit_price_usd REAL NOT NULL DEFAULT 0");
+    db.run(
+      "ALTER TABLE navai_plus_orders ADD COLUMN unit_price_usd REAL NOT NULL DEFAULT 0",
+    );
   }
   if (!plusOrdersColumns.has("vat_percentage")) {
-    db.run("ALTER TABLE navai_plus_orders ADD COLUMN vat_percentage REAL NOT NULL DEFAULT 19");
+    db.run(
+      "ALTER TABLE navai_plus_orders ADD COLUMN vat_percentage REAL NOT NULL DEFAULT 19",
+    );
   }
   if (!plusOrdersColumns.has("referral_code")) {
-    db.run("ALTER TABLE navai_plus_orders ADD COLUMN referral_code TEXT NOT NULL DEFAULT ''");
+    db.run(
+      "ALTER TABLE navai_plus_orders ADD COLUMN referral_code TEXT NOT NULL DEFAULT ''",
+    );
   }
   if (!plusOrdersColumns.has("referrer_user_id")) {
-    db.run("ALTER TABLE navai_plus_orders ADD COLUMN referrer_user_id TEXT NOT NULL DEFAULT ''");
+    db.run(
+      "ALTER TABLE navai_plus_orders ADD COLUMN referrer_user_id TEXT NOT NULL DEFAULT ''",
+    );
   }
   db.run(
     `
@@ -3877,7 +4315,48 @@ async function createWorkspaceSqliteState(): Promise<NavaiPanelWorkspaceSqliteSt
       NAVAI_DEFAULT_ENTRY_PACKAGE_KEY,
       NAVAI_DEFAULT_USD_COP_RATE,
       NAVAI_DEFAULT_ENTRY_PACKAGE_PRICE_USD,
-    ]
+    ],
+  );
+
+  const entryPackagesTableInfo = readStatementRows(
+    db,
+    "PRAGMA table_info(navai_entry_packages)",
+  );
+  const entryPackagesColumns = new Set(
+    entryPackagesTableInfo.map((column) => String(column.name ?? "")),
+  );
+  if (!entryPackagesColumns.has("service_period")) {
+    db.run(
+      "ALTER TABLE navai_entry_packages ADD COLUMN service_period TEXT NOT NULL DEFAULT 'monthly'",
+    );
+  }
+  if (!entryPackagesColumns.has("role_on_start")) {
+    db.run(
+      "ALTER TABLE navai_entry_packages ADD COLUMN role_on_start TEXT NOT NULL DEFAULT 'user'",
+    );
+  }
+  if (!entryPackagesColumns.has("role_on_end")) {
+    db.run(
+      "ALTER TABLE navai_entry_packages ADD COLUMN role_on_end TEXT NOT NULL DEFAULT 'user'",
+    );
+  }
+  db.run(
+    `
+      UPDATE navai_entry_packages
+      SET
+        service_period = CASE
+          WHEN service_period = '' THEN 'monthly'
+          ELSE service_period
+        END,
+        role_on_start = CASE
+          WHEN role_on_start = '' THEN 'user'
+          ELSE role_on_start
+        END,
+        role_on_end = CASE
+          WHEN role_on_end = '' THEN 'user'
+          ELSE role_on_end
+        END
+    `,
   );
 
   const now = new Date().toISOString();
@@ -3892,9 +4371,12 @@ async function createWorkspaceSqliteState(): Promise<NavaiPanelWorkspaceSqliteSt
         vat_percentage,
         is_active,
         sort_order,
+        service_period,
+        role_on_start,
+        role_on_end,
         created_at,
         updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(key) DO NOTHING
     `,
     [
@@ -3906,9 +4388,12 @@ async function createWorkspaceSqliteState(): Promise<NavaiPanelWorkspaceSqliteSt
       NAVAI_DEFAULT_ENTRY_PACKAGE_VAT_PERCENTAGE,
       1,
       0,
+      "monthly",
+      "user",
+      "user",
       now,
       now,
-    ]
+    ],
   );
 
   db.run(`
@@ -3952,6 +4437,10 @@ async function createWorkspaceSqliteState(): Promise<NavaiPanelWorkspaceSqliteSt
       ON navai_user_verifications(reviewed_at DESC);
     CREATE INDEX IF NOT EXISTS idx_navai_entry_packages_active_sort
       ON navai_entry_packages(is_active, sort_order ASC, updated_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_navai_membership_role_assignments_user_period
+      ON navai_membership_role_assignments(user_id, starts_at ASC, ends_at ASC, updated_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_navai_membership_role_assignments_status_ends
+      ON navai_membership_role_assignments(status, ends_at ASC, updated_at DESC);
     CREATE INDEX IF NOT EXISTS idx_navai_exchange_rates_source_date
       ON navai_exchange_rates(source_date DESC, updated_at DESC);
     CREATE INDEX IF NOT EXISTS idx_navai_plus_orders_user_created
@@ -4017,7 +4506,9 @@ async function persistWorkspaceSqlite(state: NavaiPanelWorkspaceSqliteState) {
   await fs.writeFile(state.filePath, Buffer.from(exported));
 }
 
-async function runSerializedMutation<T>(mutation: (db: SqlJsDatabase) => T | Promise<T>) {
+async function runSerializedMutation<T>(
+  mutation: (db: SqlJsDatabase) => T | Promise<T>,
+) {
   const state = await getWorkspaceSqliteState();
   let result!: T;
 
@@ -4033,7 +4524,7 @@ async function runSerializedMutation<T>(mutation: (db: SqlJsDatabase) => T | Pro
 
 async function listWorkspaceExperiences(
   userId: string,
-  kind: NavaiPanelExperienceKind
+  kind: NavaiPanelExperienceKind,
 ) {
   const normalizedUserId = validateUserId(userId);
   const [state, domains, agents] = await Promise.all([
@@ -4090,7 +4581,7 @@ async function listWorkspaceExperiences(
       WHERE user_id = ? AND kind = ?
       ORDER BY updated_at DESC, created_at DESC
     `,
-    [normalizedUserId, kind]
+    [normalizedUserId, kind],
   );
 
   return rows.map((row) => mapExperienceRow(row, domainById, agentById));
@@ -4099,7 +4590,7 @@ async function listWorkspaceExperiences(
 async function getWorkspaceExperienceById(
   userId: string,
   kind: NavaiPanelExperienceKind,
-  id: string
+  id: string,
 ) {
   const normalizedUserId = validateUserId(userId);
   const normalizedId = normalizeString(id);
@@ -4160,7 +4651,7 @@ async function getWorkspaceExperienceById(
       FROM navai_workspace_experiences
       WHERE user_id = ? AND kind = ? AND id = ?
     `,
-    [normalizedUserId, kind, normalizedId]
+    [normalizedUserId, kind, normalizedId],
   );
 
   return row ? mapExperienceRow(row, domainById, agentById) : null;
@@ -4169,25 +4660,36 @@ async function getWorkspaceExperienceById(
 async function createWorkspaceExperience(
   userId: string,
   kind: NavaiPanelExperienceKind,
-  input: NavaiPanelExperienceInput
+  input: NavaiPanelExperienceInput,
 ) {
   const normalizedUserId = validateUserId(userId);
   const normalizedInput = validateExperienceInput(input);
 
   if (normalizedInput.domainId) {
-    const domain = await getNavaiPanelDomainById(normalizedUserId, normalizedInput.domainId);
+    const domain = await getNavaiPanelDomainById(
+      normalizedUserId,
+      normalizedInput.domainId,
+    );
     if (!domain) {
       throw new Error("Domain not found.");
     }
   }
   if (normalizedInput.agentId) {
-    const agent = await getWorkspaceAgentById(normalizedUserId, kind, normalizedInput.agentId);
+    const agent = await getWorkspaceAgentById(
+      normalizedUserId,
+      kind,
+      normalizedInput.agentId,
+    );
     if (!agent) {
       throw new Error("Agent not found.");
     }
   }
   if (normalizedInput.agentId) {
-    const agent = await getWorkspaceAgentById(normalizedUserId, kind, normalizedInput.agentId);
+    const agent = await getWorkspaceAgentById(
+      normalizedUserId,
+      kind,
+      normalizedInput.agentId,
+    );
     if (!agent) {
       throw new Error("Agent not found.");
     }
@@ -4269,7 +4771,7 @@ async function createWorkspaceExperience(
         JSON.stringify(normalizedInput.rewardPaymentMethods),
         normalizedInput.rewardWinnerCount,
         normalizedInput.rewardPoints,
-        normalizedInput.rewardPoints,
+        normalizedInput.rewardUsdAmount,
         normalizedInput.dailyAttemptLimit,
         JSON.stringify(normalizedInput.questions),
         normalizedInput.welcomeTitle,
@@ -4282,10 +4784,14 @@ async function createWorkspaceExperience(
         0,
         now,
         now,
-      ]
+      ],
     );
 
-    const created = await getWorkspaceExperienceById(normalizedUserId, kind, id);
+    const created = await getWorkspaceExperienceById(
+      normalizedUserId,
+      kind,
+      id,
+    );
     if (!created) {
       throw new Error("Experience was created but could not be loaded.");
     }
@@ -4297,7 +4803,7 @@ async function updateWorkspaceExperience(
   userId: string,
   kind: NavaiPanelExperienceKind,
   id: string,
-  input: NavaiPanelExperienceInput
+  input: NavaiPanelExperienceInput,
 ) {
   const normalizedUserId = validateUserId(userId);
   const normalizedId = normalizeString(id);
@@ -4307,7 +4813,10 @@ async function updateWorkspaceExperience(
 
   const normalizedInput = validateExperienceInput(input);
   if (normalizedInput.domainId) {
-    const domain = await getNavaiPanelDomainById(normalizedUserId, normalizedInput.domainId);
+    const domain = await getNavaiPanelDomainById(
+      normalizedUserId,
+      normalizedInput.domainId,
+    );
     if (!domain) {
       throw new Error("Domain not found.");
     }
@@ -4317,13 +4826,16 @@ async function updateWorkspaceExperience(
     const existing = readFirstRow(
       db,
       "SELECT id, slug FROM navai_workspace_experiences WHERE user_id = ? AND kind = ? AND id = ?",
-      [normalizedUserId, kind, normalizedId]
+      [normalizedUserId, kind, normalizedId],
     );
     if (!existing) {
       throw new Error("Experience not found.");
     }
 
-    if (normalizedInput.slug && doesPublicCodeExist(db, normalizedInput.slug, normalizedId)) {
+    if (
+      normalizedInput.slug &&
+      doesPublicCodeExist(db, normalizedInput.slug, normalizedId)
+    ) {
       throw new Error("A public URL with that slug already exists.");
     }
 
@@ -4390,7 +4902,7 @@ async function updateWorkspaceExperience(
         JSON.stringify(normalizedInput.rewardPaymentMethods),
         normalizedInput.rewardWinnerCount,
         normalizedInput.rewardPoints,
-        normalizedInput.rewardPoints,
+        normalizedInput.rewardUsdAmount,
         normalizedInput.dailyAttemptLimit,
         JSON.stringify(normalizedInput.questions),
         normalizedInput.welcomeTitle,
@@ -4403,10 +4915,14 @@ async function updateWorkspaceExperience(
         normalizedUserId,
         kind,
         normalizedId,
-      ]
+      ],
     );
 
-    const updated = await getWorkspaceExperienceById(normalizedUserId, kind, normalizedId);
+    const updated = await getWorkspaceExperienceById(
+      normalizedUserId,
+      kind,
+      normalizedId,
+    );
     if (!updated) {
       throw new Error("Experience was updated but could not be loaded.");
     }
@@ -4417,7 +4933,7 @@ async function updateWorkspaceExperience(
 function deleteWorkspaceExperienceRelatedData(
   db: SqlJsDatabase,
   kind: NavaiPanelExperienceKind,
-  experienceId: string
+  experienceId: string,
 ) {
   db.run(
     `
@@ -4428,7 +4944,7 @@ function deleteWorkspaceExperienceRelatedData(
         WHERE experience_id = ? AND experience_kind = ?
       )
     `,
-    [experienceId, kind]
+    [experienceId, kind],
   );
   db.run(
     `
@@ -4439,22 +4955,22 @@ function deleteWorkspaceExperienceRelatedData(
         WHERE experience_id = ? AND experience_kind = ?
       )
     `,
-    [experienceId, kind]
+    [experienceId, kind],
   );
   db.run(
     "DELETE FROM navai_public_experience_comments WHERE experience_id = ? AND experience_kind = ?",
-    [experienceId, kind]
+    [experienceId, kind],
   );
   db.run(
     "DELETE FROM navai_public_experience_conversations WHERE experience_id = ? AND experience_kind = ?",
-    [experienceId, kind]
+    [experienceId, kind],
   );
 }
 
 async function deleteWorkspaceExperience(
   userId: string,
   kind: NavaiPanelExperienceKind,
-  id: string
+  id: string,
 ) {
   const normalizedUserId = validateUserId(userId);
   const normalizedId = normalizeString(id);
@@ -4466,7 +4982,7 @@ async function deleteWorkspaceExperience(
     const existing = readFirstRow(
       db,
       "SELECT id FROM navai_workspace_experiences WHERE user_id = ? AND kind = ? AND id = ?",
-      [normalizedUserId, kind, normalizedId]
+      [normalizedUserId, kind, normalizedId],
     );
     if (!existing) {
       throw new Error("Experience not found.");
@@ -4475,11 +4991,10 @@ async function deleteWorkspaceExperience(
     db.run("BEGIN");
     try {
       deleteWorkspaceExperienceRelatedData(db, kind, normalizedId);
-      db.run("DELETE FROM navai_workspace_experiences WHERE user_id = ? AND kind = ? AND id = ?", [
-        normalizedUserId,
-        kind,
-        normalizedId,
-      ]);
+      db.run(
+        "DELETE FROM navai_workspace_experiences WHERE user_id = ? AND kind = ? AND id = ?",
+        [normalizedUserId, kind, normalizedId],
+      );
       db.run("COMMIT");
     } catch (error) {
       db.run("ROLLBACK");
@@ -4492,7 +5007,7 @@ async function deleteWorkspaceExperience(
 
 async function getPublicWorkspaceExperience(
   kind: NavaiPanelExperienceKind,
-  slug: string
+  slug: string,
 ): Promise<NavaiPublicExperienceRecord | null> {
   const normalizedSlug = normalizePublicCode(slug);
   const { db } = await getWorkspaceSqliteState();
@@ -4537,7 +5052,7 @@ async function getPublicWorkspaceExperience(
       FROM navai_workspace_experiences
       WHERE kind = ? AND slug = ? AND status <> 'Draft'
     `,
-    [kind, normalizedSlug]
+    [kind, normalizedSlug],
   );
 
   if (!row) {
@@ -4548,16 +5063,24 @@ async function getPublicWorkspaceExperience(
   const domainId = String(row.domain_id ?? "");
   const agentId = String(row.agent_id ?? "");
   const userId = String(row.user_id ?? "");
-  const domain = domainId ? await getNavaiPanelDomainById(userId, domainId) : null;
-  const agent = agentId ? await getWorkspaceAgentById(userId, kind, agentId) : null;
-  const organizerProfile = userId ? readPublicFacingUserProfile(db, userId) : null;
-  const organizerVerification = userId ? readUserVerificationByUserId(db, userId) : null;
-  const rewardPoints = normalizePointAmount(
-    row.reward_points ?? row.reward_usd_amount ?? 0,
-    0
+  const domain = domainId
+    ? await getNavaiPanelDomainById(userId, domainId)
+    : null;
+  const agent = agentId
+    ? await getWorkspaceAgentById(userId, kind, agentId)
+    : null;
+  const organizerProfile = userId
+    ? readPublicFacingUserProfile(db, userId)
+    : null;
+  const organizerVerification = userId
+    ? readUserVerificationByUserId(db, userId)
+    : null;
+  const rewardPoints = normalizePointAmount(0, 0);
+  const rewardAmountUsd = normalizeCurrencyAmount(
+    row.reward_usd_amount ?? row.reward_points ?? 0,
+    0,
   );
-  const rewardAmountCop = convertPointsToCop(rewardPoints);
-  const rewardAmountUsd = convertCopToUsd(rewardAmountCop, exchangeRate.rate);
+  const rewardAmountCop = convertUsdToCop(rewardAmountUsd, exchangeRate.rate);
 
   return {
     id: String(row.id ?? ""),
@@ -4577,10 +5100,12 @@ async function getPublicWorkspaceExperience(
     rewardType: normalizeRewardType(row.reward_type),
     rewardTitle: String(row.reward_title ?? ""),
     rewardDescription: String(row.reward_description ?? ""),
-    rewardDeliveryMethod: normalizeRewardDeliveryMethod(row.reward_delivery_method),
+    rewardDeliveryMethod: normalizeRewardDeliveryMethod(
+      row.reward_delivery_method,
+    ),
     rewardDeliveryDetails: String(row.reward_delivery_details ?? ""),
     rewardPaymentMethods: normalizeRewardPaymentMethods(
-      parseJsonArray(row.reward_payment_methods_json)
+      parseJsonArray(row.reward_payment_methods_json),
     ),
     rewardWinnerCount: normalizePositiveInteger(row.reward_winner_count, 1),
     rewardPoints,
@@ -4594,7 +5119,10 @@ async function getPublicWorkspaceExperience(
     welcomeTitle: String(row.welcome_title ?? ""),
     welcomeBody: String(row.welcome_body ?? ""),
     autoStartConversation: normalizeBoolean(row.auto_start_conversation),
-    enableEntryModal: normalizeBooleanWithFallback(row.enable_entry_modal, true),
+    enableEntryModal: normalizeBooleanWithFallback(
+      row.enable_entry_modal,
+      true,
+    ),
     enableHCaptcha: normalizeBooleanWithFallback(row.enable_hcaptcha, true),
     systemPrompt: String(row.system_prompt ?? ""),
     agentModel: agent?.agentModel ?? "",
@@ -4625,7 +5153,9 @@ async function getPublicWorkspaceExperience(
   };
 }
 
-export async function listPublicWorkspaceExperienceSlugs(kind: NavaiPanelExperienceKind) {
+export async function listPublicWorkspaceExperienceSlugs(
+  kind: NavaiPanelExperienceKind,
+) {
   const { db } = await getWorkspaceSqliteState();
   const rows = readStatementRows(
     db,
@@ -4635,7 +5165,7 @@ export async function listPublicWorkspaceExperienceSlugs(kind: NavaiPanelExperie
       WHERE kind = ? AND status <> 'Draft'
       ORDER BY updated_at DESC
     `,
-    [kind]
+    [kind],
   );
 
   return rows
@@ -4645,7 +5175,7 @@ export async function listPublicWorkspaceExperienceSlugs(kind: NavaiPanelExperie
 
 async function getNavaiPanelAgentSettings(
   userId: string,
-  kind: NavaiPanelExperienceKind
+  kind: NavaiPanelExperienceKind,
 ) {
   const normalizedUserId = validateUserId(userId);
   const { db } = await getWorkspaceSqliteState();
@@ -4665,7 +5195,7 @@ async function getNavaiPanelAgentSettings(
       FROM navai_workspace_agent_settings
       WHERE user_id = ? AND kind = ?
     `,
-    [normalizedUserId, kind]
+    [normalizedUserId, kind],
   );
 
   if (!row) {
@@ -4688,7 +5218,7 @@ async function getNavaiPanelAgentSettings(
 async function updateNavaiPanelAgentSettings(
   userId: string,
   kind: NavaiPanelExperienceKind,
-  input: NavaiPanelAgentSettingsInput
+  input: NavaiPanelAgentSettingsInput,
 ) {
   const normalizedUserId = validateUserId(userId);
   const normalizedInput = validateAgentSettingsInput(input);
@@ -4698,7 +5228,7 @@ async function updateNavaiPanelAgentSettings(
     const existing = readFirstRow(
       db,
       "SELECT user_id FROM navai_workspace_agent_settings WHERE user_id = ? AND kind = ?",
-      [normalizedUserId, kind]
+      [normalizedUserId, kind],
     );
 
     if (existing) {
@@ -4725,7 +5255,7 @@ async function updateNavaiPanelAgentSettings(
           now,
           normalizedUserId,
           kind,
-        ]
+        ],
       );
     } else {
       db.run(
@@ -4752,7 +5282,7 @@ async function updateNavaiPanelAgentSettings(
           normalizedInput.agentVoiceAccent,
           normalizedInput.agentVoiceTone,
           now,
-        ]
+        ],
       );
     }
 
@@ -4760,7 +5290,10 @@ async function updateNavaiPanelAgentSettings(
   });
 }
 
-async function listWorkspaceAgents(userId: string, kind: NavaiPanelExperienceKind) {
+async function listWorkspaceAgents(
+  userId: string,
+  kind: NavaiPanelExperienceKind,
+) {
   const normalizedUserId = validateUserId(userId);
   const { db } = await getWorkspaceSqliteState();
   const rows = readStatementRows(
@@ -4782,7 +5315,7 @@ async function listWorkspaceAgents(userId: string, kind: NavaiPanelExperienceKin
       WHERE user_id = ? AND kind = ?
       ORDER BY updated_at DESC, created_at DESC
     `,
-    [normalizedUserId, kind]
+    [normalizedUserId, kind],
   );
 
   return rows.map(mapAgentRow);
@@ -4791,7 +5324,7 @@ async function listWorkspaceAgents(userId: string, kind: NavaiPanelExperienceKin
 async function getWorkspaceAgentById(
   userId: string,
   kind: NavaiPanelExperienceKind,
-  id: string
+  id: string,
 ) {
   const normalizedUserId = validateUserId(userId);
   const normalizedId = normalizeString(id);
@@ -4818,7 +5351,7 @@ async function getWorkspaceAgentById(
       FROM navai_workspace_agents
       WHERE user_id = ? AND kind = ? AND id = ?
     `,
-    [normalizedUserId, kind, normalizedId]
+    [normalizedUserId, kind, normalizedId],
   );
 
   return row ? mapAgentRow(row) : null;
@@ -4827,7 +5360,7 @@ async function getWorkspaceAgentById(
 async function createWorkspaceAgent(
   userId: string,
   kind: NavaiPanelExperienceKind,
-  input: NavaiPanelAgentInput
+  input: NavaiPanelAgentInput,
 ) {
   const normalizedUserId = validateUserId(userId);
   const normalizedInput = validateAgentInput(input);
@@ -4863,7 +5396,7 @@ async function createWorkspaceAgent(
         normalizedInput.agentVoiceTone,
         now,
         now,
-      ]
+      ],
     );
 
     const created = await getWorkspaceAgentById(normalizedUserId, kind, id);
@@ -4878,7 +5411,7 @@ async function updateWorkspaceAgent(
   userId: string,
   kind: NavaiPanelExperienceKind,
   id: string,
-  input: NavaiPanelAgentInput
+  input: NavaiPanelAgentInput,
 ) {
   const normalizedUserId = validateUserId(userId);
   const normalizedId = normalizeString(id);
@@ -4891,7 +5424,7 @@ async function updateWorkspaceAgent(
     const existing = readFirstRow(
       db,
       "SELECT id FROM navai_workspace_agents WHERE user_id = ? AND kind = ? AND id = ?",
-      [normalizedUserId, kind, normalizedId]
+      [normalizedUserId, kind, normalizedId],
     );
     if (!existing) {
       throw new Error("Agent not found.");
@@ -4921,10 +5454,14 @@ async function updateWorkspaceAgent(
         normalizedUserId,
         kind,
         normalizedId,
-      ]
+      ],
     );
 
-    const updated = await getWorkspaceAgentById(normalizedUserId, kind, normalizedId);
+    const updated = await getWorkspaceAgentById(
+      normalizedUserId,
+      kind,
+      normalizedId,
+    );
     if (!updated) {
       throw new Error("Agent was updated but could not be loaded.");
     }
@@ -4935,7 +5472,7 @@ async function updateWorkspaceAgent(
 async function deleteWorkspaceAgent(
   userId: string,
   kind: NavaiPanelExperienceKind,
-  id: string
+  id: string,
 ) {
   const normalizedUserId = validateUserId(userId);
   const normalizedId = normalizeString(id);
@@ -4947,7 +5484,7 @@ async function deleteWorkspaceAgent(
     const existing = readFirstRow(
       db,
       "SELECT id FROM navai_workspace_agents WHERE user_id = ? AND kind = ? AND id = ?",
-      [normalizedUserId, kind, normalizedId]
+      [normalizedUserId, kind, normalizedId],
     );
     if (!existing) {
       throw new Error("Agent not found.");
@@ -4955,20 +5492,19 @@ async function deleteWorkspaceAgent(
 
     db.run(
       "UPDATE navai_workspace_experiences SET agent_id = '' WHERE user_id = ? AND kind = ? AND agent_id = ?",
-      [normalizedUserId, kind, normalizedId]
+      [normalizedUserId, kind, normalizedId],
     );
-    db.run("DELETE FROM navai_workspace_agents WHERE user_id = ? AND kind = ? AND id = ?", [
-      normalizedUserId,
-      kind,
-      normalizedId,
-    ]);
+    db.run(
+      "DELETE FROM navai_workspace_agents WHERE user_id = ? AND kind = ? AND id = ?",
+      [normalizedUserId, kind, normalizedId],
+    );
     return { id: normalizedId };
   });
 }
 
 async function trackPublicWorkspaceExperienceLaunch(
   kind: NavaiPanelExperienceKind,
-  slug: string
+  slug: string,
 ) {
   const normalizedSlug = normalizePublicCode(slug);
 
@@ -4976,7 +5512,7 @@ async function trackPublicWorkspaceExperienceLaunch(
     const existing = readFirstRow(
       db,
       "SELECT id FROM navai_workspace_experiences WHERE kind = ? AND slug = ? AND status <> 'Draft'",
-      [kind, normalizedSlug]
+      [kind, normalizedSlug],
     );
     if (!existing) {
       throw new Error("Public experience not found.");
@@ -4991,7 +5527,7 @@ async function trackPublicWorkspaceExperienceLaunch(
           updated_at = ?
         WHERE kind = ? AND slug = ?
       `,
-      [new Date().toISOString(), kind, normalizedSlug]
+      [new Date().toISOString(), kind, normalizedSlug],
     );
 
     const updated = await getPublicWorkspaceExperience(kind, normalizedSlug);
@@ -5023,27 +5559,39 @@ export async function listNavaiPanelSurveyAgents(userId: string) {
 
 export async function createNavaiPanelEvaluation(
   userId: string,
-  input: NavaiPanelExperienceInput
+  input: NavaiPanelExperienceInput,
 ) {
-  return (await createWorkspaceExperience(userId, "evaluation", input)) as NavaiPanelEvaluationRecord;
+  return (await createWorkspaceExperience(
+    userId,
+    "evaluation",
+    input,
+  )) as NavaiPanelEvaluationRecord;
 }
 
-export async function createNavaiPanelEvaluationAgent(userId: string, input: NavaiPanelAgentInput) {
+export async function createNavaiPanelEvaluationAgent(
+  userId: string,
+  input: NavaiPanelAgentInput,
+) {
   return createWorkspaceAgent(userId, "evaluation", input);
 }
 
 export async function updateNavaiPanelEvaluation(
   userId: string,
   id: string,
-  input: NavaiPanelExperienceInput
+  input: NavaiPanelExperienceInput,
 ) {
-  return (await updateWorkspaceExperience(userId, "evaluation", id, input)) as NavaiPanelEvaluationRecord;
+  return (await updateWorkspaceExperience(
+    userId,
+    "evaluation",
+    id,
+    input,
+  )) as NavaiPanelEvaluationRecord;
 }
 
 export async function updateNavaiPanelEvaluationAgent(
   userId: string,
   id: string,
-  input: NavaiPanelAgentInput
+  input: NavaiPanelAgentInput,
 ) {
   return updateWorkspaceAgent(userId, "evaluation", id, input);
 }
@@ -5052,30 +5600,48 @@ export async function deleteNavaiPanelEvaluation(userId: string, id: string) {
   return deleteWorkspaceExperience(userId, "evaluation", id);
 }
 
-export async function deleteNavaiPanelEvaluationAgent(userId: string, id: string) {
+export async function deleteNavaiPanelEvaluationAgent(
+  userId: string,
+  id: string,
+) {
   return deleteWorkspaceAgent(userId, "evaluation", id);
 }
 
-export async function createNavaiPanelSurvey(userId: string, input: NavaiPanelExperienceInput) {
-  return (await createWorkspaceExperience(userId, "survey", input)) as NavaiPanelSurveyRecord;
+export async function createNavaiPanelSurvey(
+  userId: string,
+  input: NavaiPanelExperienceInput,
+) {
+  return (await createWorkspaceExperience(
+    userId,
+    "survey",
+    input,
+  )) as NavaiPanelSurveyRecord;
 }
 
-export async function createNavaiPanelSurveyAgent(userId: string, input: NavaiPanelAgentInput) {
+export async function createNavaiPanelSurveyAgent(
+  userId: string,
+  input: NavaiPanelAgentInput,
+) {
   return createWorkspaceAgent(userId, "survey", input);
 }
 
 export async function updateNavaiPanelSurvey(
   userId: string,
   id: string,
-  input: NavaiPanelExperienceInput
+  input: NavaiPanelExperienceInput,
 ) {
-  return (await updateWorkspaceExperience(userId, "survey", id, input)) as NavaiPanelSurveyRecord;
+  return (await updateWorkspaceExperience(
+    userId,
+    "survey",
+    id,
+    input,
+  )) as NavaiPanelSurveyRecord;
 }
 
 export async function updateNavaiPanelSurveyAgent(
   userId: string,
   id: string,
-  input: NavaiPanelAgentInput
+  input: NavaiPanelAgentInput,
 ) {
   return updateWorkspaceAgent(userId, "survey", id, input);
 }
@@ -5088,7 +5654,10 @@ export async function deleteNavaiPanelSurveyAgent(userId: string, id: string) {
   return deleteWorkspaceAgent(userId, "survey", id);
 }
 
-export async function deleteNavaiWorkspaceItemsByDomain(userId: string, domainId: string) {
+export async function deleteNavaiWorkspaceItemsByDomain(
+  userId: string,
+  domainId: string,
+) {
   const normalizedUserId = validateUserId(userId);
   const normalizedDomainId = normalizeString(domainId);
   if (!normalizedDomainId) {
@@ -5099,7 +5668,7 @@ export async function deleteNavaiWorkspaceItemsByDomain(userId: string, domainId
     const experiences = readStatementRows(
       db,
       "SELECT id, kind FROM navai_workspace_experiences WHERE user_id = ? AND domain_id = ?",
-      [normalizedUserId, normalizedDomainId]
+      [normalizedUserId, normalizedDomainId],
     );
 
     db.run("BEGIN");
@@ -5107,7 +5676,9 @@ export async function deleteNavaiWorkspaceItemsByDomain(userId: string, domainId
       for (const experience of experiences) {
         const experienceId = normalizeString(experience.id);
         const experienceKind: NavaiPanelExperienceKind =
-          normalizeString(experience.kind) === "survey" ? "survey" : "evaluation";
+          normalizeString(experience.kind) === "survey"
+            ? "survey"
+            : "evaluation";
         if (!experienceId) {
           continue;
         }
@@ -5117,7 +5688,7 @@ export async function deleteNavaiWorkspaceItemsByDomain(userId: string, domainId
 
       db.run(
         "DELETE FROM navai_workspace_experiences WHERE user_id = ? AND domain_id = ?",
-        [normalizedUserId, normalizedDomainId]
+        [normalizedUserId, normalizedDomainId],
       );
       db.run("COMMIT");
     } catch (error) {
@@ -5140,7 +5711,7 @@ type RankedExperienceEntry = {
 function listRankedExperienceEntries(
   db: SqlJsDatabase,
   experienceId: string,
-  kind: NavaiPanelExperienceKind
+  kind: NavaiPanelExperienceKind,
 ) {
   const conversationRows = readStatementRows(
     db,
@@ -5172,7 +5743,7 @@ function listRankedExperienceEntries(
       WHERE conversations.experience_id = ? AND conversations.experience_kind = ?
       ORDER BY conversations.updated_at DESC, conversations.started_at DESC
     `,
-    [experienceId, kind]
+    [experienceId, kind],
   );
 
   if (conversationRows.length === 0) {
@@ -5199,7 +5770,7 @@ function listRankedExperienceEntries(
       WHERE conversations.experience_id = ? AND conversations.experience_kind = ?
       ORDER BY answers.updated_at ASC, answers.created_at ASC
     `,
-    [experienceId, kind]
+    [experienceId, kind],
   );
   const answersByConversationId = new Map<
     string,
@@ -5231,7 +5802,7 @@ function listRankedExperienceEntries(
     const conversationId = String(row.id ?? "");
     const conversation = mapPublicConversationRow(
       row,
-      answersByConversationId.get(conversationId) ?? []
+      answersByConversationId.get(conversationId) ?? [],
     );
     const groupKey =
       conversation.respondentEmail.trim().toLowerCase() ||
@@ -5268,10 +5839,52 @@ function listRankedExperienceEntries(
   }
 
   return Array.from(groups.values())
-    .map((group) => ({
-      group,
-      score: calculateExperienceCompositeScore(group.conversations),
-    }))
+    .map((group) => {
+      const bestConversationScore = group.conversations.reduce<{
+        score: ReturnType<typeof calculateExperienceCompositeScore>;
+        latestActivityAt: string;
+      } | null>((best, conversation) => {
+        const nextScore = calculateExperienceCompositeScore([conversation]);
+        const nextActivityAt =
+          conversation.endedAt ||
+          conversation.updatedAt ||
+          conversation.startedAt ||
+          "";
+        if (!best) {
+          return { score: nextScore, latestActivityAt: nextActivityAt };
+        }
+
+        const isHigherScore = nextScore.totalScore > best.score.totalScore;
+        const isSameScoreMoreComplete =
+          nextScore.totalScore === best.score.totalScore &&
+          (nextScore.completedCount > best.score.completedCount ||
+            (nextScore.completedCount === best.score.completedCount &&
+              nextScore.answeredQuestions > best.score.answeredQuestions));
+        const isSameScoreAndCompletionMoreRecent =
+          nextScore.totalScore === best.score.totalScore &&
+          nextScore.completedCount === best.score.completedCount &&
+          nextScore.answeredQuestions === best.score.answeredQuestions &&
+          new Date(nextActivityAt).getTime() >
+            new Date(best.latestActivityAt).getTime();
+
+        if (
+          isHigherScore ||
+          isSameScoreMoreComplete ||
+          isSameScoreAndCompletionMoreRecent
+        ) {
+          return { score: nextScore, latestActivityAt: nextActivityAt };
+        }
+
+        return best;
+      }, null);
+
+      return {
+        group,
+        score:
+          bestConversationScore?.score ??
+          calculateExperienceCompositeScore(group.conversations),
+      };
+    })
     .sort(
       (left, right) =>
         right.score.totalScore - left.score.totalScore ||
@@ -5279,7 +5892,7 @@ function listRankedExperienceEntries(
         right.score.answeredQuestions - left.score.answeredQuestions ||
         right.score.conversationsCount - left.score.conversationsCount ||
         new Date(right.group.latestActivityAt).getTime() -
-          new Date(left.group.latestActivityAt).getTime()
+          new Date(left.group.latestActivityAt).getTime(),
     )
     .map(({ group, score }) => ({
       respondentUserId: group.respondentUserId,
@@ -5294,7 +5907,7 @@ function listRankedExperienceEntries(
 
 function distributeEndedExperienceRewardsInTransaction(
   db: SqlJsDatabase,
-  now = new Date()
+  now = new Date(),
 ) {
   const nowMs = now.getTime();
   const nowIso = now.toISOString();
@@ -5318,12 +5931,13 @@ function distributeEndedExperienceRewardsInTransaction(
         AND reward_points > 0
         AND ends_at <> ''
       ORDER BY ends_at ASC
-    `
+    `,
   );
 
   for (const row of rewardRows) {
     const experienceId = String(row.id ?? "");
-    const kind = normalizeString(row.kind) === "survey" ? "survey" : "evaluation";
+    const kind =
+      normalizeString(row.kind) === "survey" ? "survey" : "evaluation";
     const experienceSlug = String(row.slug ?? "");
     const endsAtMs = new Date(String(row.ends_at ?? "")).getTime();
     if (!experienceId || !Number.isFinite(endsAtMs) || endsAtMs > nowMs) {
@@ -5342,7 +5956,7 @@ function distributeEndedExperienceRewardsInTransaction(
 
     const winnerSlots = Math.min(
       ranked.length,
-      Math.max(1, normalizePositiveInteger(row.reward_winner_count, 1))
+      Math.max(1, normalizePositiveInteger(row.reward_winner_count, 1)),
     );
     const selectedWinners = ranked.slice(0, winnerSlots);
     if (selectedWinners.length === 0) {
@@ -5361,7 +5975,7 @@ function distributeEndedExperienceRewardsInTransaction(
           WHERE experience_id = ? AND winner_user_id = ?
           LIMIT 1
         `,
-        [experienceId, winner.respondentUserId]
+        [experienceId, winner.respondentUserId],
       );
       if (alreadyDistributed) {
         return;
@@ -5399,7 +6013,7 @@ function distributeEndedExperienceRewardsInTransaction(
           awardedPoints,
           convertPointsToCop(awardedPoints),
           nowIso,
-        ]
+        ],
       );
 
       appendPointsLedgerEntry(db, {
@@ -5422,12 +6036,20 @@ function distributeEndedExperienceRewardsInTransaction(
 }
 
 async function runEndedExperienceRewardsDistributionSweep(now = new Date()) {
-  return runSerializedMutation((db) => distributeEndedExperienceRewardsInTransaction(db, now));
+  return runSerializedMutation((db) =>
+    distributeEndedExperienceRewardsInTransaction(db, now),
+  );
+}
+
+export async function runNavaiEndedExperienceRewardsDistributionSweep(
+  now = new Date(),
+) {
+  return runEndedExperienceRewardsDistributionSweep(now);
 }
 
 export async function listPublicNavaiExperienceTop(
   kind: NavaiPanelExperienceKind,
-  slug: string
+  slug: string,
 ) {
   const experience = await getPublicWorkspaceExperience(kind, slug);
   if (!experience) {
@@ -5440,7 +6062,6 @@ export async function listPublicNavaiExperienceTop(
   await runEndedExperienceRewardsDistributionSweep();
   const { db } = await getWorkspaceSqliteState();
   return listRankedExperienceEntries(db, experience.id, kind)
-    .slice(0, 10)
     .map((entry) =>
       resolveTopEntryRow(db, {
         respondent_user_id: entry.respondentUserId,
@@ -5449,13 +6070,13 @@ export async function listPublicNavaiExperienceTop(
         answered_questions: entry.answeredQuestions,
         conversations_count: entry.conversationsCount,
         latest_activity_at: entry.latestActivityAt,
-      })
+      }),
     );
 }
 
 export async function listPublicNavaiExperienceComments(
   kind: NavaiPanelExperienceKind,
-  slug: string
+  slug: string,
 ) {
   await runEndedExperienceRewardsDistributionSweep();
   const experience = await getPublicWorkspaceExperience(kind, slug);
@@ -5474,7 +6095,7 @@ export async function createPublicNavaiExperienceComment(
   kind: NavaiPanelExperienceKind,
   slug: string,
   requester: { uid: string; email: string },
-  input: NavaiPublicExperienceCommentInput
+  input: NavaiPublicExperienceCommentInput,
 ) {
   const normalizedUserId = validateUserId(requester.uid);
   const normalizedEmail = normalizeEmailAddress(requester.email);
@@ -5493,7 +6114,9 @@ export async function createPublicNavaiExperienceComment(
     settings.accessMode === "private" &&
     (!normalizedEmail || !settings.allowedEmails.includes(normalizedEmail))
   ) {
-    throw new Error("This private experience is only available to selected email accounts.");
+    throw new Error(
+      "This private experience is only available to selected email accounts.",
+    );
   }
 
   return runSerializedMutation((mutationDb) => {
@@ -5532,13 +6155,13 @@ export async function createPublicNavaiExperienceComment(
         normalizedInput.rating,
         now,
         now,
-      ]
+      ],
     );
 
     const created = readPublicExperienceCommentByExperienceAndAuthor(
       mutationDb,
       experience.id,
-      normalizedUserId
+      normalizedUserId,
     );
     if (!created) {
       throw new Error("Comment was created but could not be loaded.");
@@ -5550,7 +6173,7 @@ export async function createPublicNavaiExperienceComment(
 export async function updatePublicNavaiExperienceComment(
   commentId: string,
   requester: { uid: string; isAdmin: boolean },
-  input: NavaiPublicExperienceCommentInput
+  input: NavaiPublicExperienceCommentInput,
 ) {
   const normalizedCommentId = normalizeString(commentId);
   if (!normalizedCommentId) {
@@ -5564,7 +6187,10 @@ export async function updatePublicNavaiExperienceComment(
     if (!existing) {
       throw new Error("Comment not found.");
     }
-    if (!requester.isAdmin && existing.authorUserId !== validateUserId(requester.uid)) {
+    if (
+      !requester.isAdmin &&
+      existing.authorUserId !== validateUserId(requester.uid)
+    ) {
       throw new Error("You do not have permission to manage this comment.");
     }
 
@@ -5579,7 +6205,7 @@ export async function updatePublicNavaiExperienceComment(
         normalizedInput.rating,
         new Date().toISOString(),
         normalizedCommentId,
-      ]
+      ],
     );
 
     const updated = readPublicExperienceCommentById(db, normalizedCommentId);
@@ -5592,7 +6218,7 @@ export async function updatePublicNavaiExperienceComment(
 
 export async function deletePublicNavaiExperienceComment(
   commentId: string,
-  requester: { uid: string; isAdmin: boolean }
+  requester: { uid: string; isAdmin: boolean },
 ) {
   const normalizedCommentId = normalizeString(commentId);
   if (!normalizedCommentId) {
@@ -5604,11 +6230,16 @@ export async function deletePublicNavaiExperienceComment(
     if (!existing) {
       throw new Error("Comment not found.");
     }
-    if (!requester.isAdmin && existing.authorUserId !== validateUserId(requester.uid)) {
+    if (
+      !requester.isAdmin &&
+      existing.authorUserId !== validateUserId(requester.uid)
+    ) {
       throw new Error("You do not have permission to manage this comment.");
     }
 
-    db.run("DELETE FROM navai_public_experience_comments WHERE id = ?", [normalizedCommentId]);
+    db.run("DELETE FROM navai_public_experience_comments WHERE id = ?", [
+      normalizedCommentId,
+    ]);
     return { id: normalizedCommentId };
   });
 }
@@ -5632,10 +6263,15 @@ export async function getNavaiPanelUserProfile(userId: string, email: string) {
   const normalizedUserId = validateUserId(userId);
   const normalizedEmail = normalizeEmailAddress(email);
   const { db } = await getWorkspaceSqliteState();
-  return readResolvedUserProfile(db, normalizedUserId, { preferredEmail: normalizedEmail });
+  return readResolvedUserProfile(db, normalizedUserId, {
+    preferredEmail: normalizedEmail,
+  });
 }
 
-export async function getNavaiPanelUserVerification(userId: string, email: string) {
+export async function getNavaiPanelUserVerification(
+  userId: string,
+  email: string,
+) {
   const normalizedUserId = validateUserId(userId);
   const normalizedEmail = normalizeEmailAddress(email);
   const { db } = await getWorkspaceSqliteState();
@@ -5647,7 +6283,7 @@ export async function getNavaiPanelUserVerification(userId: string, email: strin
 export async function updateNavaiPanelUserProfile(
   userId: string,
   email: string,
-  input: NavaiUserProfileInput
+  input: NavaiUserProfileInput,
 ) {
   const normalizedUserId = validateUserId(userId);
   const normalizedEmail = normalizeEmailAddress(email);
@@ -5725,7 +6361,7 @@ export async function updateNavaiPanelUserProfile(
         normalizedInput.facebookUrl,
         createdAt,
         now,
-      ]
+      ],
     );
 
     return readResolvedUserProfile(db, normalizedUserId, {
@@ -5734,7 +6370,10 @@ export async function updateNavaiPanelUserProfile(
   });
 }
 
-export async function requestNavaiPanelUserAccountDeletion(userId: string, email: string) {
+export async function requestNavaiPanelUserAccountDeletion(
+  userId: string,
+  email: string,
+) {
   const normalizedUserId = validateUserId(userId);
   const normalizedEmail = normalizeEmailAddress(email);
 
@@ -5752,7 +6391,8 @@ export async function requestNavaiPanelUserAccountDeletion(userId: string, email
       currentStatus === "deletion_pending" && existing?.scheduledDeletionAt
         ? existing.scheduledDeletionAt
         : new Date(now.getTime() + 5 * 24 * 60 * 60 * 1000).toISOString();
-    const nextStatus = currentStatus === "inactive" ? "inactive" : "deletion_pending";
+    const nextStatus =
+      currentStatus === "inactive" ? "inactive" : "deletion_pending";
 
     db.run(
       `
@@ -5811,7 +6451,7 @@ export async function requestNavaiPanelUserAccountDeletion(userId: string, email
         existing?.facebookUrl ?? "",
         createdAt,
         nowIso,
-      ]
+      ],
     );
 
     return readResolvedUserProfile(db, normalizedUserId, {
@@ -5820,7 +6460,9 @@ export async function requestNavaiPanelUserAccountDeletion(userId: string, email
   });
 }
 
-export async function deactivateExpiredNavaiPanelUserAccounts(now = new Date()) {
+export async function deactivateExpiredNavaiPanelUserAccounts(
+  now = new Date(),
+) {
   const nowIso = now.toISOString();
   return runSerializedMutation((db) => {
     db.run(
@@ -5837,7 +6479,7 @@ export async function deactivateExpiredNavaiPanelUserAccounts(now = new Date()) 
           AND scheduled_deletion_at <> ''
           AND scheduled_deletion_at <= ?
       `,
-      [nowIso, nowIso, nowIso]
+      [nowIso, nowIso, nowIso],
     );
 
     const row = readFirstRow(db, "SELECT changes() AS count");
@@ -5848,7 +6490,7 @@ export async function deactivateExpiredNavaiPanelUserAccounts(now = new Date()) 
 export async function submitNavaiPanelUserVerification(
   userId: string,
   email: string,
-  input: NavaiUserVerificationInput
+  input: NavaiUserVerificationInput,
 ) {
   const normalizedUserId = validateUserId(userId);
   const normalizedEmail = normalizeEmailAddress(email);
@@ -5924,7 +6566,7 @@ export async function submitNavaiPanelUserVerification(
         "",
         createdAt,
         now,
-      ]
+      ],
     );
 
     return readResolvedUserVerification(db, normalizedUserId, {
@@ -5934,7 +6576,7 @@ export async function submitNavaiPanelUserVerification(
 }
 
 function assertAdminVerificationActor(actor: NavaiPanelActor) {
-  if (!actor.permissions.canManageUsers || actor.role !== "admin") {
+  if (actor.role !== "admin") {
     throw new Error("Administrator permissions are required.");
   }
 }
@@ -5945,7 +6587,9 @@ function assertSupportCashoutActor(actor: NavaiPanelActor) {
   }
 }
 
-export async function listNavaiPanelPendingUserVerifications(actor: NavaiPanelActor) {
+export async function listNavaiPanelPendingUserVerifications(
+  actor: NavaiPanelActor,
+) {
   assertAdminVerificationActor(actor);
   const { db } = await getWorkspaceSqliteState();
   const rows = readStatementRows(
@@ -5955,7 +6599,7 @@ export async function listNavaiPanelPendingUserVerifications(actor: NavaiPanelAc
       FROM navai_user_verifications
       WHERE status = 'pending' AND submitted_at <> ''
       ORDER BY submitted_at ASC, created_at ASC, updated_at ASC
-    `
+    `,
   );
 
   return rows.map((row) => {
@@ -5975,7 +6619,7 @@ export async function listNavaiPanelPendingUserVerifications(actor: NavaiPanelAc
 export async function reviewNavaiPanelUserVerification(
   actor: NavaiPanelActor,
   targetUserId: string,
-  input: NavaiUserVerificationReviewInput
+  input: NavaiUserVerificationReviewInput,
 ) {
   assertAdminVerificationActor(actor);
   const normalizedUserId = validateUserId(targetUserId);
@@ -5983,7 +6627,11 @@ export async function reviewNavaiPanelUserVerification(
 
   return runSerializedMutation((db) => {
     const existing = readUserVerificationByUserId(db, normalizedUserId);
-    if (!existing || existing.status === "not_submitted" || !existing.submittedAt) {
+    if (
+      !existing ||
+      existing.status === "not_submitted" ||
+      !existing.submittedAt
+    ) {
       throw new Error("Verification request not found.");
     }
 
@@ -6007,7 +6655,7 @@ export async function reviewNavaiPanelUserVerification(
         normalizeEmailAddress(actor.email),
         new Date().toISOString(),
         normalizedUserId,
-      ]
+      ],
     );
 
     const verification = readResolvedUserVerification(db, normalizedUserId);
@@ -6042,14 +6690,14 @@ export async function getNavaiPanelSurveyAgentSettings(userId: string) {
 
 export async function updateNavaiPanelEvaluationAgentSettings(
   userId: string,
-  input: NavaiPanelAgentSettingsInput
+  input: NavaiPanelAgentSettingsInput,
 ) {
   return updateNavaiPanelAgentSettings(userId, "evaluation", input);
 }
 
 export async function updateNavaiPanelSurveyAgentSettings(
   userId: string,
-  input: NavaiPanelAgentSettingsInput
+  input: NavaiPanelAgentSettingsInput,
 ) {
   return updateNavaiPanelAgentSettings(userId, "survey", input);
 }
@@ -6065,7 +6713,7 @@ export async function trackPublicNavaiSurveyLaunch(slug: string) {
 async function listWorkspaceExperienceConversations(
   userId: string,
   kind: NavaiPanelExperienceKind,
-  experienceId: string
+  experienceId: string,
 ) {
   const normalizedUserId = validateUserId(userId);
   const normalizedExperienceId = normalizeString(experienceId);
@@ -6073,7 +6721,11 @@ async function listWorkspaceExperienceConversations(
     throw new Error("Experience id is required.");
   }
 
-  const experience = await getWorkspaceExperienceById(normalizedUserId, kind, normalizedExperienceId);
+  const experience = await getWorkspaceExperienceById(
+    normalizedUserId,
+    kind,
+    normalizedExperienceId,
+  );
   if (!experience) {
     throw new Error("Experience not found.");
   }
@@ -6109,11 +6761,14 @@ async function listWorkspaceExperienceConversations(
       WHERE experience_id = ? AND experience_kind = ?
       ORDER BY updated_at DESC, started_at DESC
     `,
-    [normalizedExperienceId, kind]
+    [normalizedExperienceId, kind],
   );
 
   return rows.map((row) =>
-    mapPublicConversationRow(row, readPublicConversationAnswers(db, String(row.id ?? "")))
+    mapPublicConversationRow(
+      row,
+      readPublicConversationAnswers(db, String(row.id ?? "")),
+    ),
   );
 }
 
@@ -6121,7 +6776,7 @@ export async function startPublicNavaiExperienceConversation(
   kind: NavaiPanelExperienceKind,
   slug: string,
   respondentUserId: string,
-  respondentEmail: string
+  respondentEmail: string,
 ) {
   await runEndedExperienceRewardsDistributionSweep();
   const normalizedRespondentUserId = validateUserId(respondentUserId);
@@ -6130,13 +6785,16 @@ export async function startPublicNavaiExperienceConversation(
     throw new Error("Public experience not found.");
   }
   const { db } = await getWorkspaceSqliteState();
-  const accessSettings = readWorkspaceExperienceAccessSettings(db, experience.id);
+  const accessSettings = readWorkspaceExperienceAccessSettings(
+    db,
+    experience.id,
+  );
   assertExperienceCanStartConversation(
     db,
     experience,
     accessSettings,
     normalizedRespondentUserId,
-    respondentEmail
+    respondentEmail,
   );
 
   return runSerializedMutation((db) => {
@@ -6150,19 +6808,25 @@ export async function startPublicNavaiExperienceConversation(
         WHERE experience_id = ? AND respondent_user_id = ?
         ORDER BY started_at DESC
       `,
-      [experience.id, normalizedRespondentUserId]
+      [experience.id, normalizedRespondentUserId],
     );
     const attemptsToday = attemptRows.filter(
-      (row) => resolveExperienceAttemptDateKey(String(row.started_at ?? "")) === todayKey
+      (row) =>
+        resolveExperienceAttemptDateKey(String(row.started_at ?? "")) ===
+        todayKey,
     ).length;
     if (attemptsToday >= accessSettings.dailyAttemptLimit) {
       throw new Error("Daily attempt limit reached for this experience.");
     }
 
-    const availableReferralEntries = readReferralEntryTotals(db, normalizedRespondentUserId)
-      .availableEntries;
-    const availablePurchasedEntries = readPurchasedEntryTotals(db, normalizedRespondentUserId)
-      .availableEntries;
+    const availableReferralEntries = readReferralEntryTotals(
+      db,
+      normalizedRespondentUserId,
+    ).availableEntries;
+    const availablePurchasedEntries = readPurchasedEntryTotals(
+      db,
+      normalizedRespondentUserId,
+    ).availableEntries;
     if (availablePurchasedEntries + availableReferralEntries < 1) {
       throw new Error("This experience requires at least one available entry.");
     }
@@ -6218,7 +6882,7 @@ export async function startPublicNavaiExperienceConversation(
         "",
         0,
         0,
-      ]
+      ],
     );
 
     if (availablePurchasedEntries > 0) {
@@ -6263,7 +6927,7 @@ export async function getPublicNavaiExperienceAccessStatus(
   kind: NavaiPanelExperienceKind,
   slug: string,
   respondentUserId: string,
-  respondentEmail: string
+  respondentEmail: string,
 ) {
   await runEndedExperienceRewardsDistributionSweep();
   const normalizedRespondentUserId = validateUserId(respondentUserId);
@@ -6273,7 +6937,10 @@ export async function getPublicNavaiExperienceAccessStatus(
   }
 
   const { db } = await getWorkspaceSqliteState();
-  const accessSettings = readWorkspaceExperienceAccessSettings(db, experience.id);
+  const accessSettings = readWorkspaceExperienceAccessSettings(
+    db,
+    experience.id,
+  );
 
   try {
     assertExperienceCanStartConversation(
@@ -6281,12 +6948,15 @@ export async function getPublicNavaiExperienceAccessStatus(
       experience,
       accessSettings,
       normalizedRespondentUserId,
-      respondentEmail
+      respondentEmail,
     );
   } catch (error) {
     return {
       canStart: false,
-      error: error instanceof Error ? error.message : "Could not validate experience access.",
+      error:
+        error instanceof Error
+          ? error.message
+          : "Could not validate experience access.",
     };
   }
 
@@ -6299,10 +6969,12 @@ export async function getPublicNavaiExperienceAccessStatus(
       WHERE experience_id = ? AND respondent_user_id = ?
       ORDER BY started_at DESC
     `,
-    [experience.id, normalizedRespondentUserId]
+    [experience.id, normalizedRespondentUserId],
   );
   const attemptsToday = attemptRows.filter(
-    (row) => resolveExperienceAttemptDateKey(String(row.started_at ?? "")) === todayKey
+    (row) =>
+      resolveExperienceAttemptDateKey(String(row.started_at ?? "")) ===
+      todayKey,
   ).length;
   if (attemptsToday >= accessSettings.dailyAttemptLimit) {
     return {
@@ -6327,7 +6999,7 @@ export async function getPublicNavaiExperienceAccessStatus(
 export async function updatePublicNavaiExperienceConversationProgress(
   conversationId: string,
   respondentUserId: string,
-  input: NavaiPublicExperienceConversationProgressInput
+  input: NavaiPublicExperienceConversationProgressInput,
 ) {
   const normalizedRespondentUserId = validateUserId(respondentUserId);
   const normalizedConversationId = normalizeString(conversationId);
@@ -6345,7 +7017,7 @@ export async function updatePublicNavaiExperienceConversationProgress(
         FROM navai_public_experience_conversations
         WHERE id = ? AND respondent_user_id = ?
       `,
-      [normalizedConversationId, normalizedRespondentUserId]
+      [normalizedConversationId, normalizedRespondentUserId],
     );
     if (!conversationRow) {
       throw new Error("Conversation not found.");
@@ -6361,7 +7033,7 @@ export async function updatePublicNavaiExperienceConversationProgress(
           FROM navai_public_experience_conversation_turns
           WHERE conversation_id = ? AND client_turn_id = ?
         `,
-        [normalizedConversationId, turn.clientTurnId]
+        [normalizedConversationId, turn.clientTurnId],
       );
       if (existingTurn) {
         continue;
@@ -6387,7 +7059,7 @@ export async function updatePublicNavaiExperienceConversationProgress(
           turn.transcript,
           turn.sourceEventType,
           now,
-        ]
+        ],
       );
     }
 
@@ -6399,7 +7071,7 @@ export async function updatePublicNavaiExperienceConversationProgress(
           FROM navai_public_experience_conversation_answers
           WHERE conversation_id = ? AND question_id = ?
         `,
-        [normalizedConversationId, answer.questionId]
+        [normalizedConversationId, answer.questionId],
       );
 
       if (existingAnswer) {
@@ -6415,7 +7087,12 @@ export async function updatePublicNavaiExperienceConversationProgress(
               updated_at = ?
             WHERE id = ?
           `,
-          [answer.questionText, answer.answerText, now, String(existingAnswer.id ?? "")]
+          [
+            answer.questionText,
+            answer.answerText,
+            now,
+            String(existingAnswer.id ?? ""),
+          ],
         );
         continue;
       }
@@ -6446,7 +7123,7 @@ export async function updatePublicNavaiExperienceConversationProgress(
           "",
           now,
           now,
-        ]
+        ],
       );
     }
 
@@ -6457,9 +7134,11 @@ export async function updatePublicNavaiExperienceConversationProgress(
         FROM navai_public_experience_conversation_answers
         WHERE conversation_id = ?
       `,
-      [normalizedConversationId]
+      [normalizedConversationId],
     );
-    const answeredQuestionsCount = normalizeInteger(currentAnswerCountRow?.count);
+    const answeredQuestionsCount = normalizeInteger(
+      currentAnswerCountRow?.count,
+    );
     const status = normalizedInput.status ?? "Open";
     const endedAt = status === "Open" ? "" : now;
 
@@ -6499,10 +7178,13 @@ export async function updatePublicNavaiExperienceConversationProgress(
         normalizedInput.video?.sizeBytes ?? 0,
         normalizedInput.video?.durationMs ?? 0,
         normalizedConversationId,
-      ]
+      ],
     );
 
-    const updatedConversation = readPublicConversationById(db, normalizedConversationId);
+    const updatedConversation = readPublicConversationById(
+      db,
+      normalizedConversationId,
+    );
     if (!updatedConversation) {
       throw new Error("Conversation was updated but could not be loaded.");
     }
@@ -6519,19 +7201,29 @@ export async function updatePublicNavaiExperienceConversationProgress(
 
   const { db } = await getWorkspaceSqliteState();
   const conversation = readPublicConversationById(db, normalizedConversationId);
-  if (!conversation || conversation.respondentUserId !== normalizedRespondentUserId) {
+  if (
+    !conversation ||
+    conversation.respondentUserId !== normalizedRespondentUserId
+  ) {
     return persisted;
   }
 
-  const experience = readWorkspaceExperienceQuestionsForConversation(db, conversation);
+  const experience = readWorkspaceExperienceQuestionsForConversation(
+    db,
+    conversation,
+  );
   if (!experience.delegateAiGrading) {
     return persisted;
   }
 
   try {
-    const updatedConversation = await gradeConversationAnswers(conversation, experience, {
-      forceAll: false,
-    });
+    const updatedConversation = await gradeConversationAnswers(
+      conversation,
+      experience,
+      {
+        forceAll: false,
+      },
+    );
     return {
       conversation: updatedConversation,
       latestAnswers: updatedConversation.answers,
@@ -6548,9 +7240,13 @@ async function gradeConversationAnswers(
     experienceName: string;
     questions: NavaiPanelEvaluationQuestionRecord[];
   },
-  options: { forceAll: boolean }
+  options: { forceAll: boolean },
 ) {
-  const answersToGrade = resolveAnswersToGrade(conversation, experience, options);
+  const answersToGrade = resolveAnswersToGrade(
+    conversation,
+    experience,
+    options,
+  );
   if (answersToGrade.length === 0) {
     return conversation;
   }
@@ -6566,7 +7262,7 @@ async function gradeConversationAnswers(
   }
 
   const gradesByQuestionId = new Map(
-    grades.map((grade) => [grade.questionId, grade] as const)
+    grades.map((grade) => [grade.questionId, grade] as const),
   );
   const scoredAt = new Date().toISOString();
 
@@ -6590,14 +7286,14 @@ async function gradeConversationAnswers(
         })
         .filter(
           (
-            item
+            item,
           ): item is {
             questionId: string;
             score: number;
             feedback: string;
             scoredAt: string;
-          } => Boolean(item)
-        )
+          } => Boolean(item),
+        ),
     );
 
     const updatedConversation = readPublicConversationById(db, conversation.id);
@@ -6611,18 +7307,26 @@ async function gradeConversationAnswers(
 
 async function gradePublicConversationAnswersForRespondent(
   conversationId: string,
-  respondentUserId: string
+  respondentUserId: string,
 ) {
   const normalizedConversationId = normalizeString(conversationId);
   const normalizedRespondentUserId = validateUserId(respondentUserId);
   const { db } = await getWorkspaceSqliteState();
   const conversation = readPublicConversationById(db, normalizedConversationId);
-  if (!conversation || conversation.respondentUserId !== normalizedRespondentUserId) {
+  if (
+    !conversation ||
+    conversation.respondentUserId !== normalizedRespondentUserId
+  ) {
     throw new Error("Conversation not found.");
   }
 
-  const experience = readWorkspaceExperienceQuestionsForConversation(db, conversation);
-  return gradeConversationAnswers(conversation, experience, { forceAll: false }).then((updated) => ({
+  const experience = readWorkspaceExperienceQuestionsForConversation(
+    db,
+    conversation,
+  );
+  return gradeConversationAnswers(conversation, experience, {
+    forceAll: false,
+  }).then((updated) => ({
     conversation: updated,
     latestAnswers: updated.answers,
   }));
@@ -6632,7 +7336,7 @@ async function getWorkspaceConversationForGrading(
   userId: string,
   kind: NavaiPanelExperienceKind,
   experienceId: string,
-  conversationId: string
+  conversationId: string,
 ) {
   const normalizedUserId = validateUserId(userId);
   const normalizedConversationId = normalizeString(conversationId);
@@ -6640,7 +7344,11 @@ async function getWorkspaceConversationForGrading(
     throw new Error("Conversation id is required.");
   }
 
-  const experience = await getWorkspaceExperienceById(normalizedUserId, kind, experienceId);
+  const experience = await getWorkspaceExperienceById(
+    normalizedUserId,
+    kind,
+    experienceId,
+  );
   if (!experience) {
     throw new Error("Experience not found.");
   }
@@ -6668,13 +7376,13 @@ async function gradeWorkspaceExperienceConversation(
   userId: string,
   kind: NavaiPanelExperienceKind,
   experienceId: string,
-  conversationId: string
+  conversationId: string,
 ) {
   const payload = await getWorkspaceConversationForGrading(
     userId,
     kind,
     experienceId,
-    conversationId
+    conversationId,
   );
   return gradeConversationAnswers(payload.conversation, payload.experience, {
     forceAll: true,
@@ -6684,34 +7392,44 @@ async function gradeWorkspaceExperienceConversation(
 export async function gradeNavaiPanelEvaluationResponse(
   userId: string,
   experienceId: string,
-  conversationId: string
+  conversationId: string,
 ) {
   return gradeWorkspaceExperienceConversation(
     userId,
     "evaluation",
     experienceId,
-    conversationId
+    conversationId,
   );
 }
 
 export async function gradeNavaiPanelSurveyResponse(
   userId: string,
   experienceId: string,
-  conversationId: string
+  conversationId: string,
 ) {
   return gradeWorkspaceExperienceConversation(
     userId,
     "survey",
     experienceId,
-    conversationId
+    conversationId,
   );
 }
 
-export async function listNavaiPanelEvaluationResponses(userId: string, experienceId: string) {
-  return listWorkspaceExperienceConversations(userId, "evaluation", experienceId);
+export async function listNavaiPanelEvaluationResponses(
+  userId: string,
+  experienceId: string,
+) {
+  return listWorkspaceExperienceConversations(
+    userId,
+    "evaluation",
+    experienceId,
+  );
 }
 
-export async function listNavaiPanelSurveyResponses(userId: string, experienceId: string) {
+export async function listNavaiPanelSurveyResponses(
+  userId: string,
+  experienceId: string,
+) {
   return listWorkspaceExperienceConversations(userId, "survey", experienceId);
 }
 
@@ -6727,7 +7445,7 @@ export async function listNavaiPanelSupportTickets(actor: NavaiPanelActor) {
       ${canViewAllTickets ? "" : "WHERE user_id = ?"}
       ORDER BY created_at ASC, updated_at ASC
     `,
-    canViewAllTickets ? [] : [normalizedUserId]
+    canViewAllTickets ? [] : [normalizedUserId],
   );
 
   return ticketRows.map((row) => {
@@ -6739,7 +7457,7 @@ export async function listNavaiPanelSupportTickets(actor: NavaiPanelActor) {
         WHERE ticket_id = ?
         ORDER BY created_at ASC
       `,
-      [String(row.id ?? "")]
+      [String(row.id ?? "")],
     ).map((messageRow) => {
       const message = mapSupportMessageRow(messageRow);
       return {
@@ -6753,7 +7471,7 @@ export async function listNavaiPanelSupportTickets(actor: NavaiPanelActor) {
       {
         userId: String(row.user_id ?? ""),
         email: String(row.requester_email ?? ""),
-      }
+      },
     );
 
     return mapSupportTicketRow(row, messages, requesterProfile);
@@ -6761,7 +7479,7 @@ export async function listNavaiPanelSupportTickets(actor: NavaiPanelActor) {
 }
 
 export async function getNavaiPanelDashboardSummary(
-  actor: NavaiPanelActor
+  actor: NavaiPanelActor,
 ): Promise<NavaiPanelDashboardSummary> {
   const normalizedUserId = validateUserId(actor.uid);
   const [domains, evaluations, surveys, tickets] = await Promise.all([
@@ -6774,14 +7492,18 @@ export async function getNavaiPanelDashboardSummary(
   return {
     domainsCount: domains.length,
     evaluationsCount: evaluations.length,
-    surveyResponsesCount: surveys.reduce((total, item) => total + item.conversations, 0),
-    openTicketsCount: tickets.filter((ticket) => ticket.status !== "Solved").length,
+    surveyResponsesCount: surveys.reduce(
+      (total, item) => total + item.conversations,
+      0,
+    ),
+    openTicketsCount: tickets.filter((ticket) => ticket.status !== "Solved")
+      .length,
   };
 }
 
 export async function createNavaiPanelSupportTicket(
   actor: NavaiPanelActor,
-  input: NavaiPanelSupportTicketInput
+  input: NavaiPanelSupportTicketInput,
 ) {
   const normalizedUserId = validateUserId(actor.uid);
   const subject = normalizeString(input.subject);
@@ -6815,7 +7537,7 @@ export async function createNavaiPanelSupportTicket(
         "Open",
         now,
         now,
-      ]
+      ],
     );
 
     if (message || attachments.length > 0) {
@@ -6833,7 +7555,7 @@ export async function createNavaiPanelSupportTicket(
           getNavaiPanelMessageAuthorRole(actor),
           message,
           now,
-        ]
+        ],
       );
 
       for (const attachment of attachments) {
@@ -6853,7 +7575,7 @@ export async function createNavaiPanelSupportTicket(
             attachment.contentType,
             attachment.sizeBytes,
             now,
-          ]
+          ],
         );
       }
     }
@@ -6873,7 +7595,7 @@ export async function createNavaiPanelSupportTicket(
 export async function createNavaiPanelSupportMessage(
   actor: NavaiPanelActor,
   ticketId: string,
-  input: NavaiPanelSupportMessageInput
+  input: NavaiPanelSupportMessageInput,
 ) {
   const normalizedUserId = validateUserId(actor.uid);
   const normalizedTicketId = normalizeString(ticketId);
@@ -6893,7 +7615,9 @@ export async function createNavaiPanelSupportMessage(
       isNavaiPanelSupportActor(actor)
         ? "SELECT id FROM navai_support_tickets WHERE id = ?"
         : "SELECT id FROM navai_support_tickets WHERE user_id = ? AND id = ?",
-      isNavaiPanelSupportActor(actor) ? [normalizedTicketId] : [normalizedUserId, normalizedTicketId]
+      isNavaiPanelSupportActor(actor)
+        ? [normalizedTicketId]
+        : [normalizedUserId, normalizedTicketId],
     );
     if (!existingTicket) {
       throw new Error("Ticket not found.");
@@ -6914,7 +7638,7 @@ export async function createNavaiPanelSupportMessage(
         getNavaiPanelMessageAuthorRole(actor),
         body,
         now,
-      ]
+      ],
     );
     for (const attachment of attachments) {
       db.run(
@@ -6933,12 +7657,12 @@ export async function createNavaiPanelSupportMessage(
           attachment.contentType,
           attachment.sizeBytes,
           now,
-        ]
+        ],
       );
     }
     db.run(
       "UPDATE navai_support_tickets SET updated_at = ?, status = ? WHERE id = ?",
-      [now, "Open", normalizedTicketId]
+      [now, "Open", normalizedTicketId],
     );
   });
 
@@ -6957,32 +7681,82 @@ type NavaiEntryTotalsRecord = {
   availableEntries: number;
 };
 
+function resolveEntryOrderCheckoutUrlWithOrder(
+  checkoutUrlValue: unknown,
+  orderIdValue: unknown,
+): string {
+  const checkoutUrl = normalizeString(checkoutUrlValue);
+  const orderId = normalizeString(orderIdValue);
+  if (!checkoutUrl || !orderId) {
+    return checkoutUrl;
+  }
+
+  try {
+    const parsed = new URL(checkoutUrl);
+    const normalizedHost = parsed.hostname.trim().toLowerCase();
+    const isCheckoutHost =
+      normalizedHost === "checkout.wompi.co" ||
+      normalizedHost.endsWith(".checkout.wompi.co");
+    const isHttpProtocol =
+      parsed.protocol === "https:" || parsed.protocol === "http:";
+    if (!isCheckoutHost || !isHttpProtocol) {
+      return "";
+    }
+    if (!parsed.searchParams.get("navai_order")) {
+      parsed.searchParams.set("navai_order", orderId);
+    }
+    return parsed.toString();
+  } catch {
+    if (!/(^|\/\/)checkout\.wompi\.co(\/|$)/i.test(checkoutUrl)) {
+      return "";
+    }
+    if (checkoutUrl.includes("navai_order=")) {
+      return checkoutUrl;
+    }
+
+    const separator = checkoutUrl.includes("?") ? "&" : "?";
+    return `${checkoutUrl}${separator}navai_order=${encodeURIComponent(orderId)}`;
+  }
+}
+
 function mapEntryOrderRow(row: Record<string, unknown>): NavaiEntryOrderRecord {
+  const id = String(row.id ?? "");
   const environment =
     String(row.environment ?? "") === "production" ? "production" : "sandbox";
   const wompiStatus = normalizeString(row.wompi_status);
   const baseStatus = normalizeString(row.status) || "created";
   const packageKey = normalizeEntryPackageKey(row.package_key);
-  const entriesCount = Math.max(1, normalizePositiveInteger(row.entries_count, 1));
+  const entriesCount = Math.max(
+    1,
+    normalizePositiveInteger(row.entries_count, 1),
+  );
+  const checkoutUrl = resolveEntryOrderCheckoutUrlWithOrder(
+    row.checkout_url,
+    id,
+  );
 
   return {
-    id: String(row.id ?? ""),
+    id,
     userId: String(row.user_id ?? ""),
     userEmail: String(row.user_email ?? ""),
     product: String(row.plan ?? packageKey) || packageKey,
     productName: normalizeString(row.product_name) || NAVAI_ENTRY_PRODUCT_NAME,
     packageKey,
     entriesCount,
-    unitPriceUsd: normalizeEntryPriceUsd(row.unit_price_usd, NAVAI_DEFAULT_ENTRY_PACKAGE_PRICE_USD),
+    unitPriceUsd: normalizeEntryPriceUsd(
+      row.unit_price_usd,
+      NAVAI_DEFAULT_ENTRY_PACKAGE_PRICE_USD,
+    ),
     vatPercentage: normalizeVatPercentage(
       row.vat_percentage,
-      NAVAI_DEFAULT_ENTRY_PACKAGE_VAT_PERCENTAGE
+      NAVAI_DEFAULT_ENTRY_PACKAGE_VAT_PERCENTAGE,
     ),
     environment,
-    currency: String(row.currency ?? NAVAI_ENTRY_CURRENCY) || NAVAI_ENTRY_CURRENCY,
+    currency:
+      String(row.currency ?? NAVAI_ENTRY_CURRENCY) || NAVAI_ENTRY_CURRENCY,
     amountCents: normalizeInteger(row.amount_cents),
     status: wompiStatus || baseStatus,
-    checkoutUrl: String(row.checkout_url ?? ""),
+    checkoutUrl,
     wompiLinkId: String(row.wompi_link_id ?? ""),
     referralCode: normalizeReferralCode(row.referral_code),
     referrerUserId: String(row.referrer_user_id ?? ""),
@@ -6999,18 +7773,22 @@ function mapEntryOrderRow(row: Record<string, unknown>): NavaiEntryOrderRecord {
 
 function mapEntryPackageRow(
   row: Record<string, unknown>,
-  exchangeRate: NavaiCurrencyExchangeRateRecord
+  exchangeRate: NavaiCurrencyExchangeRateRecord,
 ): NavaiEntryPackageRecord {
   const key = normalizeEntryPackageKey(row.key);
   const priceUsd = normalizeEntryPriceUsd(
     row.price_usd,
-    NAVAI_DEFAULT_ENTRY_PACKAGE_PRICE_USD
+    NAVAI_DEFAULT_ENTRY_PACKAGE_PRICE_USD,
   );
   const vatPercentage = normalizeVatPercentage(
     row.vat_percentage,
-    NAVAI_DEFAULT_ENTRY_PACKAGE_VAT_PERCENTAGE
+    NAVAI_DEFAULT_ENTRY_PACKAGE_VAT_PERCENTAGE,
   );
-  const pricing = buildEntryPackagePricing(priceUsd, vatPercentage, exchangeRate.rate);
+  const pricing = buildEntryPackagePricing(
+    priceUsd,
+    vatPercentage,
+    exchangeRate.rate,
+  );
 
   return {
     key,
@@ -7028,6 +7806,37 @@ function mapEntryPackageRow(
     currency: NAVAI_ENTRY_CURRENCY,
     isActive: normalizeBooleanWithFallback(row.is_active, true),
     sortOrder: normalizeInteger(row.sort_order),
+    servicePeriod: normalizeMembershipServicePeriod(
+      row.service_period,
+      "monthly",
+    ),
+    roleOnStart: normalizePanelActorRole(row.role_on_start),
+    roleOnEnd: normalizePanelActorRole(row.role_on_end),
+    updatedAt: normalizeString(row.updated_at),
+  };
+}
+
+function mapMembershipRoleAssignmentRow(
+  row: Record<string, unknown>,
+): NavaiMembershipRoleAssignmentRecord {
+  return {
+    id: normalizeString(row.id),
+    userId: normalizeString(row.user_id),
+    userEmail: normalizeEmailAddress(row.user_email),
+    packageKey: normalizeEntryPackageKey(row.package_key, ""),
+    packageName: normalizeString(row.package_name),
+    servicePeriod: normalizeMembershipServicePeriod(
+      row.service_period,
+      "monthly",
+    ),
+    roleOnStart: normalizePanelActorRole(row.role_on_start),
+    roleOnEnd: normalizePanelActorRole(row.role_on_end),
+    startsAt: normalizeString(row.starts_at),
+    endsAt: normalizeString(row.ends_at),
+    status: normalizeMembershipRoleAssignmentStatus(row.status, "scheduled"),
+    activatedAt: normalizeString(row.activated_at),
+    completedAt: normalizeString(row.completed_at),
+    createdAt: normalizeString(row.created_at),
     updatedAt: normalizeString(row.updated_at),
   };
 }
@@ -7058,11 +7867,12 @@ function mapReferralRow(row: Record<string, unknown>): NavaiReferralRecord {
 }
 
 function mapReferralEntryLedgerRow(
-  row: Record<string, unknown>
+  row: Record<string, unknown>,
 ): NavaiReferralEntryLedgerRecord {
   const normalizedReason = normalizeString(row.reason).toLowerCase();
   const reason =
-    normalizedReason === "entry_consumed" || normalizedReason === "daily_limit_bypass"
+    normalizedReason === "entry_consumed" ||
+    normalizedReason === "daily_limit_bypass"
       ? "entry_consumed"
       : normalizedReason === "manual_adjustment"
         ? "manual_adjustment"
@@ -7074,7 +7884,12 @@ function mapReferralEntryLedgerRow(
     referralId: String(row.referral_id ?? ""),
     orderId: String(row.order_id ?? ""),
     experienceId: String(row.experience_id ?? ""),
-    experienceKind: normalizeString(row.experience_kind) === "survey" ? "survey" : normalizeString(row.experience_kind) === "evaluation" ? "evaluation" : "",
+    experienceKind:
+      normalizeString(row.experience_kind) === "survey"
+        ? "survey"
+        : normalizeString(row.experience_kind) === "evaluation"
+          ? "evaluation"
+          : "",
     experienceSlug: String(row.experience_slug ?? ""),
     conversationId: String(row.conversation_id ?? ""),
     relatedUserId: String(row.related_user_id ?? ""),
@@ -7086,7 +7901,7 @@ function mapReferralEntryLedgerRow(
 }
 
 function mapPointsCashoutPaymentSettingsRow(
-  row: Record<string, unknown> | null
+  row: Record<string, unknown> | null,
 ): NavaiPointsCashoutPaymentSettingsRecord | null {
   if (!row) {
     return null;
@@ -7103,7 +7918,7 @@ function mapPointsCashoutPaymentSettingsRow(
 }
 
 function mapPointsCashoutRequestRow(
-  row: Record<string, unknown>
+  row: Record<string, unknown>,
 ): NavaiPointsCashoutRequestRecord {
   return {
     id: String(row.id ?? ""),
@@ -7123,7 +7938,9 @@ function mapPointsCashoutRequestRow(
   };
 }
 
-function mapPointsLedgerRow(row: Record<string, unknown>): NavaiPointsLedgerRecord {
+function mapPointsLedgerRow(
+  row: Record<string, unknown>,
+): NavaiPointsLedgerRecord {
   const normalizedReason = normalizeString(row.reason).toLowerCase();
   const reason: NavaiPointsLedgerReason =
     normalizedReason === "cashout_request"
@@ -7156,13 +7973,15 @@ function mapPointsLedgerRow(row: Record<string, unknown>): NavaiPointsLedgerReco
 }
 
 function mapPointsRewardDistributionRow(
-  row: Record<string, unknown>
+  row: Record<string, unknown>,
 ): NavaiPointsRewardDistributionRecord {
   return {
     id: String(row.id ?? ""),
     experienceId: String(row.experience_id ?? ""),
     experienceKind:
-      normalizeString(row.experience_kind) === "survey" ? "survey" : "evaluation",
+      normalizeString(row.experience_kind) === "survey"
+        ? "survey"
+        : "evaluation",
     experienceSlug: String(row.experience_slug ?? ""),
     winnerUserId: String(row.winner_user_id ?? ""),
     winnerEmail: normalizeEmailAddress(row.winner_email),
@@ -7173,7 +7992,11 @@ function mapPointsRewardDistributionRow(
   };
 }
 
-function doesReferralCodeExist(db: SqlJsDatabase, code: string, excludedUserId = "") {
+function doesReferralCodeExist(
+  db: SqlJsDatabase,
+  code: string,
+  excludedUserId = "",
+) {
   const normalizedCode = normalizeReferralCode(code);
   if (!normalizedCode) {
     return false;
@@ -7188,7 +8011,7 @@ function doesReferralCodeExist(db: SqlJsDatabase, code: string, excludedUserId =
         ${excludedUserId ? "AND user_id <> ?" : ""}
       LIMIT 1
     `,
-    excludedUserId ? [normalizedCode, excludedUserId] : [normalizedCode]
+    excludedUserId ? [normalizedCode, excludedUserId] : [normalizedCode],
   );
 
   return Boolean(row);
@@ -7217,7 +8040,7 @@ function readReferralCodeByUserId(db: SqlJsDatabase, userId: string) {
       FROM navai_referral_codes
       WHERE user_id = ?
     `,
-    [userId]
+    [userId],
   );
 
   if (!row) {
@@ -7248,7 +8071,7 @@ function readReferralCodeOwnerByCode(db: SqlJsDatabase, code: string) {
       WHERE code = ?
       LIMIT 1
     `,
-    [normalizedCode]
+    [normalizedCode],
   );
 
   if (!row) {
@@ -7281,7 +8104,7 @@ function ensureReferralCodeExists(db: SqlJsDatabase, userId: string) {
         code = excluded.code,
         updated_at = excluded.updated_at
     `,
-    [userId, code, existing?.createdAt || now, now]
+    [userId, code, existing?.createdAt || now, now],
   );
 
   return code;
@@ -7308,7 +8131,7 @@ function readReferralByReferredUserId(db: SqlJsDatabase, userId: string) {
       WHERE referred_user_id = ?
       LIMIT 1
     `,
-    [userId]
+    [userId],
   );
 
   return row ? mapReferralRow(row) : null;
@@ -7317,7 +8140,7 @@ function readReferralByReferredUserId(db: SqlJsDatabase, userId: string) {
 function listReferralsByReferrerUserId(
   db: SqlJsDatabase,
   userId: string,
-  options: { limit?: number } = {}
+  options: { limit?: number } = {},
 ) {
   const limit = Math.max(1, options.limit ?? 200);
   const rows = readStatementRows(
@@ -7341,7 +8164,7 @@ function listReferralsByReferrerUserId(
       ORDER BY created_at DESC, updated_at DESC
       LIMIT ${limit}
     `,
-    [userId]
+    [userId],
   );
 
   return rows.map((row) => mapReferralRow(row));
@@ -7350,7 +8173,7 @@ function listReferralsByReferrerUserId(
 function listReferralEntryLedgerByUserId(
   db: SqlJsDatabase,
   userId: string,
-  options: { limit?: number } = {}
+  options: { limit?: number } = {},
 ) {
   const limit = Math.max(1, options.limit ?? 300);
   const rows = readStatementRows(
@@ -7375,13 +8198,16 @@ function listReferralEntryLedgerByUserId(
       ORDER BY created_at DESC
       LIMIT ${limit}
     `,
-    [userId]
+    [userId],
   );
 
   return rows.map((row) => mapReferralEntryLedgerRow(row));
 }
 
-function readReferralEntryTotals(db: SqlJsDatabase, userId: string): NavaiEntryTotalsRecord {
+function readReferralEntryTotals(
+  db: SqlJsDatabase,
+  userId: string,
+): NavaiEntryTotalsRecord {
   const row = readFirstRow(
     db,
     `
@@ -7392,7 +8218,7 @@ function readReferralEntryTotals(db: SqlJsDatabase, userId: string): NavaiEntryT
       FROM navai_referral_credit_ledger
       WHERE user_id = ?
     `,
-    [userId]
+    [userId],
   );
 
   return {
@@ -7416,7 +8242,7 @@ function appendReferralEntryLedgerEntry(
     relatedUserEmail?: string;
     reason: NavaiReferralEntryLedgerRecord["reason"];
     deltaEntries: number;
-  }
+  },
 ) {
   const normalizedUserId = validateUserId(input.userId);
   const deltaEntries = normalizeInteger(input.deltaEntries);
@@ -7462,7 +8288,7 @@ function appendReferralEntryLedgerEntry(
       input.reason,
       deltaEntries,
       createdAt,
-    ]
+    ],
   );
 
   return entryId;
@@ -7475,7 +8301,10 @@ type NavaiPointsTotalsRecord = {
   availablePoints: number;
 };
 
-function readPointsTotals(db: SqlJsDatabase, userId: string): NavaiPointsTotalsRecord {
+function readPointsTotals(
+  db: SqlJsDatabase,
+  userId: string,
+): NavaiPointsTotalsRecord {
   const ledgerRow = readFirstRow(
     db,
     `
@@ -7485,7 +8314,7 @@ function readPointsTotals(db: SqlJsDatabase, userId: string): NavaiPointsTotalsR
       FROM navai_points_ledger
       WHERE user_id = ?
     `,
-    [userId]
+    [userId],
   );
 
   const cashoutRow = readFirstRow(
@@ -7515,11 +8344,14 @@ function readPointsTotals(db: SqlJsDatabase, userId: string): NavaiPointsTotalsR
       FROM navai_points_cashout_requests
       WHERE user_id = ?
     `,
-    [userId]
+    [userId],
   );
 
   const earnedPoints = normalizePointAmount(ledgerRow?.earned_points, 0);
-  const pendingRedeemPoints = normalizePointAmount(cashoutRow?.pending_points, 0);
+  const pendingRedeemPoints = normalizePointAmount(
+    cashoutRow?.pending_points,
+    0,
+  );
   const paidRedeemPoints = normalizePointAmount(cashoutRow?.paid_points, 0);
   const redeemedPoints = paidRedeemPoints + pendingRedeemPoints;
   const availablePoints = normalizeInteger(ledgerRow?.available_points);
@@ -7545,7 +8377,7 @@ function appendPointsLedgerEntry(
     relatedUserEmail?: string;
     reason: NavaiPointsLedgerReason;
     deltaPoints: number;
-  }
+  },
 ) {
   const normalizedUserId = validateUserId(input.userId);
   const deltaPoints = normalizeInteger(input.deltaPoints);
@@ -7589,7 +8421,7 @@ function appendPointsLedgerEntry(
       input.reason,
       deltaPoints,
       createdAt,
-    ]
+    ],
   );
 
   return entryId;
@@ -7598,7 +8430,7 @@ function appendPointsLedgerEntry(
 function listPointsLedgerByUserId(
   db: SqlJsDatabase,
   userId: string,
-  options: { limit?: number } = {}
+  options: { limit?: number } = {},
 ) {
   const limit = Math.max(1, options.limit ?? 300);
   const rows = readStatementRows(
@@ -7622,13 +8454,16 @@ function listPointsLedgerByUserId(
       ORDER BY created_at DESC
       LIMIT ${limit}
     `,
-    [userId]
+    [userId],
   );
 
   return rows.map((row) => mapPointsLedgerRow(row));
 }
 
-function readPointsCashoutPaymentSettingsByUserId(db: SqlJsDatabase, userId: string) {
+function readPointsCashoutPaymentSettingsByUserId(
+  db: SqlJsDatabase,
+  userId: string,
+) {
   const row = readFirstRow(
     db,
     `
@@ -7643,7 +8478,7 @@ function readPointsCashoutPaymentSettingsByUserId(db: SqlJsDatabase, userId: str
       WHERE user_id = ?
       LIMIT 1
     `,
-    [userId]
+    [userId],
   );
 
   return mapPointsCashoutPaymentSettingsRow(row);
@@ -7652,7 +8487,7 @@ function readPointsCashoutPaymentSettingsByUserId(db: SqlJsDatabase, userId: str
 function listPointsCashoutRequestsByUserId(
   db: SqlJsDatabase,
   userId: string,
-  options: { limit?: number } = {}
+  options: { limit?: number } = {},
 ) {
   const limit = Math.max(1, options.limit ?? 200);
   const rows = readStatementRows(
@@ -7680,7 +8515,7 @@ function listPointsCashoutRequestsByUserId(
       ORDER BY requests.created_at DESC
       LIMIT ${limit}
     `,
-    [userId]
+    [userId],
   );
 
   return rows.map((row) => mapPointsCashoutRequestRow(row));
@@ -7688,7 +8523,7 @@ function listPointsCashoutRequestsByUserId(
 
 function listPointsCashoutRequests(
   db: SqlJsDatabase,
-  options: { limit?: number; status?: NavaiPointsCashoutStatus | "" } = {}
+  options: { limit?: number; status?: NavaiPointsCashoutStatus | "" } = {},
 ) {
   const limit = Math.max(1, options.limit ?? 300);
   const normalizedStatus = normalizePointsCashoutStatus(options.status);
@@ -7718,7 +8553,7 @@ function listPointsCashoutRequests(
       ORDER BY requests.created_at ASC, requests.updated_at ASC
       LIMIT ${limit}
     `,
-    hasStatusFilter ? [normalizedStatus] : []
+    hasStatusFilter ? [normalizedStatus] : [],
   );
 
   return rows.map((row) => mapPointsCashoutRequestRow(row));
@@ -7754,7 +8589,7 @@ function readPointsCashoutRequestById(db: SqlJsDatabase, requestId: string) {
       WHERE requests.id = ?
       LIMIT 1
     `,
-    [normalizedId]
+    [normalizedId],
   );
 
   return row ? mapPointsCashoutRequestRow(row) : null;
@@ -7762,7 +8597,7 @@ function readPointsCashoutRequestById(db: SqlJsDatabase, requestId: string) {
 
 function readPurchasedEntryTotals(
   db: SqlJsDatabase,
-  userId: string
+  userId: string,
 ): NavaiEntryTotalsRecord {
   const row = readFirstRow(
     db,
@@ -7774,7 +8609,7 @@ function readPurchasedEntryTotals(
       FROM navai_entry_ledger
       WHERE user_id = ?
     `,
-    [userId]
+    [userId],
   );
 
   return {
@@ -7785,7 +8620,10 @@ function readPurchasedEntryTotals(
 }
 
 function readAvailableEntryBalance(db: SqlJsDatabase, userId: string) {
-  const purchasedEntries = readPurchasedEntryTotals(db, userId).availableEntries;
+  const purchasedEntries = readPurchasedEntryTotals(
+    db,
+    userId,
+  ).availableEntries;
   const bonusEntries = readReferralEntryTotals(db, userId).availableEntries;
   return purchasedEntries + bonusEntries;
 }
@@ -7801,7 +8639,7 @@ function appendPurchasedEntryLedgerEntry(
     conversationId?: string;
     reason: "order_purchase" | "experience_entry" | "manual_adjustment";
     deltaEntries: number;
-  }
+  },
 ) {
   const normalizedUserId = validateUserId(input.userId);
   const deltaEntries = normalizeInteger(input.deltaEntries);
@@ -7841,7 +8679,7 @@ function appendPurchasedEntryLedgerEntry(
       input.reason,
       deltaEntries,
       createdAt,
-    ]
+    ],
   );
 
   return entryId;
@@ -7851,7 +8689,7 @@ function updateEntryOrderReferralFields(
   db: SqlJsDatabase,
   orderId: string,
   referralCode: string,
-  referrerUserId: string
+  referrerUserId: string,
 ) {
   const normalizedOrderId = normalizeString(orderId);
   if (!normalizedOrderId) {
@@ -7869,7 +8707,7 @@ function updateEntryOrderReferralFields(
       normalizeString(referrerUserId),
       new Date().toISOString(),
       normalizedOrderId,
-    ]
+    ],
   );
 }
 
@@ -7882,7 +8720,7 @@ function hasCompletedEntryPurchase(db: SqlJsDatabase, userId: string) {
       WHERE user_id = ?
       LIMIT 1
     `,
-    [userId]
+    [userId],
   );
 
   return Boolean(row);
@@ -7894,7 +8732,7 @@ function syncReferralRecordWithOrder(
   input: {
     orderId: string;
     referredEmail: string;
-  }
+  },
 ) {
   const now = new Date().toISOString();
   db.run(
@@ -7914,9 +8752,14 @@ function syncReferralRecordWithOrder(
       normalizeString(input.orderId),
       now,
       referral.id,
-    ]
+    ],
   );
-  updateEntryOrderReferralFields(db, input.orderId, referral.referrerCode, referral.referrerUserId);
+  updateEntryOrderReferralFields(
+    db,
+    input.orderId,
+    referral.referrerCode,
+    referral.referrerUserId,
+  );
 }
 
 function resolveReferralAttributionForEntryOrder(
@@ -7927,7 +8770,7 @@ function resolveReferralAttributionForEntryOrder(
     referredEmail: string;
     referralCode?: string;
     existingOrder?: NavaiEntryOrderRecord | null;
-  }
+  },
 ) {
   const normalizedReferredUserId = validateUserId(input.referredUserId);
   const normalizedReferredEmail = normalizeEmailAddress(input.referredEmail);
@@ -7935,7 +8778,10 @@ function resolveReferralAttributionForEntryOrder(
   const preferredCode =
     normalizeReferralCode(input.referralCode) ||
     normalizeReferralCode(input.existingOrder?.referralCode);
-  const existingReferral = readReferralByReferredUserId(db, normalizedReferredUserId);
+  const existingReferral = readReferralByReferredUserId(
+    db,
+    normalizedReferredUserId,
+  );
 
   if (existingReferral) {
     syncReferralRecordWithOrder(db, existingReferral, {
@@ -8017,9 +8863,14 @@ function resolveReferralAttributionForEntryOrder(
       "",
       now,
       now,
-    ]
+    ],
   );
-  updateEntryOrderReferralFields(db, normalizedOrderId, owner.code, owner.userId);
+  updateEntryOrderReferralFields(
+    db,
+    normalizedOrderId,
+    owner.code,
+    owner.userId,
+  );
 
   return buildReferralAttribution("accepted", {
     code: owner.code,
@@ -8028,7 +8879,10 @@ function resolveReferralAttributionForEntryOrder(
   });
 }
 
-function applyReferralRewardForOrder(db: SqlJsDatabase, order: NavaiEntryOrderRecord) {
+function applyReferralRewardForOrder(
+  db: SqlJsDatabase,
+  order: NavaiEntryOrderRecord,
+) {
   const referral = readReferralByReferredUserId(db, order.userId);
   if (!referral || !referral.referrerUserId || referral.status === "rejected") {
     return false;
@@ -8047,7 +8901,7 @@ function applyReferralRewardForOrder(db: SqlJsDatabase, order: NavaiEntryOrderRe
       WHERE referral_id = ? AND reason = 'referral_reward'
       LIMIT 1
     `,
-    [referral.id]
+    [referral.id],
   );
 
   const now = new Date().toISOString();
@@ -8080,13 +8934,14 @@ function applyReferralRewardForOrder(db: SqlJsDatabase, order: NavaiEntryOrderRe
       WHERE id = ?
     `,
     [
-      normalizeEmailAddress(order.wompiEmail || order.userEmail) || referral.referredEmail,
+      normalizeEmailAddress(order.wompiEmail || order.userEmail) ||
+        referral.referredEmail,
       order.id,
       REFERRAL_REWARD_ENTRIES,
       now,
       now,
       referral.id,
-    ]
+    ],
   );
 
   return !existingRewardEntry;
@@ -8102,8 +8957,10 @@ function buildReferralProgramRecord(db: SqlJsDatabase, userId: string) {
     code,
     rewardEntriesPerReferral: REFERRAL_REWARD_ENTRIES,
     totalReferrals: referrals.length,
-    pendingReferrals: referrals.filter((item) => item.status === "pending").length,
-    rewardedReferrals: referrals.filter((item) => item.status === "rewarded").length,
+    pendingReferrals: referrals.filter((item) => item.status === "pending")
+      .length,
+    rewardedReferrals: referrals.filter((item) => item.status === "rewarded")
+      .length,
     earnedEntries: entries.earnedEntries,
     consumedEntries: entries.consumedEntries,
     availableEntries: entries.availableEntries,
@@ -8115,7 +8972,7 @@ function buildReferralProgramRecord(db: SqlJsDatabase, userId: string) {
 function listEntryPackages(
   db: SqlJsDatabase,
   exchangeRate: NavaiCurrencyExchangeRateRecord,
-  options: { includeInactive?: boolean } = {}
+  options: { includeInactive?: boolean } = {},
 ) {
   const includeInactive = Boolean(options.includeInactive);
   const rows = readStatementRows(
@@ -8130,12 +8987,15 @@ function listEntryPackages(
         vat_percentage,
         is_active,
         sort_order,
+        service_period,
+        role_on_start,
+        role_on_end,
         created_at,
         updated_at
       FROM navai_entry_packages
       ${includeInactive ? "" : "WHERE is_active = 1"}
       ORDER BY is_active DESC, sort_order ASC, updated_at DESC, key ASC
-    `
+    `,
   );
 
   return rows.map((row) => mapEntryPackageRow(row, exchangeRate));
@@ -8144,7 +9004,7 @@ function listEntryPackages(
 function readEntryPackageByKey(
   db: SqlJsDatabase,
   exchangeRate: NavaiCurrencyExchangeRateRecord,
-  packageKey: string
+  packageKey: string,
 ) {
   const normalizedPackageKey = normalizeEntryPackageKey(packageKey, "");
   if (!normalizedPackageKey) {
@@ -8163,23 +9023,107 @@ function readEntryPackageByKey(
         vat_percentage,
         is_active,
         sort_order,
+        service_period,
+        role_on_start,
+        role_on_end,
         created_at,
         updated_at
       FROM navai_entry_packages
       WHERE key = ?
       LIMIT 1
     `,
-    [normalizedPackageKey]
+    [normalizedPackageKey],
   );
 
   return row ? mapEntryPackageRow(row, exchangeRate) : null;
 }
 
+function listMembershipRoleAssignments(
+  db: SqlJsDatabase,
+  options: { limit?: number } = {},
+) {
+  const limit = Math.max(
+    1,
+    Math.min(2000, normalizeInteger(options.limit ?? 500) || 500),
+  );
+  const rows = readStatementRows(
+    db,
+    `
+      SELECT
+        id,
+        user_id,
+        user_email,
+        package_key,
+        package_name,
+        service_period,
+        role_on_start,
+        role_on_end,
+        starts_at,
+        ends_at,
+        status,
+        activated_at,
+        completed_at,
+        created_at,
+        updated_at
+      FROM navai_membership_role_assignments
+      ORDER BY
+        CASE status
+          WHEN 'active' THEN 0
+          WHEN 'scheduled' THEN 1
+          ELSE 2
+        END,
+        starts_at ASC,
+        ends_at ASC,
+        updated_at DESC
+      LIMIT ${limit}
+    `,
+  );
+
+  return rows.map((row) => mapMembershipRoleAssignmentRow(row));
+}
+
+function readMembershipRoleAssignmentById(db: SqlJsDatabase, id: string) {
+  const normalizedId = normalizeString(id);
+  if (!normalizedId) {
+    return null;
+  }
+
+  const row = readFirstRow(
+    db,
+    `
+      SELECT
+        id,
+        user_id,
+        user_email,
+        package_key,
+        package_name,
+        service_period,
+        role_on_start,
+        role_on_end,
+        starts_at,
+        ends_at,
+        status,
+        activated_at,
+        completed_at,
+        created_at,
+        updated_at
+      FROM navai_membership_role_assignments
+      WHERE id = ?
+      LIMIT 1
+    `,
+    [normalizedId],
+  );
+
+  return row ? mapMembershipRoleAssignmentRow(row) : null;
+}
+
 function resolveDefaultEntryPackage(
   db: SqlJsDatabase,
-  exchangeRate: NavaiCurrencyExchangeRateRecord
+  exchangeRate: NavaiCurrencyExchangeRateRecord,
 ) {
-  const activePackages = listEntryPackages(db, exchangeRate, { includeInactive: false });
+  const activePackages = listEntryPackages(db, exchangeRate, {
+    includeInactive: false,
+  });
   if (activePackages.length > 0) {
     return activePackages[0];
   }
@@ -8194,11 +9138,14 @@ function resolveDefaultEntryPackage(
     ...buildEntryPackagePricing(
       NAVAI_DEFAULT_ENTRY_PACKAGE_PRICE_USD,
       NAVAI_DEFAULT_ENTRY_PACKAGE_VAT_PERCENTAGE,
-      exchangeRate.rate
+      exchangeRate.rate,
     ),
     currency: NAVAI_ENTRY_CURRENCY,
     isActive: true,
     sortOrder: 0,
+    servicePeriod: "monthly",
+    roleOnStart: "user",
+    roleOnEnd: "user",
     updatedAt: "",
   } satisfies NavaiEntryPackageRecord;
 }
@@ -8206,7 +9153,7 @@ function resolveDefaultEntryPackage(
 function listEntryOrdersByUserId(
   db: SqlJsDatabase,
   userId: string,
-  options: { limit?: number } = {}
+  options: { limit?: number } = {},
 ) {
   const limit = Math.max(1, options.limit ?? 100);
   const rows = readStatementRows(
@@ -8243,13 +9190,16 @@ function listEntryOrdersByUserId(
       ORDER BY created_at DESC, updated_at DESC
       LIMIT ${limit}
     `,
-    [userId]
+    [userId],
   );
 
   return rows.map((row) => mapEntryOrderRow(row));
 }
 
-function listAllEntryOrders(db: SqlJsDatabase, options: { limit?: number } = {}) {
+function listAllEntryOrders(
+  db: SqlJsDatabase,
+  options: { limit?: number } = {},
+) {
   const limit = Math.max(1, options.limit ?? 200);
   const rows = readStatementRows(
     db,
@@ -8283,7 +9233,7 @@ function listAllEntryOrders(db: SqlJsDatabase, options: { limit?: number } = {})
       FROM navai_plus_orders
       ORDER BY created_at DESC, updated_at DESC
       LIMIT ${limit}
-    `
+    `,
   );
 
   return rows.map((row) => mapEntryOrderRow(row));
@@ -8292,10 +9242,11 @@ function listAllEntryOrders(db: SqlJsDatabase, options: { limit?: number } = {})
 function buildEntryBalance(
   orders: NavaiEntryOrderRecord[],
   purchasedEntries: NavaiEntryTotalsRecord,
-  bonusEntries: NavaiEntryTotalsRecord
+  bonusEntries: NavaiEntryTotalsRecord,
 ): NavaiEntryBalanceRecord {
   return {
-    availableEntries: purchasedEntries.availableEntries + bonusEntries.availableEntries,
+    availableEntries:
+      purchasedEntries.availableEntries + bonusEntries.availableEntries,
     purchasedEntries: purchasedEntries.availableEntries,
     bonusEntries: bonusEntries.availableEntries,
     consumedPurchasedEntries: purchasedEntries.consumedEntries,
@@ -8307,13 +9258,13 @@ function buildEntryBalance(
 }
 
 function buildEntryAccountingSummary(
-  orders: NavaiEntryOrderRecord[]
+  orders: NavaiEntryOrderRecord[],
 ): NavaiEntryAccountingSummaryRecord {
   const approvedOrders = orders.filter(
-    (order) => order.status === "APPROVED" || Boolean(order.creditedAt)
+    (order) => order.status === "APPROVED" || Boolean(order.creditedAt),
   );
   const pendingOrders = orders.filter((order) =>
-    ["", "created", "PENDING"].includes(order.status)
+    ["", "created", "PENDING"].includes(order.status),
   );
 
   return {
@@ -8322,13 +9273,20 @@ function buildEntryAccountingSummary(
     pendingOrders: pendingOrders.length,
     approvedAmountCents: approvedOrders.reduce(
       (total, order) => total + order.amountCents,
-      0
+      0,
     ),
     soldEntries: approvedOrders.reduce(
       (total, order) => total + Math.max(1, order.entriesCount || 1),
-      0
+      0,
     ),
   };
+}
+
+function canDeleteCreatedEntryOrder(order: NavaiEntryOrderRecord) {
+  return (
+    normalizeString(order.status).toLowerCase() === "created" &&
+    !order.creditedAt
+  );
 }
 
 function readEntryOrderById(db: SqlJsDatabase, orderId: string) {
@@ -8364,7 +9322,7 @@ function readEntryOrderById(db: SqlJsDatabase, orderId: string) {
       FROM navai_plus_orders
       WHERE id = ?
     `,
-    [orderId]
+    [orderId],
   );
 
   return row ? mapEntryOrderRow(row) : null;
@@ -8373,15 +9331,19 @@ function readEntryOrderById(db: SqlJsDatabase, orderId: string) {
 function updateEntryOrderFromTransaction(
   db: SqlJsDatabase,
   orderId: string,
-  transaction: WompiTransaction
+  transaction: WompiTransaction,
 ) {
   const existing = readEntryOrderById(db, orderId);
   const now = new Date().toISOString();
   const normalizedAmount = normalizeInteger(transaction.amount_in_cents);
   const amountCents =
-    normalizedAmount > 0 ? normalizedAmount : Math.max(1, existing?.amountCents ?? 1);
+    normalizedAmount > 0
+      ? normalizedAmount
+      : Math.max(1, existing?.amountCents ?? 1);
   const currency =
-    normalizeString(transaction.currency) || existing?.currency || NAVAI_ENTRY_CURRENCY;
+    normalizeString(transaction.currency) ||
+    existing?.currency ||
+    NAVAI_ENTRY_CURRENCY;
   db.run(
     `
       UPDATE navai_plus_orders
@@ -8413,7 +9375,7 @@ function updateEntryOrderFromTransaction(
       now,
       now,
       orderId,
-    ]
+    ],
   );
 }
 
@@ -8426,22 +9388,39 @@ function activateEntryOrder(db: SqlJsDatabase, orderId: string) {
   const existingActivation = readFirstRow(
     db,
     "SELECT id FROM navai_plus_activations WHERE order_id = ?",
-    [orderId]
+    [orderId],
   );
   if (existingActivation) {
     if (!order.creditedAt) {
       const now = new Date().toISOString();
-      db.run("UPDATE navai_plus_orders SET activated_at = ?, updated_at = ? WHERE id = ?", [
-        now,
-        now,
-        orderId,
-      ]);
+      db.run(
+        "UPDATE navai_plus_orders SET activated_at = ?, updated_at = ? WHERE id = ?",
+        [now, now, orderId],
+      );
     }
     applyReferralRewardForOrder(db, readEntryOrderById(db, orderId) ?? order);
     return true;
   }
 
   const createdAt = new Date().toISOString();
+  const packageRow = readFirstRow(
+    db,
+    `
+      SELECT service_period
+      FROM navai_entry_packages
+      WHERE key = ?
+      LIMIT 1
+    `,
+    [order.packageKey || order.product],
+  );
+  const servicePeriod = normalizeMembershipServicePeriod(
+    packageRow?.service_period,
+    "monthly",
+  );
+  const periodEndAt = resolveMembershipServicePeriodEndIso(
+    createdAt,
+    servicePeriod,
+  );
 
   db.run(
     `
@@ -8461,9 +9440,9 @@ function activateEntryOrder(db: SqlJsDatabase, orderId: string) {
       order.userId,
       NAVAI_ENTRY_PRODUCT_KEY,
       createdAt,
+      periodEndAt,
       createdAt,
-      createdAt,
-    ]
+    ],
   );
 
   appendPurchasedEntryLedgerEntry(db, {
@@ -8474,11 +9453,15 @@ function activateEntryOrder(db: SqlJsDatabase, orderId: string) {
   });
   db.run(
     "UPDATE navai_plus_orders SET activated_at = ?, status = ?, updated_at = ? WHERE id = ?",
-    [createdAt, "APPROVED", createdAt, orderId]
+    [createdAt, "APPROVED", createdAt, orderId],
   );
   applyReferralRewardForOrder(
     db,
-    readEntryOrderById(db, orderId) ?? { ...order, creditedAt: createdAt, status: "APPROVED" }
+    readEntryOrderById(db, orderId) ?? {
+      ...order,
+      creditedAt: createdAt,
+      status: "APPROVED",
+    },
   );
 
   return true;
@@ -8487,7 +9470,7 @@ function activateEntryOrder(db: SqlJsDatabase, orderId: string) {
 function findEntryOrderByTransaction(
   db: SqlJsDatabase,
   transaction: WompiTransaction,
-  options: { userId?: string } = {}
+  options: { userId?: string } = {},
 ) {
   const normalizedTransactionId = normalizeString(transaction.id);
   if (normalizedTransactionId) {
@@ -8500,7 +9483,9 @@ function findEntryOrderByTransaction(
         ${options.userId ? "AND user_id = ?" : ""}
         LIMIT 1
       `,
-      options.userId ? [normalizedTransactionId, options.userId] : [normalizedTransactionId]
+      options.userId
+        ? [normalizedTransactionId, options.userId]
+        : [normalizedTransactionId],
     );
     if (byTransactionId) {
       return mapEntryOrderRow(byTransactionId);
@@ -8536,19 +9521,23 @@ function findEntryOrderByTransaction(
           customerEmail,
           normalizedTransactionId,
           new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
-        ]
+        ],
   ).map((row) => mapEntryOrderRow(row));
 
   return (
     fallbackRows.find(
       (order) =>
-        !paymentLinkId || !order.wompiLinkId || order.wompiLinkId === paymentLinkId
-    ) ?? fallbackRows[0] ?? null
+        !paymentLinkId ||
+        !order.wompiLinkId ||
+        order.wompiLinkId === paymentLinkId,
+    ) ??
+    fallbackRows[0] ??
+    null
   );
 }
 
 export async function getNavaiEntryBilling(
-  actor: NavaiPanelActor
+  actor: NavaiPanelActor,
 ): Promise<NavaiEntryBillingRecord> {
   await runEndedExperienceRewardsDistributionSweep();
   const normalizedUserId = validateUserId(actor.uid);
@@ -8556,18 +9545,19 @@ export async function getNavaiEntryBilling(
   const { db } = await getWorkspaceSqliteState();
   const environment = getWompiEnvironment();
   const userOrders = listEntryOrdersByUserId(db, normalizedUserId);
-  const allOrders = isNavaiPanelSupportActor(actor) ? listAllEntryOrders(db) : [];
+  const allOrders = isNavaiPanelSupportActor(actor)
+    ? listAllEntryOrders(db)
+    : [];
   const packages = listEntryPackages(db, exchangeRate, {
     includeInactive: isNavaiPanelSupportActor(actor),
   });
   const defaultPackage = resolveDefaultEntryPackage(db, exchangeRate);
   const activePackage =
-    packages.find((entryPackage) => entryPackage.isActive) ??
-    defaultPackage;
+    packages.find((entryPackage) => entryPackage.isActive) ?? defaultPackage;
   const purchasedEntries = readPurchasedEntryTotals(db, normalizedUserId);
   const bonusEntries = readReferralEntryTotals(db, normalizedUserId);
   const accounting = buildEntryAccountingSummary(
-    isNavaiPanelSupportActor(actor) ? allOrders : userOrders
+    isNavaiPanelSupportActor(actor) ? allOrders : userOrders,
   );
 
   return {
@@ -8589,8 +9579,55 @@ export async function getNavaiEntryBilling(
   };
 }
 
+export async function grantNavaiFreeEntriesByAdmin(
+  actor: NavaiPanelActor,
+  input: {
+    userId: string;
+    experienceKind: NavaiPanelExperienceKind;
+    experienceId?: string;
+    experienceSlug?: string;
+    entries?: number;
+  },
+): Promise<NavaiFreeEntryGrantRecord> {
+  assertAdminVerificationActor(actor);
+  const normalizedUserId = validateUserId(input.userId);
+  const normalizedExperienceKind =
+    input.experienceKind === "survey" ? "survey" : "evaluation";
+  const normalizedEntries = Math.max(
+    1,
+    Math.min(1000, normalizePositiveInteger(input.entries, 1)),
+  );
+  const normalizedExperienceId = normalizeString(input.experienceId);
+  const normalizedExperienceSlug = normalizeString(input.experienceSlug);
+
+  await runSerializedMutation((db) => {
+    for (let index = 0; index < normalizedEntries; index += 1) {
+      appendPurchasedEntryLedgerEntry(db, {
+        userId: normalizedUserId,
+        experienceId: normalizedExperienceId,
+        experienceKind: normalizedExperienceKind,
+        experienceSlug: normalizedExperienceSlug,
+        reason: "manual_adjustment",
+        deltaEntries: 1,
+      });
+    }
+  });
+
+  const { db } = await getWorkspaceSqliteState();
+  const userOrders = listEntryOrdersByUserId(db, normalizedUserId);
+  const purchasedEntries = readPurchasedEntryTotals(db, normalizedUserId);
+  const bonusEntries = readReferralEntryTotals(db, normalizedUserId);
+
+  return {
+    userId: normalizedUserId,
+    experienceKind: normalizedExperienceKind,
+    grantedEntries: normalizedEntries,
+    balance: buildEntryBalance(userOrders, purchasedEntries, bonusEntries),
+  };
+}
+
 export async function listNavaiEntryPackagesForAdmin(
-  actor: NavaiPanelActor
+  actor: NavaiPanelActor,
 ): Promise<NavaiEntryPackageRecord[]> {
   assertAdminVerificationActor(actor);
   const exchangeRate = await resolveUsdCopExchangeRateRecord();
@@ -8601,7 +9638,7 @@ export async function listNavaiEntryPackagesForAdmin(
 export async function upsertNavaiEntryPackage(
   actor: NavaiPanelActor,
   packageKey: string,
-  input: NavaiEntryPackageInput
+  input: NavaiEntryPackageInput,
 ): Promise<NavaiEntryPackageRecord> {
   assertAdminVerificationActor(actor);
   const normalizedPackageKey = normalizeEntryPackageKey(packageKey, "");
@@ -8612,7 +9649,11 @@ export async function upsertNavaiEntryPackage(
   const exchangeRate = await resolveUsdCopExchangeRateRecord();
 
   return runSerializedMutation((db) => {
-    const existing = readEntryPackageByKey(db, exchangeRate, normalizedPackageKey);
+    const existing = readEntryPackageByKey(
+      db,
+      exchangeRate,
+      normalizedPackageKey,
+    );
     if (existing && !normalizedInput.isActive && existing.isActive) {
       const activeCountRow = readFirstRow(
         db,
@@ -8620,7 +9661,7 @@ export async function upsertNavaiEntryPackage(
           SELECT COUNT(*) AS active_count
           FROM navai_entry_packages
           WHERE is_active = 1
-        `
+        `,
       );
       const activeCount = normalizeInteger(activeCountRow?.active_count);
       if (activeCount <= 1) {
@@ -8640,9 +9681,12 @@ export async function upsertNavaiEntryPackage(
           vat_percentage,
           is_active,
           sort_order,
+          service_period,
+          role_on_start,
+          role_on_end,
           created_at,
           updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(key) DO UPDATE SET
           name = excluded.name,
           description = excluded.description,
@@ -8651,6 +9695,9 @@ export async function upsertNavaiEntryPackage(
           vat_percentage = excluded.vat_percentage,
           is_active = excluded.is_active,
           sort_order = excluded.sort_order,
+          service_period = excluded.service_period,
+          role_on_start = excluded.role_on_start,
+          role_on_end = excluded.role_on_end,
           updated_at = excluded.updated_at
       `,
       [
@@ -8662,9 +9709,12 @@ export async function upsertNavaiEntryPackage(
         normalizedInput.vatPercentage,
         normalizedInput.isActive ? 1 : 0,
         normalizedInput.sortOrder,
+        normalizedInput.servicePeriod,
+        normalizedInput.roleOnStart,
+        normalizedInput.roleOnEnd,
         now,
         now,
-      ]
+      ],
     );
 
     const saved = readEntryPackageByKey(db, exchangeRate, normalizedPackageKey);
@@ -8676,8 +9726,346 @@ export async function upsertNavaiEntryPackage(
   });
 }
 
+export async function deleteNavaiEntryPackage(
+  actor: NavaiPanelActor,
+  packageKey: string,
+) {
+  assertAdminVerificationActor(actor);
+  const normalizedPackageKey = normalizeEntryPackageKey(packageKey, "");
+  if (!normalizedPackageKey) {
+    throw new Error("Entry package key is required.");
+  }
+  const exchangeRate = await resolveUsdCopExchangeRateRecord();
+
+  return runSerializedMutation((db) => {
+    const existing = readEntryPackageByKey(
+      db,
+      exchangeRate,
+      normalizedPackageKey,
+    );
+    if (!existing) {
+      throw new Error("Entry package not found.");
+    }
+
+    if (existing.isActive) {
+      const activeCountRow = readFirstRow(
+        db,
+        `
+          SELECT COUNT(*) AS active_count
+          FROM navai_entry_packages
+          WHERE is_active = 1
+        `,
+      );
+      const activeCount = normalizeInteger(activeCountRow?.active_count);
+      if (activeCount <= 1) {
+        throw new Error("At least one active entry package is required.");
+      }
+    }
+
+    const relatedOrderRows = readStatementRows(
+      db,
+      `
+        SELECT id, user_id
+        FROM navai_plus_orders
+        WHERE package_key = ? OR plan = ?
+      `,
+      [normalizedPackageKey, normalizedPackageKey],
+    );
+    const relatedOrderIds = relatedOrderRows.map((row) =>
+      normalizeString(row.id),
+    );
+    for (const relatedOrderId of relatedOrderIds) {
+      if (!relatedOrderId) {
+        continue;
+      }
+      db.run("DELETE FROM navai_plus_activations WHERE order_id = ?", [
+        relatedOrderId,
+      ]);
+      db.run("DELETE FROM navai_entry_ledger WHERE order_id = ?", [
+        relatedOrderId,
+      ]);
+      db.run(
+        `
+          DELETE FROM navai_referrals
+          WHERE source_order_id = ?
+        `,
+        [relatedOrderId],
+      );
+    }
+    db.run(
+      `
+        DELETE FROM navai_plus_orders
+        WHERE package_key = ? OR plan = ?
+      `,
+      [normalizedPackageKey, normalizedPackageKey],
+    );
+    db.run(
+      `
+        DELETE FROM navai_membership_role_assignments
+        WHERE package_key = ?
+      `,
+      [normalizedPackageKey],
+    );
+
+    db.run("DELETE FROM navai_entry_packages WHERE key = ?", [
+      normalizedPackageKey,
+    ]);
+    const deleted = readEntryPackageByKey(
+      db,
+      exchangeRate,
+      normalizedPackageKey,
+    );
+    if (deleted) {
+      throw new Error("Entry package could not be deleted.");
+    }
+
+    return {
+      key: normalizedPackageKey,
+      deleted: true as const,
+    };
+  });
+}
+
+export async function listNavaiMembershipRoleAssignmentsForAdmin(
+  actor: NavaiPanelActor,
+): Promise<NavaiMembershipRoleAssignmentRecord[]> {
+  assertAdminVerificationActor(actor);
+  const { db } = await getWorkspaceSqliteState();
+  return listMembershipRoleAssignments(db, { limit: 2000 });
+}
+
+export async function createNavaiMembershipRoleAssignment(
+  actor: NavaiPanelActor,
+  input: NavaiMembershipRoleAssignmentInput,
+): Promise<NavaiMembershipRoleAssignmentRecord> {
+  assertAdminVerificationActor(actor);
+  const normalizedInput = validateMembershipRoleAssignmentInput(input);
+  const exchangeRate = await resolveUsdCopExchangeRateRecord();
+
+  const created = await runSerializedMutation((db) => {
+    const entryPackage = readEntryPackageByKey(
+      db,
+      exchangeRate,
+      normalizedInput.packageKey,
+    );
+    if (!entryPackage) {
+      throw new Error("Entry package not found.");
+    }
+
+    const overlap = readFirstRow(
+      db,
+      `
+        SELECT id
+        FROM navai_membership_role_assignments
+        WHERE user_id = ?
+          AND status <> 'completed'
+          AND starts_at < ?
+          AND ends_at > ?
+        LIMIT 1
+      `,
+      [
+        normalizedInput.userId,
+        normalizedInput.endsAt,
+        normalizedInput.startsAt,
+      ],
+    );
+    if (overlap) {
+      throw new Error(
+        "Membership assignment overlaps with another active or scheduled assignment for this user.",
+      );
+    }
+
+    const now = new Date();
+    const nowIso = now.toISOString();
+    const status: NavaiMembershipRoleAssignmentStatus = "scheduled";
+    const assignmentId = randomUUID();
+
+    db.run(
+      `
+        INSERT INTO navai_membership_role_assignments (
+          id,
+          user_id,
+          user_email,
+          package_key,
+          package_name,
+          service_period,
+          role_on_start,
+          role_on_end,
+          starts_at,
+          ends_at,
+          status,
+          activated_at,
+          completed_at,
+          created_at,
+          updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `,
+      [
+        assignmentId,
+        normalizedInput.userId,
+        normalizedInput.userEmail,
+        entryPackage.key,
+        entryPackage.name,
+        entryPackage.servicePeriod,
+        entryPackage.roleOnStart,
+        entryPackage.roleOnEnd,
+        normalizedInput.startsAt,
+        normalizedInput.endsAt,
+        status,
+        "",
+        "",
+        nowIso,
+        nowIso,
+      ],
+    );
+
+    const saved = readMembershipRoleAssignmentById(db, assignmentId);
+    if (!saved) {
+      throw new Error(
+        "Membership assignment was saved but could not be loaded.",
+      );
+    }
+
+    return saved;
+  });
+
+  await sweepNavaiMembershipRoleAssignments(new Date());
+  const { db } = await getWorkspaceSqliteState();
+  return readMembershipRoleAssignmentById(db, created.id) ?? created;
+}
+
+export async function sweepNavaiMembershipRoleAssignments(now = new Date()) {
+  const nowIso = now.toISOString();
+  let activatedCount = 0;
+  let completedCount = 0;
+
+  const dueCompletion = await runSerializedMutation((db) =>
+    readStatementRows(
+      db,
+      `
+        SELECT
+          id,
+          user_id,
+          user_email,
+          package_key,
+          package_name,
+          service_period,
+          role_on_start,
+          role_on_end,
+          starts_at,
+          ends_at,
+          status,
+          activated_at,
+          completed_at,
+          created_at,
+          updated_at
+        FROM navai_membership_role_assignments
+        WHERE status <> 'completed'
+          AND ends_at <> ''
+          AND ends_at <= ?
+        ORDER BY ends_at ASC, updated_at ASC
+      `,
+      [nowIso],
+    ).map((row) => mapMembershipRoleAssignmentRow(row)),
+  );
+
+  for (const assignment of dueCompletion) {
+    await upsertNavaiPanelUserRoleBySystem({
+      uid: assignment.userId,
+      email: assignment.userEmail,
+      role: assignment.roleOnEnd,
+      now,
+    });
+
+    await runSerializedMutation((db) => {
+      db.run(
+        `
+          UPDATE navai_membership_role_assignments
+          SET
+            status = 'completed',
+            completed_at = CASE
+              WHEN completed_at = '' THEN ?
+              ELSE completed_at
+            END,
+            updated_at = ?
+          WHERE id = ?
+            AND status <> 'completed'
+        `,
+        [nowIso, nowIso, assignment.id],
+      );
+    });
+
+    completedCount += 1;
+  }
+
+  const dueActivation = await runSerializedMutation((db) =>
+    readStatementRows(
+      db,
+      `
+        SELECT
+          id,
+          user_id,
+          user_email,
+          package_key,
+          package_name,
+          service_period,
+          role_on_start,
+          role_on_end,
+          starts_at,
+          ends_at,
+          status,
+          activated_at,
+          completed_at,
+          created_at,
+          updated_at
+        FROM navai_membership_role_assignments
+        WHERE status = 'scheduled'
+          AND starts_at <> ''
+          AND starts_at <= ?
+          AND ends_at > ?
+        ORDER BY starts_at ASC, updated_at ASC
+      `,
+      [nowIso, nowIso],
+    ).map((row) => mapMembershipRoleAssignmentRow(row)),
+  );
+
+  for (const assignment of dueActivation) {
+    await upsertNavaiPanelUserRoleBySystem({
+      uid: assignment.userId,
+      email: assignment.userEmail,
+      role: assignment.roleOnStart,
+      now,
+    });
+
+    await runSerializedMutation((db) => {
+      db.run(
+        `
+          UPDATE navai_membership_role_assignments
+          SET
+            status = 'active',
+            activated_at = CASE
+              WHEN activated_at = '' THEN ?
+              ELSE activated_at
+            END,
+            updated_at = ?
+          WHERE id = ?
+            AND status = 'scheduled'
+        `,
+        [nowIso, nowIso, assignment.id],
+      );
+    });
+
+    activatedCount += 1;
+  }
+
+  return {
+    activatedCount,
+    completedCount,
+  };
+}
+
 export async function getNavaiPointsWallet(
-  actor: NavaiPanelActor
+  actor: NavaiPanelActor,
 ): Promise<NavaiPointsWalletRecord> {
   await runEndedExperienceRewardsDistributionSweep();
   const normalizedUserId = validateUserId(actor.uid);
@@ -8685,9 +10073,12 @@ export async function getNavaiPointsWallet(
   const totals = readPointsTotals(db, normalizedUserId);
   const paymentSettings = readPointsCashoutPaymentSettingsByUserId(
     db,
-    normalizedUserId
+    normalizedUserId,
   );
-  const cashoutRequests = listPointsCashoutRequestsByUserId(db, normalizedUserId);
+  const cashoutRequests = listPointsCashoutRequestsByUserId(
+    db,
+    normalizedUserId,
+  );
   const ledger = listPointsLedgerByUserId(db, normalizedUserId);
 
   return {
@@ -8708,7 +10099,7 @@ export async function getNavaiPointsWallet(
 
 export async function updateNavaiPointsCashoutPaymentSettings(
   userId: string,
-  input: NavaiPointsCashoutPaymentSettingsInput
+  input: NavaiPointsCashoutPaymentSettingsInput,
 ): Promise<NavaiPointsCashoutPaymentSettingsRecord> {
   const normalizedUserId = validateUserId(userId);
   const normalizedInput = validatePointsCashoutPaymentSettingsInput(input);
@@ -8739,10 +10130,13 @@ export async function updateNavaiPointsCashoutPaymentSettings(
         normalizedInput.accountReference,
         normalizedInput.notes,
         now,
-      ]
+      ],
     );
 
-    const settings = readPointsCashoutPaymentSettingsByUserId(db, normalizedUserId);
+    const settings = readPointsCashoutPaymentSettingsByUserId(
+      db,
+      normalizedUserId,
+    );
     if (!settings) {
       throw new Error("Cashout settings were saved but could not be loaded.");
     }
@@ -8753,7 +10147,7 @@ export async function updateNavaiPointsCashoutPaymentSettings(
 
 export async function createNavaiPointsCashoutRequest(
   userId: string,
-  input: NavaiPointsCashoutRequestInput
+  input: NavaiPointsCashoutRequestInput,
 ): Promise<NavaiPointsCashoutRequestRecord> {
   const normalizedUserId = validateUserId(userId);
   const normalizedInput = validatePointsCashoutRequestInput(input);
@@ -8789,7 +10183,7 @@ export async function createNavaiPointsCashoutRequest(
         normalizedInput.accountReference,
         normalizedInput.notes,
         now,
-      ]
+      ],
     );
 
     const requestId = randomUUID();
@@ -8825,7 +10219,7 @@ export async function createNavaiPointsCashoutRequest(
         "",
         now,
         now,
-      ]
+      ],
     );
 
     appendPointsLedgerEntry(db, {
@@ -8846,14 +10240,17 @@ export async function createNavaiPointsCashoutRequest(
 
 export async function listNavaiPointsCashoutRequests(
   actor: NavaiPanelActor,
-  options: { status?: unknown; limit?: unknown } = {}
+  options: { status?: unknown; limit?: unknown } = {},
 ): Promise<NavaiPointsCashoutRequestRecord[]> {
   assertSupportCashoutActor(actor);
   const normalizedStatusInput = normalizeString(options.status);
   const normalizedStatus = normalizedStatusInput
     ? normalizePointsCashoutStatus(normalizedStatusInput)
     : "";
-  const normalizedLimit = Math.min(500, Math.max(1, normalizePositiveInteger(options.limit, 300)));
+  const normalizedLimit = Math.min(
+    500,
+    Math.max(1, normalizePositiveInteger(options.limit, 300)),
+  );
   const { db } = await getWorkspaceSqliteState();
 
   return listPointsCashoutRequests(db, {
@@ -8865,7 +10262,7 @@ export async function listNavaiPointsCashoutRequests(
 export async function reviewNavaiPointsCashoutRequest(
   actor: NavaiPanelActor,
   requestId: string,
-  input: NavaiPointsCashoutReviewInput
+  input: NavaiPointsCashoutReviewInput,
 ): Promise<NavaiPointsCashoutRequestRecord> {
   assertSupportCashoutActor(actor);
   const normalizedRequestId = normalizeString(requestId);
@@ -8910,7 +10307,7 @@ export async function reviewNavaiPointsCashoutRequest(
         now,
         now,
         normalizedRequestId,
-      ]
+      ],
     );
 
     const reviewed = readPointsCashoutRequestById(db, normalizedRequestId);
@@ -8923,17 +10320,19 @@ export async function reviewNavaiPointsCashoutRequest(
 }
 
 export async function getNavaiReferralProgram(
-  userId: string
+  userId: string,
 ): Promise<NavaiReferralProgramRecord> {
   const normalizedUserId = validateUserId(userId);
 
-  return runSerializedMutation((db) => buildReferralProgramRecord(db, normalizedUserId));
+  return runSerializedMutation((db) =>
+    buildReferralProgramRecord(db, normalizedUserId),
+  );
 }
 
 export async function createNavaiEntryOrder(
   userId: string,
   userEmail: string,
-  input: { referralCode?: string; packageKey?: string } = {}
+  input: { referralCode?: string; packageKey?: string } = {},
 ): Promise<NavaiEntryOrderCreateResult> {
   const normalizedUserId = validateUserId(userId);
   const normalizedUserEmail = normalizeEmailAddress(userEmail);
@@ -8945,58 +10344,18 @@ export async function createNavaiEntryOrder(
     const requestedPackage = requestedPackageKey
       ? readEntryPackageByKey(db, exchangeRate, requestedPackageKey)
       : null;
-    if (requestedPackageKey && (!requestedPackage || !requestedPackage.isActive)) {
+    if (
+      requestedPackageKey &&
+      (!requestedPackage || !requestedPackage.isActive)
+    ) {
       throw new Error("Entry package is not available.");
     }
 
-    const resolvedPackage =
-      requestedPackage?.isActive
-        ? requestedPackage
-        : resolveDefaultEntryPackage(db, exchangeRate);
+    const resolvedPackage = requestedPackage?.isActive
+      ? requestedPackage
+      : resolveDefaultEntryPackage(db, exchangeRate);
     if (!resolvedPackage.isActive) {
       throw new Error("No active entry packages are configured.");
-    }
-
-    const existingPendingRow = readFirstRow(
-      db,
-      `
-        SELECT *
-        FROM navai_plus_orders
-        WHERE user_id = ?
-          AND package_key = ?
-          AND activated_at = ''
-          AND (wompi_status = '' OR wompi_status = 'PENDING' OR status = 'created')
-          AND created_at >= ?
-        ORDER BY created_at DESC
-        LIMIT 1
-      `,
-      [
-        normalizedUserId,
-        resolvedPackage.key,
-        new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
-      ]
-    );
-
-    const existingPending = existingPendingRow
-      ? mapEntryOrderRow(existingPendingRow)
-      : null;
-    if (existingPending) {
-      const referralAttribution = resolveReferralAttributionForEntryOrder(db, {
-        orderId: existingPending.id,
-        referredUserId: normalizedUserId,
-        referredEmail: normalizedUserEmail,
-        referralCode: input.referralCode,
-        existingOrder: existingPending,
-      });
-      const refreshedPendingOrder = readEntryOrderById(db, existingPending.id) ?? existingPending;
-      return {
-        order: refreshedPendingOrder,
-        checkoutUrl: `${refreshedPendingOrder.checkoutUrl}${
-          refreshedPendingOrder.checkoutUrl.includes("?") ? "&" : "?"
-        }navai_order=${existingPending.id}`,
-        environment: refreshedPendingOrder.environment,
-        referralAttribution,
-      };
     }
 
     const wompiLink = await createWompiPaymentLink(
@@ -9010,12 +10369,14 @@ export async function createNavaiEntryOrder(
         singleUse: true,
         vatAmountInCents: resolvedPackage.taxCopCents,
       },
-      environment
+      environment,
     );
 
     const now = new Date().toISOString();
     const id = randomUUID();
-    const linkId = normalizeString(wompiLink.id) || extractCheckoutLinkCode(wompiLink.checkoutUrl);
+    const linkId =
+      normalizeString(wompiLink.id) ||
+      extractCheckoutLinkCode(wompiLink.checkoutUrl);
     db.run(
       `
         INSERT INTO navai_plus_orders (
@@ -9072,7 +10433,7 @@ export async function createNavaiEntryOrder(
         "",
         now,
         now,
-      ]
+      ],
     );
 
     const referralAttribution = resolveReferralAttributionForEntryOrder(db, {
@@ -9088,18 +10449,61 @@ export async function createNavaiEntryOrder(
 
     return {
       order: createdOrder,
-      checkoutUrl: `${wompiLink.checkoutUrl}${
-        wompiLink.checkoutUrl.includes("?") ? "&" : "?"
-      }navai_order=${id}`,
+      checkoutUrl: resolveEntryOrderCheckoutUrlWithOrder(
+        wompiLink.checkoutUrl,
+        id,
+      ),
       environment,
       referralAttribution,
     };
   });
 }
 
+export async function deleteNavaiEntryOrder(userId: string, orderId: string) {
+  const normalizedUserId = validateUserId(userId);
+  const normalizedOrderId = normalizeString(orderId);
+  if (!normalizedOrderId) {
+    throw new Error("Order id is required.");
+  }
+
+  return runSerializedMutation((db) => {
+    const existing = readEntryOrderById(db, normalizedOrderId);
+    if (!existing || existing.userId !== normalizedUserId) {
+      throw new Error("Order not found.");
+    }
+    if (!canDeleteCreatedEntryOrder(existing)) {
+      throw new Error("Only orders in created status can be deleted.");
+    }
+
+    db.run("DELETE FROM navai_plus_orders WHERE id = ? AND user_id = ?", [
+      normalizedOrderId,
+      normalizedUserId,
+    ]);
+    db.run(
+      `
+        DELETE FROM navai_referrals
+        WHERE source_order_id = ?
+          AND referred_user_id = ?
+          AND status = 'pending'
+      `,
+      [normalizedOrderId, normalizedUserId],
+    );
+
+    const deleted = readEntryOrderById(db, normalizedOrderId);
+    if (deleted) {
+      throw new Error("Entry order could not be deleted.");
+    }
+
+    return {
+      orderId: normalizedOrderId,
+      deleted: true as const,
+    };
+  });
+}
+
 export async function confirmNavaiEntryOrder(
   userId: string,
-  input: { orderId?: string; transactionId?: string }
+  input: { orderId?: string; transactionId?: string },
 ): Promise<NavaiEntryOrderConfirmResult> {
   const normalizedUserId = validateUserId(userId);
   const normalizedOrderId = normalizeString(input.orderId);
@@ -9117,7 +10521,10 @@ export async function confirmNavaiEntryOrder(
   }
 
   const environment = requestedOrder?.environment ?? getWompiEnvironment();
-  const transaction = await fetchWompiTransaction(normalizedTransactionId, environment);
+  const transaction = await fetchWompiTransaction(
+    normalizedTransactionId,
+    environment,
+  );
   if (!transaction) {
     return {
       status: "UNKNOWN",
@@ -9126,7 +10533,7 @@ export async function confirmNavaiEntryOrder(
       balance: buildEntryBalance(
         listEntryOrdersByUserId(db, normalizedUserId),
         readPurchasedEntryTotals(db, normalizedUserId),
-        readReferralEntryTotals(db, normalizedUserId)
+        readReferralEntryTotals(db, normalizedUserId),
       ),
       details: null,
     };
@@ -9137,10 +10544,13 @@ export async function confirmNavaiEntryOrder(
       buildEntryBalance(
         listEntryOrdersByUserId(db, targetUserId),
         readPurchasedEntryTotals(db, targetUserId),
-        readReferralEntryTotals(db, targetUserId)
+        readReferralEntryTotals(db, targetUserId),
       );
     let order =
-      requestedOrder ?? findEntryOrderByTransaction(db, transaction, { userId: normalizedUserId });
+      requestedOrder ??
+      findEntryOrderByTransaction(db, transaction, {
+        userId: normalizedUserId,
+      });
     if (!order) {
       return {
         status: "UNMATCHED",
@@ -9152,7 +10562,8 @@ export async function confirmNavaiEntryOrder(
           reference: normalizeString(transaction.reference),
           email: normalizeEmailAddress(transaction.customer_email),
           amountInCents: normalizeInteger(transaction.amount_in_cents),
-          currency: normalizeString(transaction.currency) || NAVAI_ENTRY_CURRENCY,
+          currency:
+            normalizeString(transaction.currency) || NAVAI_ENTRY_CURRENCY,
           paymentMethod: normalizeString(transaction.payment_method?.type),
           paymentLinkId: normalizeString(transaction.payment_link_id),
           createdAt: normalizeString(transaction.created_at),
@@ -9175,7 +10586,8 @@ export async function confirmNavaiEntryOrder(
           reference: normalizeString(transaction.reference),
           email: normalizeEmailAddress(transaction.customer_email),
           amountInCents: normalizeInteger(transaction.amount_in_cents),
-          currency: normalizeString(transaction.currency) || NAVAI_ENTRY_CURRENCY,
+          currency:
+            normalizeString(transaction.currency) || NAVAI_ENTRY_CURRENCY,
           paymentMethod: normalizeString(transaction.payment_method?.type),
           paymentLinkId: normalizeString(transaction.payment_link_id),
           createdAt: normalizeString(transaction.created_at),
@@ -9212,10 +10624,14 @@ export async function confirmNavaiEntryOrder(
 
 export async function processNavaiEntryWompiWebhook(
   payload: unknown,
-  signature: string | undefined
+  signature: string | undefined,
 ) {
   const environment = getWompiEnvironment();
-  const isSignatureValid = validateWompiSignature(payload, signature, environment);
+  const isSignatureValid = validateWompiSignature(
+    payload,
+    signature,
+    environment,
+  );
   const transaction =
     payload &&
     typeof payload === "object" &&
@@ -9226,15 +10642,11 @@ export async function processNavaiEntryWompiWebhook(
       ? (payload.data.transaction as WompiTransaction | undefined)
       : undefined;
   const eventType =
-    payload &&
-    typeof payload === "object" &&
-    "event" in payload
+    payload && typeof payload === "object" && "event" in payload
       ? normalizeString(payload.event)
       : "";
   const eventId =
-    payload &&
-    typeof payload === "object" &&
-    "id" in payload
+    payload && typeof payload === "object" && "id" in payload
       ? normalizeString(payload.id)
       : normalizeString(transaction?.id) || `wompi-${Date.now()}`;
 
@@ -9255,7 +10667,7 @@ export async function processNavaiEntryWompiWebhook(
         normalizeString(signature),
         JSON.stringify(payload ?? {}),
         new Date().toISOString(),
-      ]
+      ],
     );
 
     if (!isSignatureValid || !transaction) {

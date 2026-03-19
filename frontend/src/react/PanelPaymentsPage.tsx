@@ -5,8 +5,10 @@ import {
   Copy,
   CreditCard,
   ExternalLink,
+  QrCode,
   RefreshCcw,
   Ticket,
+  Trash2,
 } from "lucide-react";
 import {
   useCallback,
@@ -17,6 +19,7 @@ import {
   type ReactNode,
 } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
+import QRCode from "qrcode";
 
 import AppProvidersShell from "@/react/AppProvidersShell";
 import { PanelModuleShellContent } from "@/react/PanelModuleShell";
@@ -26,7 +29,7 @@ import {
   PanelSidebarCardsSkeleton,
 } from "@/components/AppShellSkeletons";
 import { Button } from "@/components/ui/button";
-import { DataTable } from "@/components/ui/data-table";
+import { NavaiDynamicTable } from "@/components/ui/navai-dynamic-table";
 import {
   Dialog,
   DialogContent,
@@ -39,20 +42,27 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useFirebaseAuth } from "@/lib/firebase-auth";
+import { confirmActionModal } from "@/lib/confirm-action-modal";
 import { useI18n } from "@/lib/i18n/provider";
+import { subscribeNavaiEntryPackagesUpdated } from "@/lib/navai-entry-packages-sync";
 import {
   readStoredReferralAttribution,
   writeStoredReferralAttribution,
+  buildReferralInviteUrl,
   type StoredNavaiReferralAttribution,
 } from "@/lib/navai-referrals";
 import { useNavaiPanelAccess } from "@/lib/navai-panel-access";
 import {
   confirmNavaiEntryOrder,
   createNavaiEntryOrder,
+  deleteNavaiEntryOrder,
   getNavaiEntryBilling,
+  getNavaiReferralProgram,
   type NavaiEntryBilling,
   type NavaiEntryPackage,
   type NavaiEntryOrder,
+  type NavaiMembershipServicePeriod,
+  type NavaiReferralProgram,
 } from "@/lib/navai-panel-api";
 
 const PENDING_ENTRY_ORDER_STORAGE_KEY = "navai-entry-pending-order";
@@ -102,6 +112,35 @@ function formatAmountCentsAsUsd(amountCents: number, usdCopRate = 0) {
   return formatAmountUsd(normalizedAmountCents / 100 / usdCopRate);
 }
 
+function resolveServicePeriodLabel(
+  period: NavaiMembershipServicePeriod,
+  messages: ReturnType<typeof useI18n>["messages"],
+) {
+  switch (period) {
+    case "quarterly":
+      return messages.panelPage.entryPackagesPeriodQuarterlyLabel;
+    case "semiannual":
+      return messages.panelPage.entryPackagesPeriodSemiannualLabel;
+    case "annual":
+      return messages.panelPage.entryPackagesPeriodAnnualLabel;
+    case "monthly":
+    default:
+      return messages.panelPage.entryPackagesPeriodMonthlyLabel;
+  }
+}
+
+function resolveServicePeriodEnd(startAt: Date, period: NavaiMembershipServicePeriod) {
+  const endAt = new Date(startAt);
+  const monthsByPeriod: Record<NavaiMembershipServicePeriod, number> = {
+    monthly: 1,
+    quarterly: 3,
+    semiannual: 6,
+    annual: 12,
+  };
+  endAt.setMonth(endAt.getMonth() + monthsByPeriod[period]);
+  return endAt;
+}
+
 function resolveActiveEntryPackages(packages: NavaiEntryPackage[] | undefined) {
   return (packages ?? []).filter((item) => item.isActive);
 }
@@ -110,12 +149,92 @@ function normalizeStatus(order: NavaiEntryOrder) {
   return order.wompiStatus || order.status || "PENDING";
 }
 
+function isDeletableCreatedOrder(order: NavaiEntryOrder) {
+  return (
+    normalizeStatus(order).trim().toLowerCase() === "created" &&
+    !order.creditedAt
+  );
+}
+
+function resolveOrderStatusLabel(
+  status: string,
+  messages: ReturnType<typeof useI18n>["messages"],
+) {
+  const normalizedStatus = status.trim().toLowerCase();
+  switch (normalizedStatus) {
+    case "created":
+      return messages.panelPage.plusOrderStatusCreatedLabel;
+    case "pending":
+      return messages.panelPage.plusOrderStatusPendingLabel;
+    case "approved":
+      return messages.panelPage.plusOrderStatusApprovedLabel;
+    case "declined":
+    case "rejected":
+      return messages.panelPage.plusOrderStatusDeclinedLabel;
+    case "voided":
+    case "canceled":
+    case "cancelled":
+      return messages.panelPage.plusOrderStatusCancelledLabel;
+    case "error":
+    case "failed":
+      return messages.panelPage.plusOrderStatusErrorLabel;
+    default:
+      return status || messages.panelPage.plusOrderStatusPendingLabel;
+  }
+}
+
 function openInNewTab(url: string) {
   if (!url) {
     return;
   }
 
   window.open(url, "_blank", "noopener,noreferrer");
+}
+
+function isWompiCheckoutLinkUrl(checkoutUrl: string) {
+  const normalizedCheckoutUrl = checkoutUrl.trim();
+  if (!normalizedCheckoutUrl) {
+    return false;
+  }
+
+  try {
+    const parsed = new URL(normalizedCheckoutUrl);
+    const normalizedHost = parsed.hostname.trim().toLowerCase();
+    const isCheckoutHost =
+      normalizedHost === "checkout.wompi.co" ||
+      normalizedHost.endsWith(".checkout.wompi.co");
+    const isHttpProtocol =
+      parsed.protocol === "https:" || parsed.protocol === "http:";
+    return isCheckoutHost && isHttpProtocol;
+  } catch {
+    return /(^|\/\/)checkout\.wompi\.co(\/|$)/i.test(normalizedCheckoutUrl);
+  }
+}
+
+function resolveCheckoutUrlWithOrder(checkoutUrl: string, orderId: string) {
+  const normalizedCheckoutUrl = checkoutUrl.trim();
+  const normalizedOrderId = orderId.trim();
+  if (!normalizedCheckoutUrl || !normalizedOrderId) {
+    return normalizedCheckoutUrl;
+  }
+  if (!isWompiCheckoutLinkUrl(normalizedCheckoutUrl)) {
+    return "";
+  }
+
+  try {
+    const parsed = new URL(normalizedCheckoutUrl);
+    if (!parsed.searchParams.get("navai_order")) {
+      parsed.searchParams.set("navai_order", normalizedOrderId);
+    }
+    return parsed.toString();
+  } catch {
+    if (normalizedCheckoutUrl.includes("navai_order=")) {
+      return normalizedCheckoutUrl;
+    }
+
+    const separator = normalizedCheckoutUrl.includes("?") ? "&" : "?";
+    return `${normalizedCheckoutUrl}${separator}navai_order=${encodeURIComponent(normalizedOrderId)}`;
+  }
 }
 
 function readPendingOrderFromStorage() {
@@ -136,7 +255,19 @@ function readPendingOrderFromStorage() {
       return null;
     }
 
-    return parsed;
+    const normalizedOrder = {
+      ...parsed,
+      checkoutUrl: resolveCheckoutUrlWithOrder(
+        parsed.checkoutUrl,
+        parsed.orderId,
+      ),
+    };
+    if (!normalizedOrder.checkoutUrl) {
+      window.localStorage.removeItem(PENDING_ENTRY_ORDER_STORAGE_KEY);
+      return null;
+    }
+
+    return normalizedOrder;
   } catch {
     return null;
   }
@@ -214,6 +345,10 @@ function PaymentsSidebarCards({
   messages: ReturnType<typeof useI18n>["messages"];
 }) {
   const activePackages = resolveActiveEntryPackages(billing?.packages);
+  const periodPreviewStart = new Date();
+  const periodPreviewEnd = selectedPackage
+    ? resolveServicePeriodEnd(periodPreviewStart, selectedPackage.servicePeriod)
+    : null;
 
   return (
     <div className="space-y-4">
@@ -233,14 +368,30 @@ function PaymentsSidebarCards({
           <p>
             <strong>{messages.panelPage.plusOrderAmountColumnLabel}</strong>{" "}
             {formatAmountCentsAsUsd(
-              selectedPackage?.totalCopCents ?? billing?.catalog.priceCents ?? 0,
+              selectedPackage?.totalCopCents ??
+                billing?.catalog.priceCents ??
+                0,
               billing?.exchangeRate.rate ?? 0,
             )}
           </p>
-          <p>
-            <strong>{messages.panelPage.entryPackagesEntriesColumnLabel}</strong>{" "}
-            {selectedPackage?.entriesCount ?? billing?.catalog.entriesCount ?? 1}
-          </p>
+          {selectedPackage ? (
+            <p>
+              <strong>{messages.panelPage.entryPackagesPeriodFieldLabel}</strong>{" "}
+              {resolveServicePeriodLabel(selectedPackage.servicePeriod, messages)}
+            </p>
+          ) : null}
+          {selectedPackage ? (
+            <p>
+              <strong>{messages.panelPage.entryPackagesAssignmentStartsAtColumnLabel}</strong>{" "}
+              {formatDateTime(periodPreviewStart.toISOString())}
+            </p>
+          ) : null}
+          {periodPreviewEnd ? (
+            <p>
+              <strong>{messages.panelPage.entryPackagesAssignmentEndsAtColumnLabel}</strong>{" "}
+              {formatDateTime(periodPreviewEnd.toISOString())}
+            </p>
+          ) : null}
         </div>
       </section>
       <section className="docs-section-block navai-panel-card rounded-[1rem] p-5">
@@ -282,7 +433,7 @@ export default function PanelPaymentsPage() {
 function PanelPaymentsPageContent() {
   const { messages } = useI18n();
   const { user } = useFirebaseAuth();
-  const { actor } = useNavaiPanelAccess();
+  const { actor, canDeleteTableData } = useNavaiPanelAccess();
   const [billing, setBilling] = useState<NavaiEntryBilling | null>(null);
   const [pendingOrder, setPendingOrder] =
     useState<StoredPendingEntryOrder | null>(null);
@@ -294,10 +445,15 @@ function PanelPaymentsPageContent() {
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isCreatingOrder, setIsCreatingOrder] = useState(false);
+  const [isDeletingOrderId, setIsDeletingOrderId] = useState("");
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isConfirming, setIsConfirming] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [referralProgram, setReferralProgram] =
+    useState<NavaiReferralProgram | null>(null);
+  const [referralInviteUrl, setReferralInviteUrl] = useState("");
+  const [referralQrCodeUrl, setReferralQrCodeUrl] = useState("");
   const handledAutoConfirmRef = useRef("");
 
   const loadBilling = useCallback(
@@ -316,8 +472,12 @@ function PanelPaymentsPageContent() {
 
       try {
         const idToken = await user.getIdToken();
-        const response = await getNavaiEntryBilling(idToken);
-        setBilling(response.billing);
+        const [billingResponse, referralResponse] = await Promise.all([
+          getNavaiEntryBilling(idToken),
+          getNavaiReferralProgram(idToken).catch(() => null),
+        ]);
+        setBilling(billingResponse.billing);
+        setReferralProgram(referralResponse?.program ?? null);
         setPendingOrder(readPendingOrderFromStorage());
         setStoredReferral(readStoredReferralAttribution());
         setError("");
@@ -338,6 +498,96 @@ function PanelPaymentsPageContent() {
   useEffect(() => {
     void loadBilling();
   }, [loadBilling]);
+
+  useEffect(() => {
+    setReferralInviteUrl(buildReferralInviteUrl(referralProgram?.code || ""));
+  }, [referralProgram?.code]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    if (!referralInviteUrl) {
+      setReferralQrCodeUrl("");
+      return () => {
+        isMounted = false;
+      };
+    }
+
+    void QRCode.toDataURL(referralInviteUrl, {
+      margin: 1,
+      width: 320,
+      color: {
+        dark: "#f5f7ff",
+        light: "#111111",
+      },
+    })
+      .then((dataUrl: string) => {
+        if (isMounted) {
+          setReferralQrCodeUrl(dataUrl);
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setReferralQrCodeUrl("");
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [referralInviteUrl]);
+
+  const copyReferralQrImage = useCallback(async () => {
+    if (!referralQrCodeUrl) {
+      return;
+    }
+
+    if (
+      !navigator.clipboard?.write ||
+      typeof ClipboardItem === "undefined"
+    ) {
+      return;
+    }
+
+    try {
+      const response = await fetch(referralQrCodeUrl);
+      const blob = await response.blob();
+      const mimeType = blob.type || "image/png";
+      const clipboardItem = new ClipboardItem({
+        [mimeType]: blob,
+      });
+      await navigator.clipboard.write([clipboardItem]);
+      setNotice(messages.panelPage.referralCopyQrSuccessMessage);
+    } catch {
+      // Ignore clipboard failures to avoid noisy UX on unsupported browsers.
+    }
+  }, [messages.panelPage.referralCopyQrSuccessMessage, referralQrCodeUrl]);
+
+  useEffect(() => {
+    if (!user || typeof window === "undefined") {
+      return;
+    }
+
+    const refreshBilling = () => {
+      void loadBilling({ silent: true });
+    };
+    const dispose = subscribeNavaiEntryPackagesUpdated(() => {
+      refreshBilling();
+    });
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        refreshBilling();
+      }
+    };
+    window.addEventListener("focus", refreshBilling);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener("focus", refreshBilling);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      dispose();
+    };
+  }, [loadBilling, user]);
 
   useEffect(() => {
     const activePackages = resolveActiveEntryPackages(billing?.packages);
@@ -424,7 +674,11 @@ function PanelPaymentsPageContent() {
     activePackages.find((item) => item.key === selectedPackageKey) ??
     activePackages[0] ??
     null;
+  const pendingOrderRow = pendingOrder
+    ? (orderRows.find((order) => order.id === pendingOrder.orderId) ?? null)
+    : null;
   const isSupportView = Boolean(actor && actor.role !== "user");
+  const canDeleteOrders = canDeleteTableData || !isSupportView;
   const sidebarCards = (
     <PaymentsSidebarCards
       billing={billing}
@@ -432,6 +686,70 @@ function PanelPaymentsPageContent() {
       messages={messages}
     />
   );
+
+  const deleteSelectedOrders = async (ordersToDelete: NavaiEntryOrder[]) => {
+    if (!user || !canDeleteOrders || ordersToDelete.length < 1) {
+      return;
+    }
+
+    const deletableOrders = ordersToDelete.filter((order) =>
+      isDeletableCreatedOrder(order),
+    );
+    if (deletableOrders.length < 1) {
+      return;
+    }
+
+    setError("");
+    setNotice("");
+
+    try {
+      const idToken = await user.getIdToken();
+      for (const order of deletableOrders) {
+        await deleteNavaiEntryOrder(idToken, order.id);
+        if (pendingOrder?.orderId === order.id) {
+          persistPendingOrder(null);
+          setPendingOrder(null);
+        }
+        if (confirmOrderId.trim() === order.id) {
+          setConfirmOrderId("");
+        }
+      }
+      setNotice(messages.panelPage.plusOrderDeleteSuccessMessage);
+      await loadBilling({ silent: true });
+    } catch (deleteError) {
+      setError(
+        deleteError instanceof Error
+          ? deleteError.message
+          : messages.panelPage.plusOrderDeleteErrorMessage,
+      );
+    }
+  };
+
+  const handleDeleteOrder = async (order: NavaiEntryOrder) => {
+    if (!user || !canDeleteOrders || !isDeletableCreatedOrder(order)) {
+      return;
+    }
+    const shouldDelete = await confirmActionModal({
+      title: messages.panelPage.plusOrderDeleteActionLabel,
+      description: messages.panelPage.plusOrderDeleteConfirmMessage,
+      confirmLabel: messages.panelPage.plusOrderDeleteActionLabel,
+      cancelLabel: messages.panelPage.cancelActionLabel,
+      destructive: true,
+    });
+    if (!shouldDelete) {
+      return;
+    }
+
+    setIsDeletingOrderId(order.id);
+    setError("");
+    setNotice("");
+
+    try {
+      await deleteSelectedOrders([order]);
+    } finally {
+      setIsDeletingOrderId("");
+    }
+  };
 
   const orderColumns = useMemo<ColumnDef<NavaiEntryOrder>[]>(
     () => [
@@ -447,6 +765,8 @@ function PanelPaymentsPageContent() {
         id: "status",
         accessorFn: (row) => normalizeStatus(row),
         header: messages.panelPage.plusOrderStatusColumnLabel,
+        cell: ({ row }) =>
+          resolveOrderStatusLabel(normalizeStatus(row.original), messages),
       },
       {
         accessorKey: "environment",
@@ -486,7 +806,14 @@ function PanelPaymentsPageContent() {
               className="navai-panel-table-action-button"
               title={messages.panelPage.plusOrderOpenCheckoutActionLabel}
               aria-label={messages.panelPage.plusOrderOpenCheckoutActionLabel}
-              onClick={() => openInNewTab(row.original.checkoutUrl)}
+              onClick={() =>
+                openInNewTab(
+                  resolveCheckoutUrlWithOrder(
+                    row.original.checkoutUrl,
+                    row.original.id,
+                  ),
+                )
+              }
             >
               <ExternalLink aria-hidden="true" />
             </Button>
@@ -506,11 +833,31 @@ function PanelPaymentsPageContent() {
             >
               <Copy aria-hidden="true" />
             </Button>
+            {isDeletableCreatedOrder(row.original) && canDeleteOrders ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="navai-panel-table-action-button"
+                title={messages.panelPage.plusOrderDeleteActionLabel}
+                aria-label={messages.panelPage.plusOrderDeleteActionLabel}
+                disabled={isDeletingOrderId === row.original.id}
+                onClick={() => void handleDeleteOrder(row.original)}
+              >
+                <Trash2 aria-hidden="true" />
+              </Button>
+            ) : null}
           </div>
         ),
       },
     ],
-    [messages, usdCopRate],
+    [
+      canDeleteOrders,
+      handleDeleteOrder,
+      isDeletingOrderId,
+      messages,
+      usdCopRate,
+    ],
   );
 
   const allOrderColumns = useMemo<ColumnDef<NavaiEntryOrder>[]>(
@@ -529,6 +876,7 @@ function PanelPaymentsPageContent() {
       return;
     }
 
+    const checkoutTab = window.open("", "_blank", "noopener,noreferrer");
     setIsCreatingOrder(true);
     setError("");
     setNotice("");
@@ -539,9 +887,16 @@ function PanelPaymentsPageContent() {
         referralCode: storedReferral?.code || undefined,
         packageKey: selectedPackage.key,
       });
+      const checkoutUrl = resolveCheckoutUrlWithOrder(
+        response.checkoutUrl,
+        response.order.id,
+      );
+      if (!checkoutUrl) {
+        throw new Error(messages.panelPage.plusCreateOrderErrorMessage);
+      }
       const nextPendingOrder = {
         orderId: response.order.id,
-        checkoutUrl: response.checkoutUrl,
+        checkoutUrl,
         createdAt: new Date().toISOString(),
       };
 
@@ -550,15 +905,22 @@ function PanelPaymentsPageContent() {
       setConfirmOrderId(response.order.id);
       setNotice(
         resolveReferralNotice(response.referralAttribution.status, messages) ||
-          response.checkoutUrl,
+          checkoutUrl,
       );
       if (storedReferral) {
         writeStoredReferralAttribution(null);
         setStoredReferral(null);
       }
-      openInNewTab(response.checkoutUrl);
+      if (checkoutTab && !checkoutTab.closed) {
+        checkoutTab.location.href = checkoutUrl;
+      } else {
+        openInNewTab(checkoutUrl);
+      }
       await loadBilling({ silent: true });
     } catch (createError) {
+      if (checkoutTab && !checkoutTab.closed) {
+        checkoutTab.close();
+      }
       setError(
         createError instanceof Error
           ? createError.message
@@ -590,7 +952,7 @@ function PanelPaymentsPageContent() {
         setPendingOrder(null);
         setNotice(messages.panelPage.plusConfirmSuccessMessage);
       } else {
-        setNotice(response.status);
+        setNotice(resolveOrderStatusLabel(response.status, messages));
       }
 
       setIsConfirmDialogOpen(false);
@@ -610,7 +972,7 @@ function PanelPaymentsPageContent() {
     return (
       <PanelModuleShellContent
         page="payments"
-        description={messages.panelPage.paymentsDescription}
+        description={`${messages.panelPage.entryPackagesDescription} ${messages.panelPage.referralsDescription}`}
         rightSidebarExtra={<PanelSidebarCardsSkeleton />}
       >
         <PanelContentSkeleton />
@@ -621,7 +983,7 @@ function PanelPaymentsPageContent() {
   return (
     <PanelModuleShellContent
       page="payments"
-      description={messages.panelPage.paymentsDescription}
+      description={`${messages.panelPage.entryPackagesDescription} ${messages.panelPage.referralsDescription}`}
       rightSidebarExtra={sidebarCards}
     >
       <div className="min-w-0 w-full justify-self-stretch space-y-6">
@@ -684,13 +1046,14 @@ function PanelPaymentsPageContent() {
                       {messages.panelPage.entryPackagesTitle}
                     </h2>
                     <p className="mt-2 text-sm text-muted-foreground">
-                      {messages.panelPage.entryPackagesPurchaseDescription}
+                      {messages.panelPage.entryPackagesDescription}
                     </p>
                   </div>
                   {activePackages.length > 0 ? (
                     <div className="grid gap-3 md:grid-cols-2">
                       {activePackages.map((entryPackage) => {
-                        const isSelected = selectedPackage?.key === entryPackage.key;
+                        const isSelected =
+                          selectedPackage?.key === entryPackage.key;
                         return (
                           <button
                             key={entryPackage.key}
@@ -700,7 +1063,9 @@ function PanelPaymentsPageContent() {
                                 ? "border-primary/50 bg-primary/10"
                                 : "border-border/60 bg-background/40 hover:border-primary/30"
                             }`}
-                            onClick={() => setSelectedPackageKey(entryPackage.key)}
+                            onClick={() =>
+                              setSelectedPackageKey(entryPackage.key)
+                            }
                           >
                             <div className="flex items-start justify-between gap-3">
                               <strong className="text-sm text-foreground">
@@ -708,7 +1073,10 @@ function PanelPaymentsPageContent() {
                               </strong>
                               {isSelected ? (
                                 <span className="rounded-full border border-primary/40 bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
-                                  {messages.panelPage.entryPackagesSelectedLabel}
+                                  {
+                                    messages.panelPage
+                                      .entryPackagesSelectedLabel
+                                  }
                                 </span>
                               ) : null}
                             </div>
@@ -719,16 +1087,51 @@ function PanelPaymentsPageContent() {
                             ) : null}
                             <div className="mt-3 space-y-1 text-sm text-muted-foreground">
                               <p>
-                                <strong>{messages.panelPage.plusOrderEntriesColumnLabel}</strong>{" "}
-                                {entryPackage.entriesCount}
-                              </p>
-                              <p>
-                                <strong>{messages.panelPage.plusOrderAmountColumnLabel}</strong>{" "}
+                                <strong>
+                                  {
+                                    messages.panelPage
+                                      .plusOrderAmountColumnLabel
+                                  }
+                                </strong>{" "}
                                 {formatAmountUsd(entryPackage.totalUsd)}
                               </p>
                               <p>
-                                <strong>{messages.panelPage.entryPackagesVatLabel}</strong>{" "}
+                                <strong>
+                                  {messages.panelPage.entryPackagesVatLabel}
+                                </strong>{" "}
                                 {entryPackage.vatPercentage}%
+                              </p>
+                              <p>
+                                <strong>
+                                  {messages.panelPage.entryPackagesPeriodFieldLabel}
+                                </strong>{" "}
+                                {resolveServicePeriodLabel(
+                                  entryPackage.servicePeriod,
+                                  messages,
+                                )}
+                              </p>
+                              <p>
+                                <strong>
+                                  {
+                                    messages.panelPage
+                                      .entryPackagesAssignmentStartsAtColumnLabel
+                                  }
+                                </strong>{" "}
+                                {formatDateTime(new Date().toISOString())}
+                              </p>
+                              <p>
+                                <strong>
+                                  {
+                                    messages.panelPage
+                                      .entryPackagesAssignmentEndsAtColumnLabel
+                                  }
+                                </strong>{" "}
+                                {formatDateTime(
+                                  resolveServicePeriodEnd(
+                                    new Date(),
+                                    entryPackage.servicePeriod,
+                                  ).toISOString(),
+                                )}
                               </p>
                             </div>
                           </button>
@@ -753,15 +1156,80 @@ function PanelPaymentsPageContent() {
                       </p>
                     </div>
                   ) : null}
+                  <div className="rounded-[1rem] border border-border/60 bg-background/40 p-4">
+                    <strong className="text-sm text-foreground">
+                      {messages.panelPage.referralProgramShareTitle}
+                    </strong>
+                    <p className="mt-2 text-sm text-muted-foreground">
+                      {messages.panelPage.experienceReferralBonusInfoText}
+                    </p>
+                    <div className="mt-3 grid gap-3">
+                      {referralQrCodeUrl ? (
+                        <img
+                          src={referralQrCodeUrl}
+                          alt={messages.panelPage.referralProgramQrAlt}
+                          className="mx-auto aspect-square w-full max-w-56 rounded-[1rem] border border-border/60 bg-background p-3"
+                        />
+                      ) : (
+                        <div className="mx-auto flex aspect-square w-full max-w-56 items-center justify-center rounded-[1rem] border border-dashed border-border/60 bg-background/40 px-6 text-sm text-muted-foreground">
+                          {messages.panelPage.referralProgramQrLoadingLabel}
+                        </div>
+                      )}
+                      <div className="flex flex-wrap justify-center gap-3">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => {
+                            if (!referralInviteUrl) {
+                              return;
+                            }
+                            void navigator.clipboard?.writeText(
+                              referralInviteUrl,
+                            );
+                            setNotice(
+                              messages.panelPage.referralCopyLinkSuccessMessage,
+                            );
+                          }}
+                          disabled={!referralInviteUrl}
+                        >
+                          <Copy aria-hidden="true" />
+                          <span>
+                            {messages.panelPage.referralCopyLinkButtonLabel}
+                          </span>
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => {
+                            void copyReferralQrImage();
+                          }}
+                          disabled={!referralQrCodeUrl}
+                        >
+                          <Copy aria-hidden="true" />
+                          <span>
+                            {messages.panelPage.referralCopyQrButtonLabel}
+                          </span>
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => {
+                            if (!referralInviteUrl) {
+                              return;
+                            }
+                            openInNewTab(referralInviteUrl);
+                          }}
+                          disabled={!referralInviteUrl}
+                        >
+                          <ExternalLink aria-hidden="true" />
+                          <span>
+                            {messages.panelPage.referralOpenLinkButtonLabel}
+                          </span>
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
                   <div className="flex flex-wrap gap-3">
-                    <Button
-                      type="button"
-                      onClick={() => void handleCreateOrder()}
-                      disabled={isCreatingOrder || !selectedPackage}
-                    >
-                      <CreditCard aria-hidden="true" />
-                      <span>{messages.panelPage.plusPurchaseButtonLabel}</span>
-                    </Button>
                     <Button
                       type="button"
                       variant="outline"
@@ -771,47 +1239,7 @@ function PanelPaymentsPageContent() {
                       <RefreshCcw aria-hidden="true" />
                       <span>{messages.panelPage.plusRefreshButtonLabel}</span>
                     </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setIsConfirmDialogOpen(true)}
-                    >
-                      <BadgeCheck aria-hidden="true" />
-                      <span>{messages.panelPage.plusManualConfirmTitle}</span>
-                    </Button>
                   </div>
-                  {pendingOrder ? (
-                    <div className="rounded-[1rem] border border-border/60 bg-background/40 p-4">
-                      <strong>
-                        {messages.panelPage.plusPendingOrderTitle}
-                      </strong>
-                      <p className="mt-2 text-sm text-muted-foreground">
-                        {messages.panelPage.plusPendingOrderDescription}
-                      </p>
-                      <div className="mt-3 flex flex-wrap gap-3">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => openInNewTab(pendingOrder.checkoutUrl)}
-                        >
-                          <ExternalLink aria-hidden="true" />
-                          <span>
-                            {messages.panelPage.plusOpenCheckoutButtonLabel}
-                          </span>
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => setIsConfirmDialogOpen(true)}
-                        >
-                          <BadgeCheck aria-hidden="true" />
-                          <span>
-                            {messages.panelPage.plusManualConfirmTitle}
-                          </span>
-                        </Button>
-                      </div>
-                    </div>
-                  ) : null}
                 </div>
               </div>
             </section>
@@ -829,7 +1257,7 @@ function PanelPaymentsPageContent() {
                   </p>
                 </div>
               </div>
-              <DataTable
+              <NavaiDynamicTable
                 columns={orderColumns}
                 data={orderRows}
                 emptyMessage={messages.panelPage.plusOrdersEmptyMessage}
@@ -843,6 +1271,18 @@ function PanelPaymentsPageContent() {
                 paginationSummaryTemplate={
                   messages.panelPage.tablePaginationSummaryLabel
                 }
+                onDeleteSelectedRows={
+                  canDeleteOrders ? deleteSelectedOrders : undefined
+                }
+                canDeleteSelectedRows={canDeleteOrders}
+                deleteSelectedButtonLabel={
+                  messages.panelPage.plusOrderDeleteActionLabel
+                }
+                deleteSelectedConfirmMessage={
+                  messages.panelPage.plusOrderDeleteConfirmMessage
+                }
+                onRefresh={() => loadBilling({ silent: true })}
+                refreshButtonLabel={messages.panelPage.plusRefreshButtonLabel}
               />
             </section>
           </TabsContent>
@@ -855,7 +1295,7 @@ function PanelPaymentsPageContent() {
                     {messages.panelPage.plusAllOrdersSectionLabel}
                   </h2>
                 </div>
-                <DataTable
+                <NavaiDynamicTable
                   columns={allOrderColumns}
                   data={allOrderRows}
                   emptyMessage={messages.panelPage.plusOrdersEmptyMessage}
@@ -871,6 +1311,18 @@ function PanelPaymentsPageContent() {
                   paginationSummaryTemplate={
                     messages.panelPage.tablePaginationSummaryLabel
                   }
+                  onDeleteSelectedRows={
+                    canDeleteOrders ? deleteSelectedOrders : undefined
+                  }
+                  canDeleteSelectedRows={canDeleteOrders}
+                  deleteSelectedButtonLabel={
+                    messages.panelPage.plusOrderDeleteActionLabel
+                  }
+                  deleteSelectedConfirmMessage={
+                    messages.panelPage.plusOrderDeleteConfirmMessage
+                  }
+                  onRefresh={() => loadBilling({ silent: true })}
+                  refreshButtonLabel={messages.panelPage.plusRefreshButtonLabel}
                 />
               </section>
             </TabsContent>
